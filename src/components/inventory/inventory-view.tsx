@@ -99,6 +99,24 @@ export function InventoryView() {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [itemsWithPendingChanges, searchTerm, activeCategory]);
 
+  const pendingChangesSummary = useMemo(() => {
+    if (!hasPendingChanges || !items) return null;
+
+    let quantityChange = 0;
+    let valueChange = 0;
+
+    for (const itemId in pendingChanges) {
+      const originalItem = items.find(i => i.id === itemId);
+      if (originalItem) {
+        const newQuantity = pendingChanges[itemId];
+        const qtyDiff = newQuantity - originalItem.quantity;
+        quantityChange += qtyDiff;
+        valueChange += qtyDiff * originalItem.value;
+      }
+    }
+    return { quantityChange, valueChange };
+  }, [pendingChanges, items, hasPendingChanges]);
+
   const handleOpenForm = (item: Item | null = null) => {
     setEditingItem(item);
     setIsFormOpen(true);
@@ -137,6 +155,7 @@ export function InventoryView() {
           hasPendingChanges={hasPendingChanges}
           onSave={handleSave}
           onCancel={handleCancel}
+          pendingChangesSummary={pendingChangesSummary}
         />
         <Card>
           <CardHeader>
@@ -153,6 +172,7 @@ export function InventoryView() {
             />
             <InventoryTable
               items={filteredItems}
+              originalItems={items}
               categories={categories}
               pendingChanges={pendingChanges}
               onEditItem={handleOpenForm}

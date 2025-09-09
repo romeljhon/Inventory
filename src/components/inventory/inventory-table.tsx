@@ -11,13 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Edit, Minus, Plus, Trash2, Package } from "lucide-react";
+import { Edit, Minus, Plus, Trash2, Package, ArrowRight } from "lucide-react";
 import type { Item, Category } from "@/lib/types";
 import { LOW_STOCK_THRESHOLD } from "@/hooks/use-inventory";
 import { cn } from "@/lib/utils";
 
 interface InventoryTableProps {
   items: Item[];
+  originalItems: Item[];
   categories: Category[];
   pendingChanges: Record<string, number>;
   onEditItem: (item: Item) => void;
@@ -29,6 +30,7 @@ interface InventoryTableProps {
 
 export function InventoryTable({
   items,
+  originalItems,
   categories,
   pendingChanges,
   onEditItem,
@@ -80,6 +82,7 @@ export function InventoryTable({
           </TableHeader>
           <TableBody>
             {items.map((item) => {
+              const originalItem = originalItems.find(i => i.id === item.id);
               const hasPendingChange = pendingChanges[item.id] !== undefined;
               return (
               <TableRow key={item.id} className={cn("transition-colors hover:bg-muted/50", hasPendingChange && "bg-yellow-100/50 dark:bg-yellow-900/20")}>
@@ -105,7 +108,15 @@ export function InventoryTable({
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
-                    <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                    <div className="flex items-center gap-1 font-semibold">
+                       {hasPendingChange && originalItem ? (
+                        <>
+                          <span className="text-muted-foreground text-xs line-through">{originalItem.quantity}</span>
+                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                        </>
+                      ) : null}
+                      <span>{item.quantity}</span>
+                    </div>
                     <Button
                       size="icon"
                       variant="ghost"

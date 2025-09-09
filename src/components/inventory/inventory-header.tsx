@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Save, XCircle } from "lucide-react";
+import { Plus, Search, Save, XCircle, ArrowRight } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
+import { Badge } from "@/components/ui/badge";
 
 interface InventoryHeaderProps {
   onAddItem: () => void;
@@ -12,6 +13,10 @@ interface InventoryHeaderProps {
   hasPendingChanges: boolean;
   onSave: () => void;
   onCancel: () => void;
+  pendingChangesSummary: {
+    quantityChange: number;
+    valueChange: number;
+  } | null;
 }
 
 export function InventoryHeader({
@@ -20,9 +25,16 @@ export function InventoryHeader({
   onSearchTermChange,
   hasPendingChanges,
   onSave,
-  onCancel
+  onCancel,
+  pendingChangesSummary
 }: InventoryHeaderProps) {
   const { activeBranch } = useBusiness();
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(amount);
+  };
   return (
     <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-3">
@@ -30,8 +42,8 @@ export function InventoryHeader({
           {activeBranch?.name} Inventory
         </h1>
       </div>
-      <div className="flex flex-1 items-center gap-2 md:max-w-xl">
-        <div className="relative flex-1">
+      <div className="flex flex-1 flex-wrap items-center justify-end gap-2 md:max-w-2xl">
+        <div className="relative flex-1 min-w-[200px] md:min-w-[300px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search items..."
@@ -40,6 +52,17 @@ export function InventoryHeader({
             onChange={(e) => onSearchTermChange(e.target.value)}
           />
         </div>
+        {hasPendingChanges && pendingChangesSummary ? (
+          <div className="flex items-center gap-2 rounded-md border bg-muted p-2 text-sm">
+             <span className="font-medium">Pending:</span>
+             <Badge variant={pendingChangesSummary.quantityChange > 0 ? "default" : "destructive"}>
+                Qty: {pendingChangesSummary.quantityChange > 0 ? '+' : ''}{pendingChangesSummary.quantityChange}
+            </Badge>
+             <Badge variant={pendingChangesSummary.valueChange > 0 ? "default" : "destructive"}>
+                Value: {formatCurrency(pendingChangesSummary.valueChange)}
+             </Badge>
+          </div>
+        ) : null}
         {hasPendingChanges ? (
           <>
             <Button onClick={onSave} className="flex items-center gap-2">
