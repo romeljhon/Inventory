@@ -22,6 +22,7 @@ interface InventoryTableProps {
   onDeleteItem: (id: string) => void;
   onUpdateQuantity: (id: string, newQuantity: number) => void;
   isLoading: boolean;
+  isCompact?: boolean;
 }
 
 export function InventoryTable({
@@ -31,6 +32,7 @@ export function InventoryTable({
   onDeleteItem,
   onUpdateQuantity,
   isLoading,
+  isCompact = false,
 }: InventoryTableProps) {
   const getCategoryName = (id: string) => {
     return categories.find((c) => c.id === id)?.name || "N/A";
@@ -47,7 +49,7 @@ export function InventoryTable({
     return <div className="text-center py-8">Loading inventory...</div>;
   }
   
-  if (items.length === 0) {
+  if (!items || items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-muted-foreground/30 py-16 text-center">
         <Package className="h-12 w-12 text-muted-foreground/80" />
@@ -65,11 +67,11 @@ export function InventoryTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40%] sm:w-[30%]">Item</TableHead>
-              <TableHead className="hidden sm:table-cell">Category</TableHead>
-              <TableHead className="hidden md:table-cell text-right">Value</TableHead>
+              <TableHead className={isCompact ? 'w-full' : 'w-[40%] sm:w-[30%]'}>Item</TableHead>
+              {!isCompact && <TableHead className="hidden sm:table-cell">Category</TableHead>}
+              {!isCompact && <TableHead className="hidden md:table-cell text-right">Value</TableHead>}
               <TableHead className="text-center">Quantity</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              {!isCompact && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -77,16 +79,16 @@ export function InventoryTable({
               <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
                 <TableCell>
                   <div className="font-medium">{item.name}</div>
-                  <div className="hidden text-sm text-muted-foreground md:inline">
+                   {!isCompact && <div className="hidden text-sm text-muted-foreground md:inline">
                     {item.description}
-                  </div>
+                  </div>}
                 </TableCell>
-                <TableCell className="hidden sm:table-cell">
+                {!isCompact && <TableCell className="hidden sm:table-cell">
                   <Badge variant="outline">{getCategoryName(item.categoryId)}</Badge>
-                </TableCell>
-                <TableCell className="hidden md:table-cell text-right">
+                </TableCell>}
+                {!isCompact && <TableCell className="hidden md:table-cell text-right">
                   {formatCurrency(item.value)}
-                </TableCell>
+                </TableCell>}
                 <TableCell className="text-center">
                   <div className="flex items-center justify-center gap-2">
                     <Button
@@ -111,7 +113,7 @@ export function InventoryTable({
                      <Badge variant="destructive" className="mt-2">Low Stock</Badge>
                   )}
                 </TableCell>
-                <TableCell className="text-right">
+                {!isCompact && <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -139,7 +141,7 @@ export function InventoryTable({
                       <TooltipContent>Delete Item</TooltipContent>
                     </Tooltip>
                   </div>
-                </TableCell>
+                </TableCell>}
               </TableRow>
             ))}
           </TableBody>

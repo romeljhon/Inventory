@@ -44,7 +44,7 @@ const formSchema = z.object({
   categoryId: z.string().min(1, { message: "Please select a category." }),
 });
 
-type ItemFormData = z.infer<typeof formSchema>;
+export type ItemFormData = z.infer<typeof formSchema>;
 
 interface ItemFormDialogProps {
   isOpen: boolean;
@@ -80,7 +80,11 @@ export function ItemFormDialog({
 
   useEffect(() => {
     if (item) {
-      form.reset(item);
+      form.reset({
+        ...item,
+        quantity: item.quantity || 0,
+        value: item.value || 0,
+      });
     } else {
       form.reset({ name: "", description: "", quantity: 0, value: 0, categoryId: "" });
     }
@@ -187,7 +191,7 @@ export function ItemFormDialog({
                   <FormItem>
                     <FormLabel>Item Value (PHP)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input type="number" step="0.01" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

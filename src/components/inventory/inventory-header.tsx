@@ -2,16 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Icons } from "@/components/icons";
-import { Plus, Search, LayoutDashboard } from "lucide-react";
-import Link from "next/link";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
+import { Plus, Search } from "lucide-react";
+import { useBusiness } from "@/hooks/use-business";
 
 interface InventoryHeaderProps {
   onAddItem: () => void;
@@ -24,12 +16,12 @@ export function InventoryHeader({
   searchTerm,
   onSearchTermChange,
 }: InventoryHeaderProps) {
+  const { activeBranch } = useBusiness();
   return (
     <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div className="flex items-center gap-3">
-        <Icons.logo className="h-8 w-8 text-primary" />
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Stock Sherpa
+          {activeBranch?.name} Inventory
         </h1>
       </div>
       <div className="flex flex-1 items-center gap-2 md:max-w-sm">
@@ -42,20 +34,6 @@ export function InventoryHeader({
             onChange={(e) => onSearchTermChange(e.target.value)}
           />
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" asChild>
-                <Link href="/dashboard">
-                  <LayoutDashboard className="h-4 w-4" />
-                </Link>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Go to Dashboard</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
         <Button onClick={onAddItem} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Add Item</span>

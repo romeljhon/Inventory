@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useInventory, LOW_STOCK_THRESHOLD } from "@/hooks/use-inventory";
+import { useBusiness } from "@/hooks/use-business";
+import { SidebarLayout } from "@/components/sidebar-layout";
 import {
   Card,
   CardContent,
@@ -21,7 +24,16 @@ import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign } from "luci
 import { InventoryTable } from "@/components/inventory/inventory-table";
 
 export default function DashboardPage() {
-  const { items, categories, updateItem, deleteItem, updateItemQuantity, addCategory, isLoading } = useInventory();
+  const { business, activeBranch, isLoading: isBusinessLoading } = useBusiness();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isBusinessLoading && !business) {
+      router.push("/setup");
+    }
+  }, [business, isBusinessLoading, router]);
+  
+  const { items, categories, updateItemQuantity, isLoading: isInventoryLoading } = useInventory(activeBranch?.id);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -33,6 +45,7 @@ export default function DashboardPage() {
   };
   
   const stats = useMemo(() => {
+    if (!items) return { totalItems: 0, totalQuantity: 0, totalValue: 0, lowStockItems: 0, uniqueCategories: 0 };
     const totalItems = items.length;
     const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
     const totalValue = items.reduce((sum, item) => sum + item.quantity * item.value, 0);
@@ -44,6 +57,7 @@ export default function DashboardPage() {
   }, [items]);
 
   const categoryValueData = useMemo(() => {
+    if (!items || !categories) return [];
     const categoryValues = items.reduce((acc, item) => {
       const categoryName =
         categories.find((c) => c.id === item.categoryId)?.name || "Uncategorized";
@@ -59,6 +73,7 @@ export default function DashboardPage() {
   }, [items, categories]);
 
   const chartConfig = useMemo(() => {
+    if (!categoryValueData) return {};
     return categoryValueData.reduce((acc, entry, index) => {
       acc[entry.name] = {
         label: entry.name,
@@ -69,25 +84,22 @@ export default function DashboardPage() {
   }, [categoryValueData]);
 
   const lowStockItemsList = useMemo(
-    () => items.filter((item) => item.quantity < LOW_STOCK_THRESHOLD),
+    () => items?.filter((item) => item.quantity < LOW_STOCK_THRESHOLD) || [],
     [items]
   );
   
-  if (isLoading) {
+  const isLoading = isBusinessLoading || isInventoryLoading;
+
+  if (isLoading || !business || !activeBranch) {
     return <div className="flex h-screen items-center justify-center">Loading dashboard...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-        <header className="mb-6 flex items-center justify-between">
+    <SidebarLayout>
+      <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+        <header className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-                 <Button variant="outline" size="icon" asChild>
-                    <Link href="/">
-                    <ArrowLeft className="h-4 w-4" />
-                    </Link>
-                </Button>
-                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Dashboard for {activeBranch.name}</h1>
             </div>
         </header>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
@@ -153,7 +165,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-5">
+        <div className="grid gap-6 lg:grid-cols-5">
           <Card className="lg:col-span-3">
             <CardHeader>
               <CardTitle>Inventory Value by Category</CardTitle>
@@ -213,16 +225,17 @@ export default function DashboardPage() {
             <CardContent>
               <InventoryTable
                 items={lowStockItemsList}
-                categories={categories}
+                categories={categories || []}
                 onEditItem={() => {}} 
                 onDeleteItem={() => {}}
                 onUpdateQuantity={updateItemQuantity}
                 isLoading={false}
+                isCompact={true}
               />
             </CardContent>
           </Card>
         </div>
       </div>
-    </div>
+    </SidebarLayout>
   );
 }
