@@ -14,10 +14,8 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Cell } from "recharts";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign } from "lucide-react";
 import { InventoryTable } from "@/components/inventory/inventory-table";
@@ -26,11 +24,11 @@ export default function DashboardPage() {
   const { items, categories, updateItem, deleteItem, updateItemQuantity, addCategory, isLoading } = useInventory();
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-PH", {
       style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      currency: "PHP",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
   

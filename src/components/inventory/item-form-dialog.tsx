@@ -33,7 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Item, Category } from "@/lib/types";
 import { suggestItemCategories } from "@/lib/actions";
-import { Bot, Loader2, Plus, Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
@@ -74,7 +74,6 @@ export function ItemFormDialog({
     },
   });
 
-  const [newCategory, setNewCategory] = useState("");
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const { toast } = useToast();
@@ -87,14 +86,6 @@ export function ItemFormDialog({
     }
     setSuggestedCategories([]);
   }, [item, isOpen, form]);
-
-  const handleAddNewCategory = () => {
-    if (newCategory.trim()) {
-      const addedCategory = onAddCategory(newCategory.trim());
-      form.setValue("categoryId", addedCategory.id);
-      setNewCategory("");
-    }
-  };
 
   const handleSuggestCategories = async () => {
     const itemName = form.getValues("name");
@@ -125,8 +116,13 @@ export function ItemFormDialog({
   };
 
   const handleUseSuggestion = (suggestion: string) => {
-    const addedCategory = onAddCategory(suggestion);
-    form.setValue("categoryId", addedCategory.id);
+    const existingCategory = categories.find(c => c.name.toLowerCase() === suggestion.toLowerCase());
+    if (existingCategory) {
+      form.setValue("categoryId", existingCategory.id);
+    } else {
+      const addedCategory = onAddCategory(suggestion);
+      form.setValue("categoryId", addedCategory.id);
+    }
   };
   
   const onSubmit = (data: ItemFormData) => {
@@ -189,7 +185,7 @@ export function ItemFormDialog({
                 name="value"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Item Value ($)</FormLabel>
+                    <FormLabel>Item Value (PHP)</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
