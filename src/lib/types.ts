@@ -22,6 +22,7 @@ export interface Branch {
 export interface Business {
   id: string;
   name: string;
+  branches: Branch[];
 }
 
 export interface InventoryHistory {
