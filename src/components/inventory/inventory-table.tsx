@@ -14,10 +14,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Edit, Minus, Plus, Trash2, Package } from "lucide-react";
 import type { Item, Category } from "@/lib/types";
 import { LOW_STOCK_THRESHOLD } from "@/hooks/use-inventory";
+import { cn } from "@/lib/utils";
 
 interface InventoryTableProps {
   items: Item[];
   categories: Category[];
+  pendingChanges: Record<string, number>;
   onEditItem: (item: Item) => void;
   onDeleteItem: (id: string) => void;
   onUpdateQuantity: (id: string, newQuantity: number) => void;
@@ -28,6 +30,7 @@ interface InventoryTableProps {
 export function InventoryTable({
   items,
   categories,
+  pendingChanges,
   onEditItem,
   onDeleteItem,
   onUpdateQuantity,
@@ -39,7 +42,7 @@ export function InventoryTable({
   };
   
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-PH", {
+    return new Intl.NumberFormat("en-ph", {
       style: "currency",
       currency: "PHP",
     }).format(amount);
@@ -76,8 +79,10 @@ export function InventoryTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id} className="transition-colors hover:bg-muted/50">
+            {items.map((item) => {
+              const hasPendingChange = pendingChanges[item.id] !== undefined;
+              return (
+              <TableRow key={item.id} className={cn("transition-colors hover:bg-muted/50", hasPendingChange && "bg-yellow-100/50 dark:bg-yellow-900/20")}>
                 <TableCell>
                   <div className="font-medium">{item.name}</div>
                    {!isCompact && <div className="hidden text-sm text-muted-foreground md:inline">
@@ -147,7 +152,7 @@ export function InventoryTable({
                   </div>
                 </TableCell>}
               </TableRow>
-            ))}
+            )})}
           </TableBody>
         </Table>
       </div>

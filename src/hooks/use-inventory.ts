@@ -148,30 +148,29 @@ export function useInventory(branchId: string | undefined) {
     }
   }, [branchId]);
   
-  const updateItemQuantity = useCallback((id: string, newQuantity: number) => {
-    let oldItem: Item | undefined;
-    const clampedNewQuantity = Math.max(0, newQuantity);
-
-    setInventory((prev) => {
-        oldItem = prev.items.find(item => item.id === id);
-        return {
-            ...prev,
-            items: prev.items.map((item) =>
-                item.id === id ? { ...item, quantity: clampedNewQuantity } : item
-            )
-        }
-    });
-
-    if (oldItem && oldItem.quantity !== clampedNewQuantity) {
-        addHistory({
-            itemId: id,
-            itemName: oldItem.name,
-            change: clampedNewQuantity - oldItem.quantity,
-            newQuantity: clampedNewQuantity,
-            type: 'quantity'
+  const batchUpdateQuantities = useCallback((updates: Record<string, number>) => {
+    setInventory(prev => {
+        const updatedItems = prev.items.map(item => {
+            if (updates[item.id] !== undefined) {
+                const oldQuantity = item.quantity;
+                const newQuantity = Math.max(0, updates[item.id]);
+                if (oldQuantity !== newQuantity) {
+                    addHistory({
+                        itemId: item.id,
+                        itemName: item.name,
+                        change: newQuantity - oldQuantity,
+                        newQuantity: newQuantity,
+                        type: 'quantity'
+                    });
+                }
+                return { ...item, quantity: newQuantity };
+            }
+            return item;
         });
-    }
-  }, [branchId]);
+        return { ...prev, items: updatedItems };
+    });
+}, [branchId]);
+
 
   const deleteItem = useCallback((id: string) => {
     let deletedItem : Item | undefined;
@@ -217,7 +216,7 @@ export function useInventory(branchId: string | undefined) {
     history: inventory.history,
     addItem,
     updateItem,
-    updateItemQuantity,
+    batchUpdateQuantities,
     deleteItem,
     addCategory,
     isLoading

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { Item } from "@/lib/types";
 import { useInventory } from "@/hooks/use-inventory";
 import { useBusiness } from "@/hooks/use-business";
@@ -11,6 +11,7 @@ import { CategoryPills } from "@/components/inventory/category-pills";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import { ItemFormDialog } from "@/components/inventory/item-form-dialog";
 import { DeleteItemAlert } from "@/components/inventory/delete-item-alert";
+import { useToast } from "@/hooks/use-toast";
 
 export function InventoryView() {
   const { activeBranch } = useBusiness();
@@ -22,9 +23,10 @@ export function InventoryView() {
     updateItem,
     deleteItem,
     addCategory,
-    updateItemQuantity,
+    batchUpdateQuantities,
     isLoading,
   } = useInventory(activeBranch?.id);
+  const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -35,9 +37,52 @@ export function InventoryView() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
-  const filteredItems = useMemo(() => {
+  const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({});
+  const hasPendingChanges = Object.keys(pendingChanges).length > 0;
+
+  const handleQuantityChange = (itemId: string, newQuantity: number) => {
+    const originalItem = items.find(i => i.id === itemId);
+    if (!originalItem) return;
+
+    const clampedNewQuantity = Math.max(0, newQuantity);
+
+    setPendingChanges(prev => {
+      const newChanges = { ...prev };
+      // If the new quantity is the same as the original, remove it from pending changes
+      if (clampedNewQuantity === originalItem.quantity) {
+        delete newChanges[itemId];
+      } else {
+        newChanges[itemId] = clampedNewQuantity;
+      }
+      return newChanges;
+    });
+  };
+
+  const handleSave = () => {
+    batchUpdateQuantities(pendingChanges);
+    setPendingChanges({});
+    toast({
+      title: "Changes Saved",
+      description: "Your inventory has been successfully updated.",
+    });
+  };
+
+  const handleCancel = () => {
+    setPendingChanges({});
+  };
+
+  const itemsWithPendingChanges = useMemo(() => {
     if (!items) return [];
-    return items
+    if (!hasPendingChanges) return items;
+    return items.map(item => 
+      pendingChanges[item.id] !== undefined
+        ? { ...item, quantity: pendingChanges[item.id] }
+        : item
+    );
+  }, [items, pendingChanges, hasPendingChanges]);
+
+  const filteredItems = useMemo(() => {
+    return itemsWithPendingChanges
       .filter((item) => {
         if (activeCategory && item.categoryId !== activeCategory) {
           return false;
@@ -52,7 +97,7 @@ export function InventoryView() {
         return true;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [items, searchTerm, activeCategory]);
+  }, [itemsWithPendingChanges, searchTerm, activeCategory]);
 
   const handleOpenForm = (item: Item | null = null) => {
     setEditingItem(item);
@@ -89,6 +134,9 @@ export function InventoryView() {
           onAddItem={() => handleOpenForm()}
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}
+          hasPendingChanges={hasPendingChanges}
+          onSave={handleSave}
+          onCancel={handleCancel}
         />
         <Card>
           <CardHeader>
@@ -106,9 +154,10 @@ export function InventoryView() {
             <InventoryTable
               items={filteredItems}
               categories={categories}
+              pendingChanges={pendingChanges}
               onEditItem={handleOpenForm}
               onDeleteItem={handleOpenDeleteAlert}
-              onUpdateQuantity={updateItemQuantity}
+              onUpdateQuantity={handleQuantityChange}
               isLoading={isLoading}
             />
           </CardContent>

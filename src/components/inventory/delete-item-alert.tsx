@@ -10,6 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 interface DeleteItemAlertProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export function DeleteItemAlert({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Delete</AlertDialogAction>
+          <Button variant="destructive" onClick={onConfirm}>Delete</Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
