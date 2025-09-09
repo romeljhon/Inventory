@@ -32,7 +32,8 @@ export default function HistoryPage() {
   const { history, isLoading: isInventoryLoading } = useInventory(activeBranch?.id);
 
   const sortedHistory = useMemo(() => {
-    return history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (!history) return [];
+    return [...history].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [history]);
 
   const getChangeIcon = (log: InventoryHistory) => {
@@ -132,4 +133,3 @@ export default function HistoryPage() {
     </SidebarLayout>
   );
 }
-
