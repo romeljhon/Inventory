@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import type { Item, Category } from "@/lib/types";
+import type { Item, Category, InventoryHistory } from "@/lib/types";
 
 const LOW_STOCK_THRESHOLD = 10;
 export { LOW_STOCK_THRESHOLD };
@@ -9,38 +9,55 @@ export { LOW_STOCK_THRESHOLD };
 type InventoryData = {
   items: Item[];
   categories: Category[];
+  history: InventoryHistory[];
 };
 
-const getInitialInventory = (): InventoryData => ({
-  items: [
-    {
-      id: "item-1",
-      name: "Laptop Pro 15",
-      description: "A high-performance laptop for professionals.",
-      quantity: 25,
-      categoryId: "cat-1",
-      createdAt: new Date().toISOString(),
-      value: 1200,
-    },
-     {
-      id: "item-2",
-      name: "Wireless Mouse",
-      description: "Ergonomic wireless mouse with long battery life.",
-      quantity: 8,
-      categoryId: "cat-1",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      value: 50,
-    },
-  ],
-  categories: [
-      { id: "cat-1", name: "Electronics" },
-      { id: "cat-2", name: "Office Supplies" },
-  ]
-});
+const getInitialInventory = (branchId: string): InventoryData => {
+    const initialItems = [
+        {
+          id: "item-1",
+          name: "Laptop Pro 15",
+          description: "A high-performance laptop for professionals.",
+          quantity: 25,
+          categoryId: "cat-1",
+          createdAt: new Date().toISOString(),
+          value: 1200,
+        },
+         {
+          id: "item-2",
+          name: "Wireless Mouse",
+          description: "Ergonomic wireless mouse with long battery life.",
+          quantity: 8,
+          categoryId: "cat-1",
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+          value: 50,
+        },
+      ];
+    
+    const initialHistory = initialItems.map(item => ({
+        id: `hist-${Date.now()}-${item.id}`,
+        branchId,
+        itemId: item.id,
+        itemName: item.name,
+        change: item.quantity,
+        newQuantity: item.quantity,
+        type: 'initial' as const,
+        createdAt: item.createdAt,
+    }));
+
+    return {
+        items: initialItems,
+        categories: [
+            { id: "cat-1", name: "Electronics" },
+            { id: "cat-2", name: "Office Supplies" },
+        ],
+        history: initialHistory,
+    }
+};
 
 
 export function useInventory(branchId: string | undefined) {
-  const [inventory, setInventory] = useState<InventoryData>({ items: [], categories: [] });
+  const [inventory, setInventory] = useState<InventoryData>({ items: [], categories: [], history: [] });
   const [isLoading, setIsLoading] = useState(true);
 
   const storageKey = useMemo(() => `stock-sherpa-inventory-${branchId}`, [branchId]);
@@ -56,13 +73,15 @@ export function useInventory(branchId: string | undefined) {
       if (storedData) {
         setInventory(JSON.parse(storedData));
       } else {
-        const initialData = getInitialInventory();
+        const initialData = getInitialInventory(branchId);
         setInventory(initialData);
         localStorage.setItem(storageKey, JSON.stringify(initialData));
       }
     } catch (error) {
       console.error("Failed to load inventory from localStorage.", error);
-      setInventory(getInitialInventory());
+       if (branchId) {
+        setInventory(getInitialInventory(branchId));
+       }
     } finally {
       setIsLoading(false);
     }
@@ -78,41 +97,102 @@ export function useInventory(branchId: string | undefined) {
     }
   }, [inventory, isLoading, branchId, storageKey]);
 
+  const addHistory = (log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId'>) => {
+    if (!branchId) return;
+    const newHistory: InventoryHistory = {
+        ...log,
+        id: `hist-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        branchId,
+    };
+    setInventory(prev => ({ ...prev, history: [newHistory, ...prev.history] }));
+  }
+
   const addItem = useCallback((itemData: Omit<Item, "id" | "createdAt">) => {
-    setInventory((prev) => {
-      const newItem: Item = {
+    const newItem: Item = {
         ...itemData,
         id: `item-${Date.now()}`,
         createdAt: new Date().toISOString(),
       };
-      return { ...prev, items: [newItem, ...prev.items] };
+    setInventory((prev) => ({ ...prev, items: [newItem, ...prev.items] }));
+    addHistory({
+        itemId: newItem.id,
+        itemName: newItem.name,
+        change: newItem.quantity,
+        newQuantity: newItem.quantity,
+        type: 'add'
     });
-  }, []);
+  }, [branchId]);
 
   const updateItem = useCallback((id: string, updatedData: Partial<Omit<Item, "id" | "createdAt">>) => {
-    setInventory((prev) => ({
-      ...prev,
-      items: prev.items.map((item) =>
-        item.id === id ? { ...item, ...updatedData } : item
-      ),
-    }));
-  }, []);
+    let oldItem: Item | undefined;
+    setInventory((prev) => {
+        oldItem = prev.items.find(item => item.id === id);
+        return {
+            ...prev,
+            items: prev.items.map((item) =>
+                item.id === id ? { ...item, ...updatedData } : item
+            ),
+        }
+    });
+
+    if (oldItem) {
+        const newItem = { ...oldItem, ...updatedData};
+        addHistory({
+            itemId: id,
+            itemName: newItem.name,
+            change: newItem.quantity - oldItem.quantity,
+            newQuantity: newItem.quantity,
+            type: 'update'
+        });
+    }
+  }, [branchId]);
   
   const updateItemQuantity = useCallback((id: string, newQuantity: number) => {
-    setInventory((prev) => ({
-      ...prev,
-      items: prev.items.map((item) =>
-        item.id === id ? { ...item, quantity: Math.max(0, newQuantity) } : item
-      )
-    }));
-  }, []);
+    let oldItem: Item | undefined;
+    const clampedNewQuantity = Math.max(0, newQuantity);
+
+    setInventory((prev) => {
+        oldItem = prev.items.find(item => item.id === id);
+        return {
+            ...prev,
+            items: prev.items.map((item) =>
+                item.id === id ? { ...item, quantity: clampedNewQuantity } : item
+            )
+        }
+    });
+
+    if (oldItem && oldItem.quantity !== clampedNewQuantity) {
+        addHistory({
+            itemId: id,
+            itemName: oldItem.name,
+            change: clampedNewQuantity - oldItem.quantity,
+            newQuantity: clampedNewQuantity,
+            type: 'quantity'
+        });
+    }
+  }, [branchId]);
 
   const deleteItem = useCallback((id: string) => {
-    setInventory((prev) => ({
-      ...prev,
-      items: prev.items.filter((item) => item.id !== id),
-    }));
-  }, []);
+    let deletedItem : Item | undefined;
+    setInventory((prev) => {
+        deletedItem = prev.items.find(item => item.id === id);
+        return {
+            ...prev,
+            items: prev.items.filter((item) => item.id !== id),
+        }
+    });
+
+    if (deletedItem) {
+        addHistory({
+            itemId: id,
+            itemName: deletedItem.name,
+            change: -deletedItem.quantity,
+            newQuantity: 0,
+            type: 'delete'
+        });
+    }
+  }, [branchId]);
 
   const addCategory = useCallback((name: string): Category => {
     const existingCategory = inventory.categories.find(c => c.name.toLowerCase() === name.toLowerCase());
@@ -134,6 +214,7 @@ export function useInventory(branchId: string | undefined) {
   return {
     items: inventory.items,
     categories: inventory.categories,
+    history: inventory.history,
     addItem,
     updateItem,
     updateItemQuantity,

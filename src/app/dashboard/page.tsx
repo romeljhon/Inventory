@@ -210,7 +210,7 @@ export default function DashboardPage() {
                   </ChartContainer>
               ) : (
                 <div className="flex h-[250px] items-center justify-center text-muted-foreground">
-                  No data to display.
+                  No data to display. Add items to your inventory to see them here.
                 </div>
               )}
             </CardContent>

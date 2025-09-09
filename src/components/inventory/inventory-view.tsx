@@ -17,6 +17,7 @@ export function InventoryView() {
   const {
     items,
     categories,
+    history,
     addItem,
     updateItem,
     deleteItem,

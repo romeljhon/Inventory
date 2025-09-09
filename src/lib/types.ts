@@ -22,3 +22,14 @@ export interface Business {
   id: string;
   name: string;
 }
+
+export interface InventoryHistory {
+    id: string;
+    branchId: string;
+    itemId: string;
+    itemName: string;
+    change: number;
+    newQuantity: number;
+    type: 'initial' | 'add' | 'update' | 'delete' | 'quantity';
+    createdAt: string;
+}
