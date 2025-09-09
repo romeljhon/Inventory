@@ -26,6 +26,7 @@ export function CategoryPills({
       {categories.map((category) => (
         <Badge
           key={category.id}
+          style={activeCategory === category.id ? { backgroundColor: category.color, color: 'white' } : {}}
           variant={activeCategory === category.id ? "default" : "secondary"}
           onClick={() => onSelectCategory(category.id)}
           className="cursor-pointer transition-transform hover:scale-105"

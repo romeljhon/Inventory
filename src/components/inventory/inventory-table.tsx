@@ -40,8 +40,8 @@ export function InventoryTable({
   isLoading,
   isCompact = false,
 }: InventoryTableProps) {
-  const getCategoryName = (id: string) => {
-    return categories.find((c) => c.id === id)?.name || "N/A";
+  const getCategory = (id: string) => {
+    return categories.find((c) => c.id === id);
   };
   
   const formatCurrency = (amount: number) => {
@@ -85,6 +85,7 @@ export function InventoryTable({
             {items.map((item) => {
               const originalItem = originalItems?.find(i => i.id === item.id);
               const hasPendingChange = pendingChanges[item.id] !== undefined;
+              const category = getCategory(item.categoryId);
               return (
               <TableRow key={item.id} className={cn("transition-colors hover:bg-muted/50", hasPendingChange && "bg-yellow-100/50 dark:bg-yellow-900/20")}>
                 <TableCell>
@@ -94,7 +95,9 @@ export function InventoryTable({
                   </div>}
                 </TableCell>
                 {!isCompact && <TableCell className="hidden sm:table-cell">
-                  <Badge variant="outline">{getCategoryName(item.categoryId)}</Badge>
+                  <Badge variant="outline" style={category ? { backgroundColor: category.color, color: 'white', borderColor: category.color } : {}}>
+                    {category?.name || "N/A"}
+                  </Badge>
                 </TableCell>}
                 {!isCompact && <TableCell className="hidden md:table-cell text-right">
                   {formatCurrency(item.value)}

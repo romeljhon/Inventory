@@ -12,6 +12,13 @@ type InventoryData = {
   history: InventoryHistory[];
 };
 
+const getRandomColor = () => {
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = 70 + Math.floor(Math.random() * 10);
+    const lightness = 40 + Math.floor(Math.random() * 10);
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
+
 const getInitialInventory = (branchId: string): InventoryData => {
     const initialItems = [
         {
@@ -48,8 +55,8 @@ const getInitialInventory = (branchId: string): InventoryData => {
     return {
         items: initialItems,
         categories: [
-            { id: "cat-1", name: "Electronics" },
-            { id: "cat-2", name: "Office Supplies" },
+            { id: "cat-1", name: "Electronics", color: "hsl(220, 80%, 50%)" },
+            { id: "cat-2", name: "Office Supplies", color: "hsl(140, 60%, 45%)" },
         ],
         history: initialHistory,
     }
@@ -122,7 +129,7 @@ export function useInventory(branchId: string | undefined) {
         newQuantity: newItem.quantity,
         type: 'add'
     });
-  }, [branchId]);
+  }, []);
 
   const updateItem = useCallback((id: string, updatedData: Partial<Omit<Item, "id" | "createdAt">>) => {
     let oldItem: Item | undefined;
@@ -146,7 +153,7 @@ export function useInventory(branchId: string | undefined) {
             type: 'update'
         });
     }
-  }, [branchId]);
+  }, []);
   
   const batchUpdateQuantities = useCallback((updates: Record<string, number>) => {
     setInventory(prev => {
@@ -169,7 +176,7 @@ export function useInventory(branchId: string | undefined) {
         });
         return { ...prev, items: updatedItems };
     });
-}, [branchId]);
+}, []);
 
 
   const deleteItem = useCallback((id: string) => {
@@ -191,7 +198,7 @@ export function useInventory(branchId: string | undefined) {
             type: 'delete'
         });
     }
-  }, [branchId]);
+  }, []);
 
   const addCategory = useCallback((name: string): Category => {
     const existingCategory = inventory.categories.find(c => c.name.toLowerCase() === name.toLowerCase());
@@ -202,6 +209,7 @@ export function useInventory(branchId: string | undefined) {
     const newCategory: Category = {
       id: `cat-${Date.now()}`,
       name,
+      color: getRandomColor(),
     };
     setInventory((prev) => ({
         ...prev,
