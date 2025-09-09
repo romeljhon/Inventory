@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -30,18 +31,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import type { Item, Category } from "@/lib/types";
-import { suggestItemCategories } from "@/lib/actions";
-import { Loader2, Sparkles, PlusCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Item name must be at least 2 characters." }),
   description: z.string().min(5, { message: "Description must be at least 5 characters." }),
   quantity: z.coerce.number().int().min(0, { message: "Quantity cannot be negative." }),
   value: z.coerce.number().min(0, { message: "Value cannot be negative." }),
-  categoryId: z.string().min(1, { message: "Please select a category." }),
+  categoryId: z.string().optional(),
 });
 
 export type ItemFormData = z.infer<typeof formSchema>;
@@ -52,7 +49,6 @@ interface ItemFormDialogProps {
   onSave: (data: ItemFormData) => void;
   item: Item | null;
   categories: Category[];
-  onAddCategory: (name: string) => Category;
 }
 
 export function ItemFormDialog({
@@ -61,7 +57,6 @@ export function ItemFormDialog({
   onSave,
   item,
   categories,
-  onAddCategory,
 }: ItemFormDialogProps) {
   const form = useForm<ItemFormData>({
     resolver: zodResolver(formSchema),
@@ -74,68 +69,20 @@ export function ItemFormDialog({
     },
   });
 
-  const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
-  const [isSuggesting, setIsSuggesting] = useState(false);
-  const { toast } = useToast();
-
   useEffect(() => {
-    if (item) {
-      form.reset({
-        ...item,
-        quantity: item.quantity || 0,
-        value: item.value || 0,
-      });
-    } else {
-      form.reset({ name: "", description: "", quantity: 0, value: 0, categoryId: "" });
+    if (isOpen) {
+      if (item) {
+        form.reset({
+          ...item,
+          quantity: item.quantity || 0,
+          value: item.value || 0,
+          categoryId: item.categoryId || "",
+        });
+      } else {
+        form.reset({ name: "", description: "", quantity: 0, value: 0, categoryId: "" });
+      }
     }
-    setSuggestedCategories([]);
   }, [item, isOpen, form]);
-
-  const handleSuggestCategories = async () => {
-    const itemName = form.getValues("name");
-    const itemDescription = form.getValues("description");
-    if (!itemName && !itemDescription) {
-      toast({
-        variant: "destructive",
-        title: "Cannot suggest categories",
-        description: "Please enter an item name or description first.",
-      });
-      return;
-    }
-    setIsSuggesting(true);
-    setSuggestedCategories([]);
-    try {
-      const result = await suggestItemCategories({ itemName, itemDescription });
-      setSuggestedCategories(result.categories);
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: "destructive",
-        title: "Suggestion Failed",
-        description: "Could not fetch AI-powered category suggestions.",
-      });
-    } finally {
-      setIsSuggesting(false);
-    }
-  };
-
-  const handleUseSuggestion = (suggestion: string) => {
-    const existingCategory = categories.find(c => c.name.toLowerCase() === suggestion.toLowerCase());
-    if (existingCategory) {
-      form.setValue("categoryId", existingCategory.id);
-    } else {
-      const addedCategory = onAddCategory(suggestion);
-      form.setValue("categoryId", addedCategory.id);
-    }
-  };
-  
-  const handleAddNewCategory = () => {
-    const newCategoryName = prompt("Enter the name for the new category:");
-    if (newCategoryName && newCategoryName.trim() !== "") {
-      const newCategory = onAddCategory(newCategoryName);
-      form.setValue("categoryId", newCategory.id);
-    }
-  };
 
   const onSubmit = (data: ItemFormData) => {
     onSave(data);
@@ -207,57 +154,31 @@ export function ItemFormDialog({
               />
             </div>
             
-            <div className="space-y-2">
-                <FormLabel>Category</FormLabel>
-                <div className="flex items-center gap-2">
-                    <FormField
-                    control={form.control}
-                    name="categoryId"
-                    render={({ field }) => (
-                        <FormItem className="flex-1">
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                            {categories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>
-                                {cat.name}
-                                </SelectItem>
-                            ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddNewCategory}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        New
-                    </Button>
-                </div>
-            </div>
-
-            <div className="space-y-2 rounded-lg border bg-muted/50 p-3">
-                 <Button type="button" variant="ghost" size="sm" className="w-full" onClick={handleSuggestCategories} disabled={isSuggesting}>
-                    {isSuggesting ? (
-                        <> <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fetching Suggestions... </>
-                    ) : (
-                        <> <Sparkles className="mr-2 h-4 w-4 text-primary" /> Smart Category Tool </>
-                    )}
-                </Button>
-                {suggestedCategories.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2">
-                        {suggestedCategories.map((s, i) => (
-                            <Badge key={i} variant="secondary" className="cursor-pointer hover:bg-primary/20" onClick={() => handleUseSuggestion(s)}>
-                                {s}
-                            </Badge>
-                        ))}
-                    </div>
-                )}
-            </div>
+            <FormField
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Uncategorized</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <DialogFooter>
               <Button type="submit">Save</Button>

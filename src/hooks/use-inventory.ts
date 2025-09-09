@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -218,6 +219,23 @@ export function useInventory(branchId: string | undefined) {
     return newCategory;
   }, [inventory.categories]);
 
+  const updateCategory = useCallback((id: string, name: string, color: string) => {
+    setInventory(prev => ({
+        ...prev,
+        categories: prev.categories.map(c => c.id === id ? { ...c, name, color } : c)
+    }));
+  }, []);
+
+  const deleteCategory = useCallback((id: string) => {
+    setInventory(prev => ({
+      ...prev,
+      // Also un-categorize items that belonged to this category
+      items: prev.items.map(item => item.categoryId === id ? { ...item, categoryId: '' } : item),
+      categories: prev.categories.filter(c => c.id !== id)
+    }));
+  }, []);
+
+
   return {
     items: inventory.items,
     categories: inventory.categories,
@@ -227,6 +245,8 @@ export function useInventory(branchId: string | undefined) {
     batchUpdateQuantities,
     deleteItem,
     addCategory,
+    updateCategory,
+    deleteCategory,
     isLoading
   };
 }
