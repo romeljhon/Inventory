@@ -33,7 +33,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Item, Category } from "@/lib/types";
 import { suggestItemCategories } from "@/lib/actions";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
@@ -129,6 +129,14 @@ export function ItemFormDialog({
     }
   };
   
+  const handleAddNewCategory = () => {
+    const newCategoryName = prompt("Enter the name for the new category:");
+    if (newCategoryName && newCategoryName.trim() !== "") {
+      const newCategory = onAddCategory(newCategoryName);
+      form.setValue("categoryId", newCategory.id);
+    }
+  };
+
   const onSubmit = (data: ItemFormData) => {
     onSave(data);
   };
@@ -225,6 +233,10 @@ export function ItemFormDialog({
                         </FormItem>
                     )}
                     />
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddNewCategory}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New
+                    </Button>
                 </div>
             </div>
 
