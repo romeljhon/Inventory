@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useEffect } from "react";
@@ -33,7 +34,7 @@ export default function DashboardPage() {
     }
   }, [business, isBusinessLoading, router]);
   
-  const { items, categories, updateItemQuantity, isLoading: isInventoryLoading } = useInventory(activeBranch?.id);
+  const { items, categories, batchUpdateQuantities, isLoading: isInventoryLoading } = useInventory(activeBranch?.id);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -225,10 +226,12 @@ export default function DashboardPage() {
             <CardContent>
               <InventoryTable
                 items={lowStockItemsList}
+                originalItems={lowStockItemsList}
                 categories={categories || []}
+                pendingChanges={{}}
                 onEditItem={() => {}} 
                 onDeleteItem={() => {}}
-                onUpdateQuantity={updateItemQuantity}
+                onUpdateQuantity={() => {}}
                 isLoading={false}
                 isCompact={true}
               />

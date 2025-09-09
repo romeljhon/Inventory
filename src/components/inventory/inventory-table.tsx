@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 interface InventoryTableProps {
   items: Item[];
-  originalItems: Item[];
+  originalItems?: Item[];
   categories: Category[];
   pendingChanges: Record<string, number>;
   onEditItem: (item: Item) => void;
@@ -82,7 +83,7 @@ export function InventoryTable({
           </TableHeader>
           <TableBody>
             {items.map((item) => {
-              const originalItem = originalItems.find(i => i.id === item.id);
+              const originalItem = originalItems?.find(i => i.id === item.id);
               const hasPendingChange = pendingChanges[item.id] !== undefined;
               return (
               <TableRow key={item.id} className={cn("transition-colors hover:bg-muted/50", hasPendingChange && "bg-yellow-100/50 dark:bg-yellow-900/20")}>
@@ -105,6 +106,7 @@ export function InventoryTable({
                       variant="ghost"
                       className="h-7 w-7"
                       onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                      disabled={isCompact}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -122,6 +124,7 @@ export function InventoryTable({
                       variant="ghost"
                       className="h-7 w-7"
                       onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                      disabled={isCompact}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
