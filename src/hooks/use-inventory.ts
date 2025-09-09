@@ -105,7 +105,7 @@ export function useInventory(branchId: string | undefined) {
         createdAt: new Date().toISOString(),
         branchId,
     };
-    setInventory(prev => ({ ...prev, history: [newHistory, ...prev.history] }));
+    setInventory(prev => ({ ...prev, history: [newHistory, ...(Array.isArray(prev.history) ? prev.history : [])] }));
   }
 
   const addItem = useCallback((itemData: Omit<Item, "id" | "createdAt">) => {
