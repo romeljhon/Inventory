@@ -101,7 +101,7 @@ export function useInventory(branchId: string | undefined) {
     if (!branchId) return;
     const newHistory: InventoryHistory = {
         ...log,
-        id: `hist-${Date.now()}`,
+        id: `hist-${Date.now()}-${log.itemId}`,
         createdAt: new Date().toISOString(),
         branchId,
     };
