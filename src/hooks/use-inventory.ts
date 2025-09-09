@@ -21,6 +21,7 @@ const INITIAL_ITEMS: Item[] = [
     quantity: 25,
     categoryId: "cat-1",
     createdAt: new Date().toISOString(),
+    value: 1200,
   },
   {
     id: "item-2",
@@ -29,6 +30,7 @@ const INITIAL_ITEMS: Item[] = [
     quantity: 8,
     categoryId: "cat-1",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    value: 50,
   },
   {
     id: "item-3",
@@ -37,6 +39,7 @@ const INITIAL_ITEMS: Item[] = [
     quantity: 50,
     categoryId: "cat-2",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    value: 10,
   },
   {
     id: "item-4",
@@ -45,6 +48,7 @@ const INITIAL_ITEMS: Item[] = [
     quantity: 12,
     categoryId: "cat-3",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+    value: 250,
   },
 ];
 

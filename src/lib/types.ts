@@ -5,6 +5,7 @@ export interface Item {
   quantity: number;
   categoryId: string;
   createdAt: string;
+  value: number;
 }
 
 export interface Category {

@@ -35,6 +35,13 @@ export function InventoryTable({
   const getCategoryName = (id: string) => {
     return categories.find((c) => c.id === id)?.name || "N/A";
   };
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
 
   if (isLoading) {
     return <div className="text-center py-8">Loading inventory...</div>;
@@ -60,6 +67,7 @@ export function InventoryTable({
             <TableRow>
               <TableHead className="w-[40%] sm:w-[30%]">Item</TableHead>
               <TableHead className="hidden sm:table-cell">Category</TableHead>
+              <TableHead className="hidden md:table-cell text-right">Value</TableHead>
               <TableHead className="text-center">Quantity</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -75,6 +83,9 @@ export function InventoryTable({
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
                   <Badge variant="outline">{getCategoryName(item.categoryId)}</Badge>
+                </TableCell>
+                <TableCell className="hidden md:table-cell text-right">
+                  {formatCurrency(item.value)}
                 </TableCell>
                 <TableCell className="text-center">
                   <div className="flex items-center justify-center gap-2">

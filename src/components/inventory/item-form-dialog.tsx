@@ -40,6 +40,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: "Item name must be at least 2 characters." }),
   description: z.string().min(5, { message: "Description must be at least 5 characters." }),
   quantity: z.coerce.number().int().min(0, { message: "Quantity cannot be negative." }),
+  value: z.coerce.number().min(0, { message: "Value cannot be negative." }),
   categoryId: z.string().min(1, { message: "Please select a category." }),
 });
 
@@ -68,6 +69,7 @@ export function ItemFormDialog({
       name: "",
       description: "",
       quantity: 0,
+      value: 0,
       categoryId: "",
     },
   });
@@ -81,7 +83,7 @@ export function ItemFormDialog({
     if (item) {
       form.reset(item);
     } else {
-      form.reset({ name: "", description: "", quantity: 0, categoryId: "" });
+      form.reset({ name: "", description: "", quantity: 0, value: 0, categoryId: "" });
     }
     setSuggestedCategories([]);
   }, [item, isOpen, form]);
@@ -168,19 +170,34 @@ export function ItemFormDialog({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantity</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="quantity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Item Value ($)</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
             <div className="space-y-2">
                 <FormLabel>Category</FormLabel>
