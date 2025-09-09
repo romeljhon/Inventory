@@ -46,7 +46,7 @@ export function InventoryTable({
         <Package className="h-12 w-12 text-muted-foreground/80" />
         <h3 className="text-xl font-semibold">No Items Found</h3>
         <p className="text-muted-foreground">
-          Your inventory is empty. Try adding a new item to get started.
+          There are no items to display for the current selection.
         </p>
       </div>
     );

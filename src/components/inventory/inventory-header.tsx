@@ -3,7 +3,15 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icons } from "@/components/icons";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, LayoutDashboard } from "lucide-react";
+import Link from "next/link";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 interface InventoryHeaderProps {
   onAddItem: () => void;
@@ -34,6 +42,20 @@ export function InventoryHeader({
             onChange={(e) => onSearchTermChange(e.target.value)}
           />
         </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" asChild>
+                <Link href="/dashboard">
+                  <LayoutDashboard className="h-4 w-4" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Go to Dashboard</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <Button onClick={onAddItem} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Add Item</span>
