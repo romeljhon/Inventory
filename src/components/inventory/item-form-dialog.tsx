@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -32,6 +32,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Item, Category } from "@/lib/types";
+import { suggestItemCategories } from "@/lib/actions";
+import { useToast } from "@/hooks/use-toast";
+import { Sparkles, Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Item name must be at least 2 characters." }),
@@ -49,6 +52,7 @@ interface ItemFormDialogProps {
   onSave: (data: ItemFormData) => void;
   item: Item | null;
   categories: Category[];
+  onAddCategory: (name: string) => Category;
 }
 
 export function ItemFormDialog({
@@ -57,7 +61,11 @@ export function ItemFormDialog({
   onSave,
   item,
   categories,
+  onAddCategory,
 }: ItemFormDialogProps) {
+  const { toast } = useToast();
+  const [isSuggesting, setIsSuggesting] = useState(false);
+
   const form = useForm<ItemFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -68,6 +76,10 @@ export function ItemFormDialog({
       categoryId: "",
     },
   });
+
+  const { watch, setValue } = form;
+  const itemName = watch("name");
+  const itemDescription = watch("description");
 
   useEffect(() => {
     if (isOpen) {
@@ -83,6 +95,61 @@ export function ItemFormDialog({
       }
     }
   }, [item, isOpen, form]);
+
+  const handleSuggestCategories = async () => {
+    if (!itemName || !itemDescription) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please enter an item name and description first.",
+      });
+      return;
+    }
+    setIsSuggesting(true);
+    try {
+      const result = await suggestItemCategories({ itemName, itemDescription });
+      if (result.categories && result.categories.length > 0) {
+        const newCategoryName = result.categories[0];
+        const existingCategory = categories.find(
+          (c) => c.name.toLowerCase() === newCategoryName.toLowerCase()
+        );
+        if (existingCategory) {
+          setValue("categoryId", existingCategory.id);
+        } else {
+          const newCategory = onAddCategory(newCategoryName);
+          setValue("categoryId", newCategory.id);
+        }
+        toast({
+          title: "Category Suggested!",
+          description: `We've suggested and selected "${newCategoryName}".`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "No Suggestions Found",
+          description: "The AI couldn't find a suitable category.",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "AI Error",
+        description: "There was a problem getting suggestions.",
+      });
+    } finally {
+      setIsSuggesting(false);
+    }
+  };
+  
+  const handleAddNewCategory = () => {
+    const categoryName = prompt("Enter the new category name:");
+    if (categoryName && categoryName.trim() !== "") {
+        const newCategory = onAddCategory(categoryName);
+        setValue("categoryId", newCategory.id);
+    }
+  };
+
 
   const onSubmit = (data: ItemFormData) => {
     onSave(data);
@@ -160,21 +227,27 @@ export function ItemFormDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="">Uncategorized</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                   <div className="flex gap-2">
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" onClick={handleAddNewCategory}>New</Button>
+                    <Button type="button" variant="outline" size="icon" onClick={handleSuggestCategories} disabled={isSuggesting}>
+                        {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                        <span className="sr-only">Suggest Category</span>
+                    </Button>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
