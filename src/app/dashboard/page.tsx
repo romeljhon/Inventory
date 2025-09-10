@@ -24,9 +24,15 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp } from "lucide-react";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import type { Branch } from "@/lib/types";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { subDays, startOfDay, startOfWeek, startOfMonth, startOfYear } from "date-fns";
+
+
+type TimeRange = "day" | "week" | "month" | "year" | "all";
 
 function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => void }) {
   const { items, categories, history, isLoading: isInventoryLoading } = useInventory(branch?.id);
+  const [timeRange, setTimeRange] = useState<TimeRange>("all");
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -37,6 +43,33 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
     }).format(amount);
   };
   
+  const filteredHistory = useMemo(() => {
+    if (!history) return [];
+    if (timeRange === "all") return history;
+    
+    const now = new Date();
+    let startDate: Date;
+
+    switch (timeRange) {
+      case "day":
+        startDate = startOfDay(now);
+        break;
+      case "week":
+        startDate = startOfWeek(now);
+        break;
+      case "month":
+        startDate = startOfMonth(now);
+        break;
+      case "year":
+        startDate = startOfYear(now);
+        break;
+      default:
+        return history;
+    }
+    
+    return history.filter(log => new Date(log.createdAt) >= startDate);
+  }, [history, timeRange]);
+
   const stats = useMemo(() => {
     if (!items) return { totalItems: 0, totalQuantity: 0, totalValue: 0, lowStockItems: 0, uniqueCategories: 0 };
     const totalItems = items.length;
@@ -66,9 +99,9 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
   }, [items, categories]);
   
   const fastestSellingItems = useMemo(() => {
-    if (!history) return [];
+    if (!filteredHistory) return [];
 
-    const sales = history.reduce((acc, log) => {
+    const sales = filteredHistory.reduce((acc, log) => {
       if (log.type === 'quantity' && log.change < 0) {
         acc[log.itemId] = (acc[log.itemId] || 0) + Math.abs(log.change);
       }
@@ -86,7 +119,7 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
       .sort((a, b) => b.quantitySold - a.quantitySold)
       .slice(0, 5);
 
-  }, [history, items]);
+  }, [filteredHistory, items]);
 
   const chartConfig = useMemo(() => {
     if (!categoryValueData) return {};
@@ -118,13 +151,22 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
 
   return (
     <>
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
               <Button variant="outline" size="icon" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <h1 className="text-3xl font-bold tracking-tight">Dashboard for {branch.name}</h1>
           </div>
+          <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
+            <TabsList>
+              <TabsTrigger value="day">Today</TabsTrigger>
+              <TabsTrigger value="week">This Week</TabsTrigger>
+              <TabsTrigger value="month">This Month</TabsTrigger>
+              <TabsTrigger value="year">This Year</TabsTrigger>
+              <TabsTrigger value="all">All Time</TabsTrigger>
+            </TabsList>
+          </Tabs>
       </header>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
@@ -245,7 +287,7 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
               <TrendingUp className="h-5 w-5" />
               Fastest Selling Items
             </CardTitle>
-            <CardDescription>Top 5 items by quantity sold.</CardDescription>
+            <CardDescription>Top 5 items by quantity sold for the selected period.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] w-full">
             {fastestSellingItems.length > 0 ? (
@@ -280,7 +322,7 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
               </ChartContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-muted-foreground">
-                No sales data available yet.
+                No sales data available for this period.
               </div>
             )}
           </CardContent>
@@ -392,5 +434,7 @@ export default function DashboardPage() {
   );
 }
 
+
+    
 
     
