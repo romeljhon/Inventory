@@ -235,7 +235,7 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
 }
 
 export default function DashboardPage() {
-  const { business, branches, addBranch, isLoading: isBusinessLoading } = useBusiness();
+  const { business, branches, addBranch, switchBranch, isLoading: isBusinessLoading } = useBusiness();
   const router = useRouter();
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
 
@@ -257,7 +257,10 @@ export default function DashboardPage() {
     const branchName = prompt("Enter the name for the new branch:");
     if (branchName) {
       const newBranch = await addBranch(branchName);
-      setSelectedBranch(newBranch); // Optionally, go directly to the new branch's dashboard
+      if (newBranch) {
+          switchBranch(newBranch.id);
+          setSelectedBranch(newBranch);
+      }
     }
   };
   
@@ -314,5 +317,7 @@ export default function DashboardPage() {
     </SidebarLayout>
   );
 }
+
+    
 
     
