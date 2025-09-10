@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Item, Category, InventoryHistory } from "@/lib/types";
+import { subDays, subWeeks, subMonths } from 'date-fns';
+
 
 const LOW_STOCK_THRESHOLD = 10;
 export { LOW_STOCK_THRESHOLD };
@@ -21,15 +23,16 @@ const getRandomColor = () => {
 }
 
 const getInitialInventory = (branchId: string): InventoryData => {
-    const initialItems = [
+    const now = new Date();
+    const initialItems: Item[] = [
         {
           id: "item-1",
           name: "Laptop Pro 15",
           description: "A high-performance laptop for professionals.",
           quantity: 25,
           categoryId: "cat-1",
-          createdAt: new Date().toISOString(),
-          value: 1200,
+          createdAt: subMonths(now, 2).toISOString(),
+          value: 75000,
         },
          {
           id: "item-2",
@@ -37,13 +40,67 @@ const getInitialInventory = (branchId: string): InventoryData => {
           description: "Ergonomic wireless mouse with long battery life.",
           quantity: 8,
           categoryId: "cat-1",
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-          value: 50,
+          createdAt: subDays(now, 5).toISOString(),
+          value: 2500,
         },
+        {
+          id: "item-3",
+          name: "Smartwatch",
+          description: "Fitness and notification tracking on your wrist.",
+          quantity: 15,
+          categoryId: "cat-1",
+          createdAt: subWeeks(now, 2).toISOString(),
+          value: 12000,
+        },
+        {
+          id: "item-4",
+          name: "USB-C Hub",
+          description: "Expand your laptop's connectivity with more ports.",
+          quantity: 30,
+          categoryId: "cat-1",
+          createdAt: subMonths(now, 1).toISOString(),
+          value: 3500,
+        },
+        {
+          id: "item-5",
+          name: "Mechanical Keyboard",
+          description: "Clicky and satisfying typing experience for coders.",
+          quantity: 12,
+          categoryId: "cat-1",
+          createdAt: subMonths(now, 3).toISOString(),
+          value: 8000,
+        },
+        {
+          id: "item-6",
+          name: "4K Monitor",
+          description: "Ultra-high-definition display for crisp visuals.",
+          quantity: 18,
+          categoryId: "cat-1",
+          createdAt: subMonths(now, 6).toISOString(),
+          value: 25000,
+        },
+         {
+          id: "item-7",
+          name: "Printer Paper (Ream)",
+          description: "500 sheets of high-quality A4 paper.",
+          quantity: 50,
+          categoryId: "cat-2",
+          createdAt: subDays(now, 10).toISOString(),
+          value: 250,
+        },
+        {
+          id: "item-8",
+          name: "Stapler",
+          description: "Standard office stapler.",
+          quantity: 20,
+          categoryId: "cat-2",
+          createdAt: subMonths(now, 4).toISOString(),
+          value: 150,
+        }
       ];
     
-    const initialHistory = initialItems.map(item => ({
-        id: `hist-${Date.now()}-${item.id}`,
+    const initialHistory: InventoryHistory[] = initialItems.map(item => ({
+        id: `hist-initial-${item.id}`,
         branchId,
         itemId: item.id,
         itemName: item.name,
@@ -53,13 +110,43 @@ const getInitialInventory = (branchId: string): InventoryData => {
         createdAt: item.createdAt,
     }));
 
+    // Add mock sales data
+    const mockSales: Omit<InventoryHistory, 'id' | 'branchId'>[] = [
+        // Today
+        { itemId: 'item-2', itemName: 'Wireless Mouse', change: -2, newQuantity: 8, type: 'quantity', createdAt: now.toISOString() },
+        { itemId: 'item-7', itemName: 'Printer Paper (Ream)', change: -5, newQuantity: 50, type: 'quantity', createdAt: now.toISOString() },
+        
+        // This Week
+        { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, newQuantity: 25, type: 'quantity', createdAt: subDays(now, 2).toISOString() },
+        { itemId: 'item-3', itemName: 'Smartwatch', change: -3, newQuantity: 15, type: 'quantity', createdAt: subDays(now, 3).toISOString() },
+
+        // This Month
+        { itemId: 'item-5', itemName: 'Mechanical Keyboard', change: -2, newQuantity: 12, type: 'quantity', createdAt: subWeeks(now, 2).toISOString() },
+        { itemId: 'item-4', itemName: 'USB-C Hub', change: -5, newQuantity: 30, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
+        { itemId: 'item-8', itemName: 'Stapler', change: -2, newQuantity: 20, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
+
+        // This Year
+        { itemId: 'item-6', itemName: '4K Monitor', change: -1, newQuantity: 18, type: 'quantity', createdAt: subMonths(now, 2).toISOString() },
+        { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, newQuantity: 26, type: 'quantity', createdAt: subMonths(now, 4).toISOString() },
+        { itemId: 'item-3', itemName: 'Smartwatch', change: -4, newQuantity: 18, type: 'quantity', createdAt: subMonths(now, 5).toISOString() },
+    ];
+
+    mockSales.forEach((sale, index) => {
+        initialHistory.push({
+            ...sale,
+            id: `hist-sale-${now.getTime()}-${index}`,
+            branchId,
+        });
+    });
+
+
     return {
         items: initialItems,
         categories: [
             { id: "cat-1", name: "Electronics", color: "hsl(220, 80%, 50%)" },
             { id: "cat-2", name: "Office Supplies", color: "hsl(140, 60%, 45%)" },
         ],
-        history: initialHistory,
+        history: initialHistory.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     }
 };
 
