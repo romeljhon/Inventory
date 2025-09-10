@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Item, Category, InventoryHistory } from "@/lib/types";
-import { subDays, subWeeks, subMonths } from 'date-fns';
+import { subDays, subWeeks, subMonths, addDays } from 'date-fns';
 
 
 const LOW_STOCK_THRESHOLD = 10;
@@ -33,6 +33,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
           categoryId: "cat-1",
           createdAt: subMonths(now, 2).toISOString(),
           value: 75000,
+          unitType: 'pcs',
         },
          {
           id: "item-2",
@@ -42,6 +43,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
           categoryId: "cat-1",
           createdAt: subDays(now, 5).toISOString(),
           value: 2500,
+          unitType: 'pcs',
         },
         {
           id: "item-3",
@@ -51,6 +53,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
           categoryId: "cat-1",
           createdAt: subWeeks(now, 2).toISOString(),
           value: 12000,
+          unitType: 'pcs',
         },
         {
           id: "item-4",
@@ -60,6 +63,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
           categoryId: "cat-1",
           createdAt: subMonths(now, 1).toISOString(),
           value: 3500,
+          unitType: 'pcs',
         },
         {
           id: "item-5",
@@ -69,6 +73,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
           categoryId: "cat-1",
           createdAt: subMonths(now, 3).toISOString(),
           value: 8000,
+          unitType: 'pcs',
         },
         {
           id: "item-6",
@@ -78,6 +83,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
           categoryId: "cat-1",
           createdAt: subMonths(now, 6).toISOString(),
           value: 25000,
+          unitType: 'pcs',
         },
          {
           id: "item-7",
@@ -87,6 +93,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
           categoryId: "cat-2",
           createdAt: subDays(now, 10).toISOString(),
           value: 250,
+          unitType: 'pack',
         },
         {
           id: "item-8",
@@ -96,6 +103,40 @@ const getInitialInventory = (branchId: string): InventoryData => {
           categoryId: "cat-2",
           createdAt: subMonths(now, 4).toISOString(),
           value: 150,
+          unitType: 'pcs',
+        },
+        {
+          id: "item-9",
+          name: "Fresh Milk (1L)",
+          description: "Full cream milk, pasteurized.",
+          quantity: 15,
+          categoryId: "cat-3",
+          createdAt: subDays(now, 2).toISOString(),
+          value: 120,
+          unitType: 'box',
+          expirationDate: addDays(now, 10).toISOString(),
+        },
+        {
+          id: "item-10",
+          name: "Cheddar Cheese (250g)",
+          description: "Block of sharp cheddar cheese.",
+          quantity: 5,
+          categoryId: "cat-3",
+          createdAt: subDays(now, 5).toISOString(),
+          value: 250,
+          unitType: 'pack',
+          expirationDate: addDays(now, 30).toISOString(),
+        },
+        {
+          id: "item-11",
+          name: "Expired Yogurt",
+          description: "This yogurt is past its prime.",
+          quantity: 3,
+          categoryId: "cat-3",
+          createdAt: subDays(now, 15).toISOString(),
+          value: 80,
+          unitType: 'pcs',
+          expirationDate: subDays(now, 2).toISOString(),
         }
       ];
     
@@ -115,10 +156,12 @@ const getInitialInventory = (branchId: string): InventoryData => {
         // Today
         { itemId: 'item-2', itemName: 'Wireless Mouse', change: -2, newQuantity: 8, type: 'quantity', createdAt: now.toISOString() },
         { itemId: 'item-7', itemName: 'Printer Paper (Ream)', change: -5, newQuantity: 50, type: 'quantity', createdAt: now.toISOString() },
+        { itemId: 'item-9', itemName: 'Fresh Milk (1L)', change: -1, newQuantity: 15, type: 'quantity', createdAt: now.toISOString() },
         
         // This Week
         { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, newQuantity: 25, type: 'quantity', createdAt: subDays(now, 2).toISOString() },
         { itemId: 'item-3', itemName: 'Smartwatch', change: -3, newQuantity: 15, type: 'quantity', createdAt: subDays(now, 3).toISOString() },
+        { itemId: 'item-10', itemName: 'Cheddar Cheese (250g)', change: -2, newQuantity: 5, type: 'quantity', createdAt: subDays(now, 4).toISOString() },
 
         // This Month
         { itemId: 'item-5', itemName: 'Mechanical Keyboard', change: -2, newQuantity: 12, type: 'quantity', createdAt: subWeeks(now, 2).toISOString() },
@@ -145,6 +188,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
         categories: [
             { id: "cat-1", name: "Electronics", color: "hsl(220, 80%, 50%)" },
             { id: "cat-2", name: "Office Supplies", color: "hsl(140, 60%, 45%)" },
+            { id: "cat-3", name: "Food", color: "hsl(40, 90%, 50%)" },
         ],
         history: initialHistory.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     }

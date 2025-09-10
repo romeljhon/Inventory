@@ -12,10 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Edit, Minus, Plus, Trash2, Package, ArrowRight } from "lucide-react";
+import { Edit, Minus, Plus, Trash2, Package, ArrowRight, CalendarClock } from "lucide-react";
 import type { Item, Category } from "@/lib/types";
 import { LOW_STOCK_THRESHOLD } from "@/hooks/use-inventory";
 import { cn } from "@/lib/utils";
+import { format, isBefore, isWithinInterval, addDays } from 'date-fns';
+
 
 interface InventoryTableProps {
   items: Item[];
@@ -50,6 +52,20 @@ export function InventoryTable({
       currency: "PHP",
     }).format(amount);
   };
+
+  const getExpirationBadge = (expirationDate: string) => {
+    const now = new Date();
+    const expDate = new Date(expirationDate);
+    const sevenDaysFromNow = addDays(now, 7);
+
+    if (isBefore(expDate, now)) {
+      return <Badge variant="destructive" className="mt-1">Expired</Badge>;
+    }
+    if (isWithinInterval(expDate, { start: now, end: sevenDaysFromNow })) {
+        return <Badge variant="secondary" className="mt-1 bg-yellow-500 text-black">Expires Soon</Badge>;
+    }
+    return null;
+  }
 
   if (isLoading) {
     return <div className="text-center py-8">Loading inventory...</div>;
@@ -93,6 +109,13 @@ export function InventoryTable({
                    {!isCompact && <div className="hidden text-sm text-muted-foreground md:inline">
                     {item.description}
                   </div>}
+                  {item.expirationDate && !isCompact && (
+                    <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                        <CalendarClock className="h-3 w-3" />
+                        <span>Expires: {format(new Date(item.expirationDate), "PP")}</span>
+                    </div>
+                  )}
+                  {item.expirationDate && getExpirationBadge(item.expirationDate)}
                 </TableCell>
                 {!isCompact && <TableCell className="hidden sm:table-cell">
                   <Badge variant="outline" style={category ? { backgroundColor: category.color, color: 'white', borderColor: category.color } : {}}>
@@ -121,6 +144,7 @@ export function InventoryTable({
                         </>
                       ) : null}
                       <span>{item.quantity}</span>
+                      {item.unitType && <span className="text-xs text-muted-foreground">({item.unitType})</span>}
                     </div>
                     {!isCompact && <Button
                       size="icon"

@@ -6,6 +6,8 @@ export interface Item {
   categoryId: string;
   createdAt: string;
   value: number;
+  unitType?: 'pcs' | 'box' | 'pack';
+  expirationDate?: string;
 }
 
 export interface Category {

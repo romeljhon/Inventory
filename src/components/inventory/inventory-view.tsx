@@ -91,7 +91,7 @@ export function InventoryView() {
           const search = searchTerm.toLowerCase();
           return (
             item.name.toLowerCase().includes(search) ||
-            item.description.toLowerCase().includes(search)
+            (item.description && item.description.toLowerCase().includes(search))
           );
         }
         return true;
