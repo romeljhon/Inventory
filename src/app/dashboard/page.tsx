@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell } from "recharts";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building } from "lucide-react";
+import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle } from "lucide-react";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import type { Branch } from "@/lib/types";
 
@@ -235,7 +235,7 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
 }
 
 export default function DashboardPage() {
-  const { business, branches, isLoading: isBusinessLoading } = useBusiness();
+  const { business, branches, addBranch, isLoading: isBusinessLoading } = useBusiness();
   const router = useRouter();
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
 
@@ -252,6 +252,14 @@ export default function DashboardPage() {
   const handleBackToBranches = () => {
     setSelectedBranch(null);
   };
+
+  const handleAddBranch = async () => {
+    const branchName = prompt("Enter the name for the new branch:");
+    if (branchName) {
+      const newBranch = await addBranch(branchName);
+      setSelectedBranch(newBranch); // Optionally, go directly to the new branch's dashboard
+    }
+  };
   
   const isLoading = isBusinessLoading;
 
@@ -267,7 +275,7 @@ export default function DashboardPage() {
         ) : (
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Select a Branch</h1>
-            <p className="text-muted-foreground mb-6">Click on a branch to view its dashboard.</p>
+            <p className="text-muted-foreground mb-6">Click on a branch to view its dashboard, or add a new one.</p>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {branches.map(branch => (
                 <Card 
@@ -286,6 +294,19 @@ export default function DashboardPage() {
                   </CardHeader>
                 </Card>
               ))}
+               <Card 
+                  className="cursor-pointer hover:shadow-lg transition-shadow border-2 border-dashed bg-muted/50 hover:bg-muted/80 hover:border-primary"
+                  onClick={handleAddBranch}
+                >
+                  <CardHeader className="flex flex-row items-center justify-center h-full gap-4 space-y-0 text-center">
+                     <div className="text-muted-foreground">
+                        <PlusCircle className="h-8 w-8" />
+                     </div>
+                     <div>
+                        <CardTitle>Add New Branch</CardTitle>
+                     </div>
+                  </CardHeader>
+                </Card>
             </div>
           </div>
         )}
