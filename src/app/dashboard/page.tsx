@@ -283,31 +283,28 @@ export default function DashboardPage() {
               {branches.map(branch => (
                 <Card 
                   key={branch.id} 
-                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-1"
                   onClick={() => handleSelectBranch(branch)}
                 >
-                  <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                     <div className="bg-primary text-primary-foreground rounded-lg p-3">
-                        <Building className="h-6 w-6" />
-                     </div>
-                     <div>
-                        <CardTitle>{branch.name}</CardTitle>
-                        <CardDescription>View Dashboard</CardDescription>
-                     </div>
+                  <CardHeader className="flex flex-col items-center justify-center text-center p-6">
+                    <div className="p-4 bg-primary/10 rounded-full mb-4">
+                        <Building className="h-8 w-8 text-primary" />
+                    </div>
+                    <CardTitle className="text-lg">{branch.name}</CardTitle>
+                    <CardDescription>View Dashboard</CardDescription>
                   </CardHeader>
                 </Card>
               ))}
                <Card 
-                  className="cursor-pointer hover:shadow-lg transition-shadow border-2 border-dashed bg-muted/50 hover:bg-muted/80 hover:border-primary"
+                  className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-1 border-2 border-dashed bg-muted/20 hover:border-primary/50 hover:bg-muted/50"
                   onClick={handleAddBranch}
                 >
-                  <CardHeader className="flex flex-row items-center justify-center h-full gap-4 space-y-0 text-center">
-                     <div className="text-muted-foreground">
-                        <PlusCircle className="h-8 w-8" />
+                  <CardHeader className="flex flex-col items-center justify-center text-center p-6 h-full">
+                     <div className="p-4 bg-primary/10 rounded-full mb-4">
+                        <PlusCircle className="h-8 w-8 text-primary" />
                      </div>
-                     <div>
-                        <CardTitle>Add New Branch</CardTitle>
-                     </div>
+                    <CardTitle className="text-lg">Add New Branch</CardTitle>
+                    <CardDescription>Create a new location</CardDescription>
                   </CardHeader>
                 </Card>
             </div>
@@ -317,7 +314,3 @@ export default function DashboardPage() {
     </SidebarLayout>
   );
 }
-
-    
-
-    
