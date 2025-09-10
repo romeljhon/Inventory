@@ -73,10 +73,10 @@ export function InventoryTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className={isCompact ? 'w-full' : 'w-[40%] sm:w-[30%]'}>Item</TableHead>
+              <TableHead className={cn(isCompact ? 'w-auto' : 'w-[40%] sm:w-[30%]')}>Item</TableHead>
               {!isCompact && <TableHead className="hidden sm:table-cell">Category</TableHead>}
               {!isCompact && <TableHead className="hidden md:table-cell text-right">Value</TableHead>}
-              <TableHead className="text-center">Quantity</TableHead>
+              <TableHead className="text-center w-[150px]">Quantity</TableHead>
               {!isCompact && <TableHead className="hidden md:table-cell text-right">Total Value</TableHead>}
               {!isCompact && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
@@ -103,8 +103,8 @@ export function InventoryTable({
                   {formatCurrency(item.value)}
                 </TableCell>}
                 <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
+                  <div className={cn("flex items-center gap-2", isCompact ? "justify-center" : "justify-center")}>
+                    {!isCompact && <Button
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
@@ -112,7 +112,7 @@ export function InventoryTable({
                       disabled={isCompact}
                     >
                       <Minus className="h-4 w-4" />
-                    </Button>
+                    </Button>}
                     <div className="flex items-center gap-1 font-semibold">
                        {hasPendingChange && originalItem ? (
                         <>
@@ -122,7 +122,7 @@ export function InventoryTable({
                       ) : null}
                       <span>{item.quantity}</span>
                     </div>
-                    <Button
+                    {!isCompact && <Button
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
@@ -130,7 +130,7 @@ export function InventoryTable({
                       disabled={isCompact}
                     >
                       <Plus className="h-4 w-4" />
-                    </Button>
+                    </Button>}
                   </div>
                   {item.quantity < LOW_STOCK_THRESHOLD && (
                      <Badge variant="destructive" className="mt-2">Low Stock</Badge>
@@ -176,3 +176,5 @@ export function InventoryTable({
     </TooltipProvider>
   );
 }
+
+    

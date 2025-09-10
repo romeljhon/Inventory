@@ -19,14 +19,14 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle } from "lucide-react";
+import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp } from "lucide-react";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import type { Branch } from "@/lib/types";
 
 function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => void }) {
-  const { items, categories, isLoading: isInventoryLoading } = useInventory(branch?.id);
+  const { items, categories, history, isLoading: isInventoryLoading } = useInventory(branch?.id);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -64,6 +64,29 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
       value,
     })).sort((a,b) => b.value - a.value);
   }, [items, categories]);
+  
+  const fastestSellingItems = useMemo(() => {
+    if (!history) return [];
+
+    const sales = history.reduce((acc, log) => {
+      if (log.type === 'quantity' && log.change < 0) {
+        acc[log.itemId] = (acc[log.itemId] || 0) + Math.abs(log.change);
+      }
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return Object.entries(sales)
+      .map(([itemId, quantitySold]) => {
+        const item = items.find(i => i.id === itemId);
+        return {
+          name: item?.name || 'Unknown Item',
+          quantitySold,
+        };
+      })
+      .sort((a, b) => b.quantitySold - a.quantitySold)
+      .slice(0, 5);
+
+  }, [history, items]);
 
   const chartConfig = useMemo(() => {
     if (!categoryValueData) return {};
@@ -75,6 +98,14 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
       return acc;
     }, {} as any);
   }, [categoryValueData]);
+  
+    const fastestSellingChartConfig = {
+    quantitySold: {
+      label: "Quantity Sold",
+      color: "hsl(var(--chart-1))",
+    },
+  };
+
 
   const lowStockItemsList = useMemo(
     () => items?.filter((item) => item.quantity < LOW_STOCK_THRESHOLD) || [],
@@ -158,21 +189,21 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+      <div className="grid gap-6 lg:grid-cols-2">
+         <Card>
           <CardHeader>
             <CardTitle>Inventory Value by Category</CardTitle>
             <CardDescription>
               Total inventory value for each category.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="h-[300px] w-full">
             {categoryValueData.length > 0 ? (
-               <ChartContainer config={chartConfig} className="w-full h-[250px]">
+               <ChartContainer config={chartConfig} className="w-full h-full">
                   <BarChart
                     data={categoryValueData}
                     layout="vertical"
-                    margin={{ left: 10, right: 30 }}
+                    margin={{ left: 10, right: 30, top: 10, bottom: 10 }}
                     accessibilityLayer
                   >
                     <XAxis type="number" hide />
@@ -202,34 +233,80 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
                   </BarChart>
                 </ChartContainer>
             ) : (
-              <div className="flex h-[250px] items-center justify-center text-muted-foreground">
-                No data to display. Add items to your inventory to see them here.
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                No data to display. Add items to see charts.
               </div>
             )}
           </CardContent>
         </Card>
-        <Card className="lg:col-span-2">
+        <Card>
           <CardHeader>
-            <CardTitle>Low Stock Items</CardTitle>
-            <CardDescription>
-              These items may need restocking soon.
-            </CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Fastest Selling Items
+            </CardTitle>
+            <CardDescription>Top 5 items by quantity sold.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <InventoryTable
-              items={lowStockItemsList}
-              originalItems={lowStockItemsList}
-              categories={categories || []}
-              pendingChanges={{}}
-              onEditItem={() => {}} 
-              onDeleteItem={() => {}}
-              onUpdateQuantity={() => {}}
-              isLoading={false}
-              isCompact={true}
-            />
+          <CardContent className="h-[300px] w-full">
+            {fastestSellingItems.length > 0 ? (
+              <ChartContainer config={fastestSellingChartConfig} className="w-full h-full">
+                <BarChart
+                  data={fastestSellingItems}
+                  layout="vertical"
+                  margin={{ left: 10, right: 30, top: 10, bottom: 10 }}
+                  accessibilityLayer
+                >
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={10}
+                    width={100}
+                    tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    
+                  />
+                  <XAxis dataKey="quantitySold" type="number" hide />
+                   <Tooltip
+                    cursor={{ fill: 'hsl(var(--muted))' }}
+                    content={<ChartTooltipContent indicator="dot" />}
+                  />
+                  <Bar dataKey="quantitySold" fill="hsl(var(--chart-1))" radius={4}>
+                     {fastestSellingItems.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={`hsl(var(--chart-${(index % 5) + 1}))`} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                No sales data available yet.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Low Stock Items</CardTitle>
+          <CardDescription>
+            These items may need restocking soon.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <InventoryTable
+            items={lowStockItemsList}
+            originalItems={lowStockItemsList}
+            categories={categories || []}
+            pendingChanges={{}}
+            onEditItem={() => {}} 
+            onDeleteItem={() => {}}
+            onUpdateQuantity={() => {}}
+            isLoading={false}
+            isCompact={true}
+          />
+        </CardContent>
+      </Card>
     </>
   )
 }
@@ -314,3 +391,6 @@ export default function DashboardPage() {
     </SidebarLayout>
   );
 }
+
+
+    
