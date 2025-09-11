@@ -52,7 +52,7 @@ export function InventoryView() {
     setPendingChanges(prev => {
       const newChanges = { ...prev };
       // If the new quantity is the same as the original, remove it from pending changes
-      if (clampedNewQuantity === originalItem.quantity) {
+      if (clampedNewQuantity === originalItem.quantity && !Object.keys(prev).some(k => items.find(i => i.id === k)?.quantity !== 0)) {
         delete newChanges[itemId];
       } else {
         newChanges[itemId] = clampedNewQuantity;
@@ -151,9 +151,7 @@ export function InventoryView() {
   const handleConfirmStartNewCount = () => {
     const newPendingChanges: Record<string, number> = {};
     for (const item of items) {
-      if (item.quantity !== 0) {
-        newPendingChanges[item.id] = 0;
-      }
+      newPendingChanges[item.id] = 0;
     }
     setPendingChanges(newPendingChanges);
     setIsNewCountAlertOpen(false);
