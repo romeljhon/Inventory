@@ -11,6 +11,7 @@ import { CategoryPills } from "@/components/inventory/category-pills";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import { ItemFormDialog } from "@/components/inventory/item-form-dialog";
 import { DeleteItemAlert } from "@/components/inventory/delete-item-alert";
+import { ResetInventoryAlert } from "@/components/inventory/reset-inventory-alert";
 import { useToast } from "@/hooks/use-toast";
 
 export function InventoryView() {
@@ -24,6 +25,7 @@ export function InventoryView() {
     deleteItem,
     addCategory,
     batchUpdateQuantities,
+    resetInventory,
     isLoading,
   } = useInventory(activeBranch?.id);
   const { toast } = useToast();
@@ -36,6 +38,8 @@ export function InventoryView() {
   
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+
+  const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
 
   const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({});
   const hasPendingChanges = Object.keys(pendingChanges).length > 0;
@@ -145,11 +149,21 @@ export function InventoryView() {
     setDeletingItemId(null);
   };
 
+  const handleConfirmReset = () => {
+    resetInventory();
+    setIsResetAlertOpen(false);
+    toast({
+      title: "Inventory Reset",
+      description: "The inventory for this branch has been reset to its default state.",
+    });
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="space-y-6">
         <InventoryHeader
           onAddItem={() => handleOpenForm()}
+          onResetInventory={() => setIsResetAlertOpen(true)}
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}
           hasPendingChanges={hasPendingChanges}
@@ -197,6 +211,12 @@ export function InventoryView() {
         isOpen={isDeleteAlertOpen}
         onOpenChange={setIsDeleteAlertOpen}
         onConfirm={handleConfirmDelete}
+      />
+
+      <ResetInventoryAlert
+        isOpen={isResetAlertOpen}
+        onOpenChange={setIsResetAlertOpen}
+        onConfirm={handleConfirmReset}
       />
     </div>
   );

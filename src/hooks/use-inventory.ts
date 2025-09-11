@@ -366,6 +366,21 @@ export function useInventory(branchId: string | undefined) {
     }));
   }, []);
 
+  const resetInventory = useCallback(() => {
+    if (!branchId) return;
+    setIsLoading(true);
+    try {
+      localStorage.removeItem(storageKey);
+      const initialData = getInitialInventory(branchId);
+      setInventory(initialData);
+      localStorage.setItem(storageKey, JSON.stringify(initialData));
+    } catch (error) {
+      console.error("Failed to reset inventory.", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [branchId, storageKey]);
+
 
   return {
     items: inventory.items,
@@ -378,6 +393,7 @@ export function useInventory(branchId: string | undefined) {
     addCategory,
     updateCategory,
     deleteCategory,
+    resetInventory,
     isLoading
   };
 }

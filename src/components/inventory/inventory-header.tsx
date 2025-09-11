@@ -1,13 +1,22 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Save, XCircle, ArrowRight } from "lucide-react";
+import { Plus, Search, Save, XCircle, ArrowRight, RotateCw } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
 
 interface InventoryHeaderProps {
   onAddItem: () => void;
+  onResetInventory: () => void;
   searchTerm: string;
   onSearchTermChange: (term: string) => void;
   hasPendingChanges: boolean;
@@ -21,6 +30,7 @@ interface InventoryHeaderProps {
 
 export function InventoryHeader({
   onAddItem,
+  onResetInventory,
   searchTerm,
   onSearchTermChange,
   hasPendingChanges,
@@ -75,10 +85,25 @@ export function InventoryHeader({
             </Button>
           </>
         ) : (
-          <Button onClick={onAddItem} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Add Item</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={onAddItem} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add Item</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={onResetInventory} className="text-destructive">
+                  <RotateCw className="mr-2 h-4 w-4" />
+                  <span>Reset Inventory</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
     </header>
