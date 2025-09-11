@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Edit, Minus, Plus, Trash2, Package, ArrowRight, CalendarClock } from "lucide-react";
+import { Edit, Minus, Plus, Trash2, Package, ArrowRight, CalendarClock, CalendarX2 } from "lucide-react";
 import type { Item, Category } from "@/lib/types";
 import { LOW_STOCK_THRESHOLD } from "@/hooks/use-inventory";
 import { cn } from "@/lib/utils";
@@ -53,18 +53,28 @@ export function InventoryTable({
     }).format(amount);
   };
 
-  const getExpirationBadge = (expirationDate: string) => {
-    const now = new Date();
-    const expDate = new Date(expirationDate);
-    const sevenDaysFromNow = addDays(now, 7);
+  const getExpirationBadge = (expirationDate: string | undefined) => {
+      if (!expirationDate) return null;
 
-    if (isBefore(expDate, now)) {
-      return <Badge variant="destructive" className="mt-1">Expired</Badge>;
-    }
-    if (isWithinInterval(expDate, { start: now, end: sevenDaysFromNow })) {
-        return <Badge variant="secondary" className="mt-1 bg-yellow-500 text-black">Expires Soon</Badge>;
-    }
-    return null;
+      const now = new Date();
+      const expDate = new Date(expirationDate);
+      const sevenDaysFromNow = addDays(now, 7);
+
+      if (isBefore(expDate, now)) {
+          return (
+              <Badge variant="destructive" className="mt-1 flex w-fit items-center gap-1.5">
+                  <CalendarX2 className="h-3.5 w-3.5" /> Expired
+              </Badge>
+          );
+      }
+      if (isWithinInterval(expDate, { start: now, end: sevenDaysFromNow })) {
+          return (
+              <Badge variant="secondary" className="mt-1 w-fit bg-yellow-500 text-black">
+                  Expires Soon
+              </Badge>
+          );
+      }
+      return null;
   }
 
   if (isLoading) {
@@ -115,7 +125,7 @@ export function InventoryTable({
                         <span>Expires: {format(new Date(item.expirationDate), "PP")}</span>
                     </div>
                   )}
-                  {item.expirationDate && getExpirationBadge(item.expirationDate)}
+                  {getExpirationBadge(item.expirationDate)}
                 </TableCell>
                 {!isCompact && <TableCell className="hidden sm:table-cell">
                   <Badge variant="outline" style={category ? { backgroundColor: category.color, color: 'white', borderColor: category.color } : {}}>
@@ -156,7 +166,7 @@ export function InventoryTable({
                       <Plus className="h-4 w-4" />
                     </Button>}
                   </div>
-                  {item.quantity < LOW_STOCK_THRESHOLD && (
+                  {item.quantity < LOW_STOCK_THRESHOLD && !isCompact && (
                      <Badge variant="destructive" className="mt-2">Low Stock</Badge>
                   )}
                 </TableCell>
@@ -200,5 +210,3 @@ export function InventoryTable({
     </TooltipProvider>
   );
 }
-
-    

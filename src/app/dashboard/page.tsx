@@ -29,11 +29,11 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp } from "lucide-react";
+import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp, CalendarX2 } from "lucide-react";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import type { Branch } from "@/lib/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { subDays, startOfDay, startOfWeek, startOfMonth, startOfYear } from "date-fns";
+import { subDays, startOfDay, startOfWeek, startOfMonth, startOfYear, isBefore } from "date-fns";
 
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
@@ -159,6 +159,11 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
 
   const lowStockItemsList = useMemo(
     () => items?.filter((item) => item.quantity < LOW_STOCK_THRESHOLD) || [],
+    [items]
+  );
+  
+  const expiredItemsList = useMemo(
+    () => items?.filter(item => item.expirationDate && isBefore(new Date(item.expirationDate), new Date())) || [],
     [items]
   );
   
@@ -312,27 +317,55 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
           </CardContent>
         </Card>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Low Stock Items</CardTitle>
-          <CardDescription>
-            These items may need restocking soon.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <InventoryTable
-            items={lowStockItemsList}
-            originalItems={lowStockItemsList}
-            categories={categories || []}
-            pendingChanges={{}}
-            onEditItem={() => {}} 
-            onDeleteItem={() => {}}
-            onUpdateQuantity={() => {}}
-            isLoading={false}
-            isCompact={true}
-          />
-        </CardContent>
-      </Card>
+
+       <div className="grid gap-6 md:grid-cols-2">
+         <Card>
+            <CardHeader>
+              <CardTitle>Low Stock Items</CardTitle>
+              <CardDescription>
+                These items may need restocking soon.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InventoryTable
+                items={lowStockItemsList}
+                originalItems={lowStockItemsList}
+                categories={categories || []}
+                pendingChanges={{}}
+                onEditItem={() => {}} 
+                onDeleteItem={() => {}}
+                onUpdateQuantity={() => {}}
+                isLoading={false}
+                isCompact={true}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <CalendarX2 className="h-5 w-5" />
+                Expired Items
+              </CardTitle>
+              <CardDescription>
+                These items have passed their expiration date.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InventoryTable
+                items={expiredItemsList}
+                originalItems={expiredItemsList}
+                categories={categories || []}
+                pendingChanges={{}}
+                onEditItem={() => {}} 
+                onDeleteItem={() => {}}
+                onUpdateQuantity={() => {}}
+                isLoading={false}
+                isCompact={true}
+              />
+            </CardContent>
+          </Card>
+       </div>
     </>
   )
 }
@@ -417,8 +450,3 @@ export default function DashboardPage() {
     </SidebarLayout>
   );
 }
-
-
-    
-
-    
