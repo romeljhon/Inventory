@@ -6,6 +6,12 @@ import type { Item } from "@/lib/types";
 import { useInventory } from "@/hooks/use-inventory";
 import { useBusiness } from "@/hooks/use-business";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { InventoryHeader } from "@/components/inventory/inventory-header";
 import { CategoryPills } from "@/components/inventory/category-pills";
 import { InventoryTable } from "@/components/inventory/inventory-table";
@@ -13,6 +19,7 @@ import { ItemFormDialog } from "@/components/inventory/item-form-dialog";
 import { DeleteItemAlert } from "@/components/inventory/delete-item-alert";
 import { StartNewCountAlert } from "@/components/inventory/start-new-count-alert";
 import { useToast } from "@/hooks/use-toast";
+import { History } from "lucide-react";
 
 export function InventoryView() {
   const { activeBranch } = useBusiness();
@@ -151,12 +158,6 @@ export function InventoryView() {
   const handleConfirmStartNewCount = () => {
     const newPendingChanges: Record<string, number> = {};
     if (!items) return;
-    for (const item of items) {
-      // Set to 0 only if it's not already 0 to avoid unnecessary changes
-      if (item.quantity !== 0) {
-        newPendingChanges[item.id] = 0;
-      }
-    }
     // Also include items that are already 0 if you want them to be part of the count
      for (const item of items) {
       newPendingChanges[item.id] = 0;
@@ -207,6 +208,41 @@ export function InventoryView() {
             />
           </CardContent>
         </Card>
+
+        {hasPendingChanges && (
+           <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="previous-inventory">
+              <AccordionTrigger>
+                <div className="flex items-center gap-2 text-base font-semibold">
+                  <History className="h-5 w-5" />
+                  View Previous Inventory State
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <Card className="mt-4">
+                   <CardHeader>
+                      <CardTitle>Previous Inventory</CardTitle>
+                      <CardDescription>
+                        This is a read-only view of your inventory before the current pending changes were made.
+                      </CardDescription>
+                    </CardHeader>
+                  <CardContent>
+                    <InventoryTable
+                      items={items}
+                      categories={categories}
+                      pendingChanges={{}}
+                      onEditItem={() => {}}
+                      onDeleteItem={() => {}}
+                      onUpdateQuantity={() => {}}
+                      isLoading={isLoading}
+                      isCompact={false}
+                    />
+                  </CardContent>
+                </Card>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
       </div>
       
       <ItemFormDialog

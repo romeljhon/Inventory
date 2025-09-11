@@ -142,7 +142,7 @@ export function InventoryTable({
                       variant="ghost"
                       className="h-7 w-7"
                       onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                      disabled={isCompact}
+                      disabled={isCompact || !originalItems || originalItems.length === 0}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>}
@@ -161,7 +161,7 @@ export function InventoryTable({
                       variant="ghost"
                       className="h-7 w-7"
                       onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                      disabled={isCompact}
+                      disabled={isCompact || !originalItems || originalItems.length === 0}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>}
@@ -181,6 +181,7 @@ export function InventoryTable({
                           variant="ghost"
                           size="icon"
                           onClick={() => onEditItem(item)}
+                          disabled={!originalItems || originalItems.length === 0}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -194,6 +195,7 @@ export function InventoryTable({
                           size="icon"
                           className="text-destructive hover:text-destructive"
                           onClick={() => onDeleteItem(item.id)}
+                           disabled={!originalItems || originalItems.length === 0}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
