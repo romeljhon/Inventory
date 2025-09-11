@@ -16,7 +16,7 @@ import { MoreVertical } from "lucide-react";
 
 interface InventoryHeaderProps {
   onAddItem: () => void;
-  onResetInventory: () => void;
+  onStartNewCount: () => void;
   searchTerm: string;
   onSearchTermChange: (term: string) => void;
   hasPendingChanges: boolean;
@@ -30,7 +30,7 @@ interface InventoryHeaderProps {
 
 export function InventoryHeader({
   onAddItem,
-  onResetInventory,
+  onStartNewCount,
   searchTerm,
   onSearchTermChange,
   hasPendingChanges,
@@ -97,9 +97,9 @@ export function InventoryHeader({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onResetInventory} className="text-destructive">
+                <DropdownMenuItem onClick={onStartNewCount}>
                   <RotateCw className="mr-2 h-4 w-4" />
-                  <span>Reset Inventory</span>
+                  <span>Start New Count</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -11,7 +11,7 @@ import { CategoryPills } from "@/components/inventory/category-pills";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import { ItemFormDialog } from "@/components/inventory/item-form-dialog";
 import { DeleteItemAlert } from "@/components/inventory/delete-item-alert";
-import { ResetInventoryAlert } from "@/components/inventory/reset-inventory-alert";
+import { StartNewCountAlert } from "@/components/inventory/start-new-count-alert";
 import { useToast } from "@/hooks/use-toast";
 
 export function InventoryView() {
@@ -25,7 +25,6 @@ export function InventoryView() {
     deleteItem,
     addCategory,
     batchUpdateQuantities,
-    resetInventory,
     isLoading,
   } = useInventory(activeBranch?.id);
   const { toast } = useToast();
@@ -39,7 +38,7 @@ export function InventoryView() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
-  const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
+  const [isNewCountAlertOpen, setIsNewCountAlertOpen] = useState(false);
 
   const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({});
   const hasPendingChanges = Object.keys(pendingChanges).length > 0;
@@ -149,12 +148,18 @@ export function InventoryView() {
     setDeletingItemId(null);
   };
 
-  const handleConfirmReset = () => {
-    resetInventory();
-    setIsResetAlertOpen(false);
+  const handleConfirmStartNewCount = () => {
+    const newPendingChanges: Record<string, number> = {};
+    for (const item of items) {
+      if (item.quantity !== 0) {
+        newPendingChanges[item.id] = 0;
+      }
+    }
+    setPendingChanges(newPendingChanges);
+    setIsNewCountAlertOpen(false);
     toast({
-      title: "Inventory Reset",
-      description: "The inventory for this branch has been reset to its default state.",
+      title: "New Count Started",
+      description: "All item quantities set to 0. Update with new counts and save.",
     });
   }
 
@@ -163,7 +168,7 @@ export function InventoryView() {
       <div className="space-y-6">
         <InventoryHeader
           onAddItem={() => handleOpenForm()}
-          onResetInventory={() => setIsResetAlertOpen(true)}
+          onStartNewCount={() => setIsNewCountAlertOpen(true)}
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}
           hasPendingChanges={hasPendingChanges}
@@ -213,10 +218,10 @@ export function InventoryView() {
         onConfirm={handleConfirmDelete}
       />
 
-      <ResetInventoryAlert
-        isOpen={isResetAlertOpen}
-        onOpenChange={setIsResetAlertOpen}
-        onConfirm={handleConfirmReset}
+      <StartNewCountAlert
+        isOpen={isNewCountAlertOpen}
+        onOpenChange={setIsNewCountAlertOpen}
+        onConfirm={handleConfirmStartNewCount}
       />
     </div>
   );
