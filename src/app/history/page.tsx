@@ -39,7 +39,6 @@ export default function HistoryPage() {
   const getChangeIcon = (log: InventoryHistory) => {
     switch (log.type) {
       case 'add':
-      case 'initial':
         return <Plus className="h-4 w-4 text-green-500" />;
       case 'delete':
         return <Trash2 className="h-4 w-4 text-red-500" />;
@@ -61,15 +60,20 @@ export default function HistoryPage() {
         case 'add':
             return `Added new item with an initial quantity of ${log.quantity}.`;
         case 'initial':
-            return `Initial stock count of ${log.quantity}.`;
+             return `Item added to inventory with an initial stock of ${log.quantity}.`;
         case 'delete':
             return `Deleted item from inventory.`;
         case 'update':
-            return `Item details updated. Quantity changed by ${log.change > 0 ? '+' : ''}${log.change}.`;
+            return `Item details were updated. Quantity changed by ${log.change > 0 ? '+' : ''}${log.change}.`;
         case 'quantity':
-            return `Quantity changed by ${log.change > 0 ? '+' : ''}${log.change}.`;
+            const absChange = Math.abs(log.change);
+            if (log.change > 0) {
+              return `Increased quantity by ${absChange}.`;
+            } else {
+              return `Decreased quantity by ${absChange}.`;
+            }
         default:
-            return '';
+            return 'Inventory updated.';
         }
     };
 
