@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Building, ChevronsUpDown, Home, LayoutDashboard, PlusCircle, Package, History, Shapes, ShoppingCart } from "lucide-react";
+import { Building, ChevronsUpDown, Home, LayoutDashboard, PlusCircle, Package, History, Shapes, ShoppingCart, Camera } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { Icons } from "@/components/icons";
 
@@ -38,8 +38,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const handleAddBranch = async () => {
     const branchName = prompt("Enter the name for the new branch:");
     if (branchName) {
-      const newBranch = await addBranch(branchName);
-      switchBranch(newBranch.id);
+      await addBranch(branchName);
     }
   };
 
@@ -118,6 +117,14 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     <Link href="/history">
                         <History />
                         History
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/snapshots"}>
+                    <Link href="/snapshots">
+                        <Camera />
+                        Snapshots
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>

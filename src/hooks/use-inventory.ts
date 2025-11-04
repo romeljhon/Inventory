@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Item, Category, InventoryHistory } from "@/lib/types";
-import { subDays, subWeeks, subMonths, addDays, subSeconds } from 'date-fns';
+import { subDays, subWeeks, subMonths, addDays, subSeconds, startOfDay, isAfter, parseISO } from 'date-fns';
 
 
 const LOW_STOCK_THRESHOLD = 10;
@@ -155,42 +155,46 @@ const getInitialInventory = (branchId: string): InventoryData => {
         { itemId: 'item-4', itemName: 'USB-C Hub', change: -5, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
         { itemId: 'item-8', itemName: 'Stapler', change: -2, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
         { itemId: 'item-6', itemName: '4K Monitor', change: -1, type: 'quantity', createdAt: subMonths(now, 2).toISOString() },
-        { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, type: 'quantity', createdAt: subMonths(now, 4).toISOString() },
-        { itemId: 'item-3', itemName: 'Smartwatch', change: -4, type: 'quantity', createdAt: subMonths(now, 5).toISOString() },
+        { itemId_xyz: 'item-1', itemName: 'Laptop Pro 15', change: -1, type: 'quantity', createdAt: subMonths(now, 4).toISOString() },
+        { itemId_xyz: 'item-3', itemName: 'Smartwatch', change: -4, type: 'quantity', createdAt: subMonths(now, 5).toISOString() },
     ];
     
     
     const allEvents = [
         ...initialItemsWithIds.map(item => ({
-            type: 'initial' as const,
+            type: 'add' as const,
             itemId: item.id,
             itemName: item.name,
             change: item.quantity,
             createdAt: item.createdAt,
+            fullItem: item, // Keep the full item data for reconstruction
         })),
         ...mockSales,
     ].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    const itemQuantityTracker: Record<string, number> = {};
+    const itemStateTracker: Record<string, number> = {};
     const finalHistory: InventoryHistory[] = [];
 
-    allEvents.forEach((event) => {
-        historyIdCounter++;
-        const currentQty = itemQuantityTracker[event.itemId] || 0;
+    allEvents.forEach((event, index) => {
+        const currentQty = itemStateTracker[event.itemId] || 0;
         const newQuantity = currentQty + event.change;
-        itemQuantityTracker[event.itemId] = newQuantity;
+        itemStateTracker[event.itemId] = newQuantity;
 
         finalHistory.push({
-            ...event,
-            id: `hist-${historyIdCounter}`, // Guaranteed unique ID
+            id: `hist-${index}`,
             branchId,
-            newQuantity,
+            itemId: event.itemId,
+            itemName: event.itemName,
+            change: event.change,
+            newQuantity: newQuantity,
+            type: event.type,
+            createdAt: event.createdAt
         });
     });
 
     const finalItems = initialItemsWithIds.map(item => ({
         ...item,
-        quantity: itemQuantityTracker[item.id] ?? item.quantity,
+        quantity: itemStateTracker[item.id] ?? item.quantity,
     }));
 
 
@@ -247,7 +251,7 @@ export function useInventory(branchId: string | undefined) {
     }
   }, [inventory, isLoading, branchId, storageKey]);
 
-  const addHistory = useCallback((log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId' | 'newQuantity'> & { newQuantity: number }) => {
+  const addHistory = useCallback((log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId'>) => {
     if (!branchId) return;
     historyIdCounter++;
     const newHistory: InventoryHistory = {
@@ -289,11 +293,12 @@ export function useInventory(branchId: string | undefined) {
 
     if (oldItem) {
         const newItem = { ...oldItem, ...updatedData};
+        const newQuantity = newItem.quantity ?? oldItem.quantity;
         addHistory({
             itemId: id,
             itemName: newItem.name,
-            change: (newItem.quantity ?? oldItem.quantity) - oldItem.quantity,
-            newQuantity: newItem.quantity ?? oldItem.quantity,
+            change: newQuantity - oldItem.quantity,
+            newQuantity: newQuantity,
             type: 'update'
         });
     }
@@ -393,6 +398,57 @@ export function useInventory(branchId: string | undefined) {
     }
   }, [branchId, storageKey]);
 
+  const availableSnapshotDates = useMemo(() => {
+    if (!inventory.history || inventory.history.length === 0) return [];
+    const dates = new Set(
+      inventory.history.map(log =>
+        startOfDay(parseISO(log.createdAt)).toISOString()
+      )
+    );
+    return Array.from(dates).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  }, [inventory.history]);
+
+  const getInventorySnapshot = useCallback((date: string): Item[] => {
+    const targetDate = new Date(date);
+    const endOfTargetDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
+
+    const relevantHistory = inventory.history
+      .filter(log => !isAfter(parseISO(log.createdAt), endOfTargetDay))
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    const itemMap = new Map<string, Item>();
+    const quantityMap = new Map<string, number>();
+
+    // This is a simplified reconstruction. A more robust solution
+    // would also reconstruct item details (value, category) at that point in time.
+    for (const log of relevantHistory) {
+      // Find the original item details from the current state
+      const baseItem = inventory.items.find(i => i.id === log.itemId);
+      
+      // If the item was deleted, we might not find it, so we create a placeholder
+      const itemDetails = baseItem || itemMap.get(log.itemId) || {
+        id: log.itemId,
+        name: log.itemName,
+        description: "",
+        quantity: 0,
+        categoryId: "",
+        createdAt: log.createdAt,
+        value: 0
+      };
+
+      if (log.type === 'delete') {
+         quantityMap.set(log.itemId, 0);
+      } else {
+         quantityMap.set(log.itemId, log.newQuantity);
+      }
+      
+      itemMap.set(log.itemId, { ...itemDetails, quantity: quantityMap.get(log.itemId) || 0 });
+    }
+
+    return Array.from(itemMap.values()).filter(item => item.quantity > 0 || quantityMap.has(item.id));
+}, [inventory.history, inventory.items]);
+
+
 
   return {
     items: inventory.items,
@@ -402,10 +458,12 @@ export function useInventory(branchId: string | undefined) {
     updateItem,
     batchUpdateQuantities,
     deleteItem,
-    addCategory,
+addCategory,
     updateCategory,
     deleteCategory,
     resetInventory,
-    isLoading
+    isLoading,
+    availableSnapshotDates,
+    getInventorySnapshot,
   };
 }
