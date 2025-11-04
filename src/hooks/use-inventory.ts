@@ -22,6 +22,9 @@ const getRandomColor = () => {
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
+// Global counter for history IDs to ensure uniqueness across sessions
+let historyIdCounter = Date.now();
+
 const getInitialInventory = (branchId: string): InventoryData => {
     const now = new Date();
     
@@ -156,7 +159,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
         { itemId: 'item-3', itemName: 'Smartwatch', change: -4, type: 'quantity', createdAt: subMonths(now, 5).toISOString() },
     ];
     
-    // --- START OF FIX ---
+    
     const allEvents = [
         ...initialItemsWithIds.map(item => ({
             type: 'initial' as const,
@@ -171,14 +174,15 @@ const getInitialInventory = (branchId: string): InventoryData => {
     const itemQuantityTracker: Record<string, number> = {};
     const finalHistory: InventoryHistory[] = [];
 
-    allEvents.forEach((event, index) => {
+    allEvents.forEach((event) => {
+        historyIdCounter++;
         const currentQty = itemQuantityTracker[event.itemId] || 0;
         const newQuantity = currentQty + event.change;
         itemQuantityTracker[event.itemId] = newQuantity;
 
         finalHistory.push({
             ...event,
-            id: `hist-${index}`, // Use simple index for guaranteed uniqueness
+            id: `hist-${historyIdCounter}`, // Use guaranteed unique ID
             branchId,
             newQuantity,
         });
@@ -188,7 +192,6 @@ const getInitialInventory = (branchId: string): InventoryData => {
         ...item,
         quantity: itemQuantityTracker[item.id] ?? item.quantity,
     }));
-    // --- END OF FIX ---
 
 
     return {
@@ -202,8 +205,6 @@ const getInitialInventory = (branchId: string): InventoryData => {
     }
 };
 
-// Global counter for history IDs to ensure uniqueness across sessions
-let historyIdCounter = Date.now();
 
 export function useInventory(branchId: string | undefined) {
   const [inventory, setInventory] = useState<InventoryData>({ items: [], categories: [], history: [] });
@@ -414,3 +415,4 @@ export function useInventory(branchId: string | undefined) {
     
 
     
+
