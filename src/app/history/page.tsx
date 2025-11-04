@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { useInventory } from "@/hooks/use-inventory";
 import { useBusiness } from "@/hooks/use-business";
 import { SidebarLayout } from "@/components/sidebar-layout";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -23,11 +24,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowDown, ArrowUp, Plus, Minus, Edit, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Minus, Edit, Trash2, Download } from "lucide-react";
 import type { InventoryHistory } from "@/lib/types";
+import { downloadCSV } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
 
 export default function HistoryPage() {
   const { business, activeBranch, isLoading: isBusinessLoading } = useBusiness();
+  const { toast } = useToast();
   const router = useRouter();
   const { history, isLoading: isInventoryLoading } = useInventory(activeBranch?.id);
 
@@ -35,6 +40,34 @@ export default function HistoryPage() {
     if (!history) return [];
     return [...history].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [history]);
+
+  const handleExport = () => {
+    if (!sortedHistory.length) {
+      toast({
+        variant: "destructive",
+        title: "No Data to Export",
+        description: "There is no history to export.",
+      });
+      return;
+    }
+    
+    const dataToExport = sortedHistory.map(log => ({
+      date: format(new Date(log.createdAt), "yyyy-MM-dd HH:mm:ss"),
+      item: log.itemName,
+      action: getChangeDescription(log),
+      change: log.change,
+      new_quantity: log.newQuantity,
+    }));
+
+    const branchName = activeBranch?.name.replace(/ /g, "_") || "branch";
+    const date = format(new Date(), "yyyy-MM-dd");
+    downloadCSV(dataToExport, `${branchName}_history_${date}.csv`);
+
+    toast({
+      title: "Export Started",
+      description: "Your history data is being downloaded.",
+    });
+  }
 
   const getChangeIcon = (log: InventoryHistory) => {
     switch (log.type) {
@@ -86,6 +119,10 @@ export default function HistoryPage() {
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
         <header className="flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">Inventory History for {activeBranch.name}</h1>
+            <Button onClick={handleExport}>
+                <Download className="mr-2 h-4 w-4" />
+                Export to CSV
+            </Button>
         </header>
         <Card>
             <CardHeader>

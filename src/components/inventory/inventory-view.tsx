@@ -20,6 +20,9 @@ import { DeleteItemAlert } from "@/components/inventory/delete-item-alert";
 import { StartNewCountAlert } from "@/components/inventory/start-new-count-alert";
 import { useToast } from "@/hooks/use-toast";
 import { History } from "lucide-react";
+import { downloadCSV } from "@/lib/utils";
+import { format } from "date-fns";
+
 
 export function InventoryView() {
   const { activeBranch } = useBusiness();
@@ -170,12 +173,46 @@ export function InventoryView() {
     });
   }
 
+  const handleExport = () => {
+    if (!filteredItems.length) {
+      toast({
+        variant: "destructive",
+        title: "No Data to Export",
+        description: "There are no items in the current view to export.",
+      });
+      return;
+    }
+
+    const dataToExport = filteredItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      category: categories.find(c => c.id === item.categoryId)?.name || "Uncategorized",
+      quantity: item.quantity,
+      unitType: item.unitType,
+      value: item.value,
+      totalValue: item.quantity * item.value,
+      expirationDate: item.expirationDate ? format(new Date(item.expirationDate), "yyyy-MM-dd") : "",
+      createdAt: format(new Date(item.createdAt), "yyyy-MM-dd HH:mm:ss"),
+    }));
+    
+    const branchName = activeBranch?.name.replace(/ /g, "_") || "inventory";
+    const date = format(new Date(), "yyyy-MM-dd");
+    downloadCSV(dataToExport, `${branchName}_inventory_${date}.csv`);
+    
+    toast({
+      title: "Export Started",
+      description: "Your inventory data is being downloaded.",
+    });
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="space-y-6">
         <InventoryHeader
           onAddItem={() => handleOpenForm()}
           onStartNewCount={() => setIsNewCountAlertOpen(true)}
+          onExport={handleExport}
           searchTerm={searchTerm}
           onSearchTermChange={setSearchTerm}
           hasPendingChanges={hasPendingChanges}

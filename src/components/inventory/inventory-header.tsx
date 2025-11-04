@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Save, XCircle, ArrowRight, RotateCw } from "lucide-react";
+import { Plus, Search, Save, XCircle, ArrowRight, RotateCw, Download } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,6 +17,7 @@ import { MoreVertical } from "lucide-react";
 interface InventoryHeaderProps {
   onAddItem: () => void;
   onStartNewCount: () => void;
+  onExport: () => void;
   searchTerm: string;
   onSearchTermChange: (term: string) => void;
   hasPendingChanges: boolean;
@@ -31,6 +32,7 @@ interface InventoryHeaderProps {
 export function InventoryHeader({
   onAddItem,
   onStartNewCount,
+  onExport,
   searchTerm,
   onSearchTermChange,
   hasPendingChanges,
@@ -100,6 +102,10 @@ export function InventoryHeader({
                 <DropdownMenuItem onClick={onStartNewCount}>
                   <RotateCw className="mr-2 h-4 w-4" />
                   <span>Start New Count</span>
+                </DropdownMenuItem>
+                 <DropdownMenuItem onClick={onExport}>
+                  <Download className="mr-2 h-4 w-4" />
+                  <span>Export to CSV</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
