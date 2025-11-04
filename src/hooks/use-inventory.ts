@@ -155,37 +155,41 @@ const getInitialInventory = (branchId: string): InventoryData => {
         { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, type: 'quantity', createdAt: subMonths(now, 4).toISOString() },
         { itemId: 'item-3', itemName: 'Smartwatch', change: -4, type: 'quantity', createdAt: subMonths(now, 5).toISOString() },
     ];
-
+    
+    // New simplified and robust history generation
     const finalHistory: InventoryHistory[] = [];
-    const itemQuantityTracker: Record<string, number> = {};
-    initialItemsWithIds.forEach(item => {
-        itemQuantityTracker[item.id] = 0; // Start at 0, will be built up
-    });
-
+    let historyIdCounter = 0;
+    
     const allHistoryEvents = [
-        ...initialItemsWithIds.map(item => ({
-            type: 'initial' as const,
-            itemId: item.id,
-            itemName: item.name,
-            change: item.quantity,
-            quantity: item.quantity, // Add quantity for initial type
-            createdAt: item.createdAt,
-        })),
-        ...mockSales,
+      ...initialItemsWithIds.map(item => ({
+        type: 'initial' as const,
+        itemId: item.id,
+        itemName: item.name,
+        change: item.quantity,
+        createdAt: item.createdAt,
+        newQuantity: item.quantity,
+      })),
+      ...mockSales.map(sale => ({
+          ...sale,
+          newQuantity: 0 // This will be calculated later
+      }))
     ].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    allHistoryEvents.forEach((log, index) => {
-        const currentQty = itemQuantityTracker[log.itemId] || 0;
-        const newQuantity = currentQty + log.change;
-        itemQuantityTracker[log.itemId] = newQuantity;
+    const itemQuantityTracker: Record<string, number> = {};
 
-        finalHistory.push({
-            ...log,
-            id: `hist-${new Date(log.createdAt).getTime()}-${log.itemId}-${index}`,
-            branchId: branchId,
-            newQuantity: newQuantity,
-        });
+    allHistoryEvents.forEach(log => {
+      const currentQty = itemQuantityTracker[log.itemId] || 0;
+      const newQuantity = currentQty + log.change;
+      itemQuantityTracker[log.itemId] = newQuantity;
+
+      finalHistory.push({
+        ...log,
+        id: `hist-${new Date(log.createdAt).getTime()}-${log.itemId}-${historyIdCounter++}`,
+        branchId: branchId,
+        newQuantity: newQuantity,
+      });
     });
+
 
     const finalItems = initialItemsWithIds.map(item => ({
         ...item,
