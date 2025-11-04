@@ -141,82 +141,77 @@ const getInitialInventory = (branchId: string): InventoryData => {
         createdAt: (creationDates[item.name] || now).toISOString()
     }));
 
-    // Create a mutable copy of items to calculate final quantities
-    const itemsWithFinalQuantities = JSON.parse(JSON.stringify(initialItemsWithIds)) as Item[];
-    const itemsMap = new Map(itemsWithFinalQuantities.map(i => [i.id, i]));
-
-    const mockSales: Omit<InventoryHistory, 'id' | 'branchId'>[] = [
-        { itemId: 'item-2', itemName: 'Wireless Mouse', change: -2, newQuantity: 0, type: 'quantity', createdAt: subSeconds(now, 10).toISOString() },
-        { itemId: 'item-7', itemName: 'Printer Paper (Ream)', change: -5, newQuantity: 0, type: 'quantity', createdAt: subSeconds(now, 20).toISOString() },
-        { itemId: 'item-9', itemName: 'Fresh Milk (1L)', change: -1, newQuantity: 0, type: 'quantity', createdAt: subSeconds(now, 30).toISOString() },
-        { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, newQuantity: 0, type: 'quantity', createdAt: subDays(now, 2).toISOString() },
-        { itemId: 'item-3', itemName: 'Smartwatch', change: -3, newQuantity: 0, type: 'quantity', createdAt: subDays(now, 3).toISOString() },
-        { itemId: 'item-10', itemName: 'Cheddar Cheese (250g)', change: -2, newQuantity: 0, type: 'quantity', createdAt: subDays(now, 4).toISOString() },
-        { itemId: 'item-5', itemName: 'Mechanical Keyboard', change: -2, newQuantity: 0, type: 'quantity', createdAt: subWeeks(now, 2).toISOString() },
-        { itemId: 'item-4', itemName: 'USB-C Hub', change: -5, newQuantity: 0, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
-        { itemId: 'item-8', itemName: 'Stapler', change: -2, newQuantity: 0, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
-        { itemId: 'item-6', itemName: '4K Monitor', change: -1, newQuantity: 0, type: 'quantity', createdAt: subMonths(now, 2).toISOString() },
-        { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, newQuantity: 0, type: 'quantity', createdAt: subMonths(now, 4).toISOString() },
-        { itemId: 'item-3', itemName: 'Smartwatch', change: -4, newQuantity: 0, type: 'quantity', createdAt: subMonths(now, 5).toISOString() },
+    const mockSales: Omit<InventoryHistory, 'id' | 'branchId' | 'newQuantity'>[] = [
+        { itemId: 'item-2', itemName: 'Wireless Mouse', change: -2, type: 'quantity', createdAt: subSeconds(now, 10).toISOString() },
+        { itemId: 'item-7', itemName: 'Printer Paper (Ream)', change: -5, type: 'quantity', createdAt: subSeconds(now, 20).toISOString() },
+        { itemId: 'item-9', itemName: 'Fresh Milk (1L)', change: -1, type: 'quantity', createdAt: subSeconds(now, 30).toISOString() },
+        { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, type: 'quantity', createdAt: subDays(now, 2).toISOString() },
+        { itemId: 'item-3', itemName: 'Smartwatch', change: -3, type: 'quantity', createdAt: subDays(now, 3).toISOString() },
+        { itemId: 'item-10', itemName: 'Cheddar Cheese (250g)', change: -2, type: 'quantity', createdAt: subDays(now, 4).toISOString() },
+        { itemId: 'item-5', itemName: 'Mechanical Keyboard', change: -2, type: 'quantity', createdAt: subWeeks(now, 2).toISOString() },
+        { itemId: 'item-4', itemName: 'USB-C Hub', change: -5, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
+        { itemId: 'item-8', itemName: 'Stapler', change: -2, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
+        { itemId: 'item-6', itemName: '4K Monitor', change: -1, type: 'quantity', createdAt: subMonths(now, 2).toISOString() },
+        { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, type: 'quantity', createdAt: subMonths(now, 4).toISOString() },
+        { itemId: 'item-3', itemName: 'Smartwatch', change: -4, type: 'quantity', createdAt: subMonths(now, 5).toISOString() },
     ];
-    
-    // Adjust final quantities based on sales
-    mockSales.forEach(sale => {
-        const item = itemsMap.get(sale.itemId);
-        if (item) {
-            item.quantity += sale.change;
-        }
-    });
-    
+
     const finalHistory: InventoryHistory[] = [];
-    
-    // Generate initial history based on original stock
+    const itemQuantityTracker: Record<string, number> = {};
+
     initialItemsWithIds.forEach(item => {
-        finalHistory.push({
-            id: `hist-initial-${item.id}`,
-            branchId,
+        itemQuantityTracker[item.id] = item.quantity;
+    });
+
+    const allHistoryEvents = [
+        ...initialItemsWithIds.map(item => ({
+            type: 'initial' as const,
             itemId: item.id,
             itemName: item.name,
             change: item.quantity,
             newQuantity: item.quantity,
-            type: 'initial' as const,
             createdAt: item.createdAt,
-        });
-    });
-
-    // Generate sales history and set correct `newQuantity`
-    mockSales.sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).forEach((sale, index) => {
-        const item = itemsMap.get(sale.itemId);
-        if (item) {
-            const tempItemOriginalQuantity = item.quantity - sale.change; // This is a bit of a hack to work backwards
-            const newQuantity = tempItemOriginalQuantity + sale.change;
-            finalHistory.push({
+        })),
+        ...mockSales.map(sale => {
+            const currentQty = itemQuantityTracker[sale.itemId] || 0;
+            const newQty = currentQty + sale.change;
+            itemQuantityTracker[sale.itemId] = newQty; // This is a temporary update
+            return {
                 ...sale,
-                newQuantity: newQuantity,
-                id: `hist-sale-${new Date(sale.createdAt).getTime()}-${index}`,
-                branchId,
-            });
-            item.quantity = newQuantity;
+                newQuantity: newQty,
+            }
+        })
+    ].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+
+    const finalItemsMap = new Map<string, Item>();
+    initialItemsWithIds.forEach(i => finalItemsMap.set(i.id, JSON.parse(JSON.stringify(i))));
+    
+    const quantityRecalculator: Record<string, number> = {};
+
+    allHistoryEvents.forEach((log, index) => {
+        const itemRef = finalItemsMap.get(log.itemId);
+        if(!itemRef) return;
+        
+        let newQuantity: number;
+        if(log.type === 'initial') {
+            quantityRecalculator[log.itemId] = log.change;
+            newQuantity = log.change;
+        } else {
+            const currentQty = quantityRecalculator[log.itemId] || 0;
+            newQuantity = currentQty + log.change;
+            quantityRecalculator[log.itemId] = newQuantity;
         }
+
+        finalHistory.push({
+            ...log,
+            id: `hist-${new Date(log.createdAt).getTime()}-${log.type}-${log.itemId}-${index}`,
+            branchId: branchId,
+            newQuantity: newQuantity,
+        });
+
+        itemRef.quantity = newQuantity;
     });
-
-    // Recalculate final quantities after all history is processed
-     const finalItemsMap = new Map<string, Item>();
-     initialItemsWithIds.forEach(i => finalItemsMap.set(i.id, JSON.parse(JSON.stringify(i))));
-
-     const sortedHistoryForCalc = [...finalHistory].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-     sortedHistoryForCalc.forEach(log => {
-         const item = finalItemsMap.get(log.itemId);
-         if (item) {
-             if (log.type === 'initial') {
-                 item.quantity = log.newQuantity;
-             } else {
-                 item.quantity = log.newQuantity;
-             }
-         }
-     });
-
 
     return {
         items: Array.from(finalItemsMap.values()),
@@ -275,7 +270,7 @@ export function useInventory(branchId: string | undefined) {
     if (!branchId) return;
     const newHistory: InventoryHistory = {
         ...log,
-        id: `hist-${Date.now()}-${log.itemId}-${Math.random().toString(36).substring(2, 9)}`,
+        id: `hist-${Date.now()}-${log.type}-${log.itemId}-${Math.random().toString(36).substring(2, 9)}`,
         createdAt: new Date().toISOString(),
         branchId,
     };
@@ -315,8 +310,8 @@ export function useInventory(branchId: string | undefined) {
         addHistory({
             itemId: id,
             itemName: newItem.name,
-            change: newItem.quantity - oldItem.quantity,
-            newQuantity: newItem.quantity,
+            change: (newItem.quantity ?? oldItem.quantity) - oldItem.quantity,
+            newQuantity: newItem.quantity ?? oldItem.quantity,
             type: 'update'
         });
     }
@@ -432,7 +427,5 @@ export function useInventory(branchId: string | undefined) {
     isLoading
   };
 }
-
-    
 
     
