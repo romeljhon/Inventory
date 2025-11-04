@@ -156,45 +156,45 @@ const getInitialInventory = (branchId: string): InventoryData => {
         { itemId: 'item-3', itemName: 'Smartwatch', change: -4, type: 'quantity', createdAt: subMonths(now, 5).toISOString() },
     ];
     
-    // New simplified and robust history generation
+    // --- START OF FIX ---
     const finalHistory: InventoryHistory[] = [];
-    let historyIdCounter = 0;
-    
+    const itemQuantityTracker: Record<string, number> = {};
+
+    // 1. Create a chronologically sorted list of all events (initial stock + sales)
     const allHistoryEvents = [
+      // Map initial items to 'initial' history events
       ...initialItemsWithIds.map(item => ({
         type: 'initial' as const,
         itemId: item.id,
         itemName: item.name,
         change: item.quantity,
+        quantity: item.quantity,
         createdAt: item.createdAt,
-        newQuantity: item.quantity,
       })),
-      ...mockSales.map(sale => ({
-          ...sale,
-          newQuantity: 0 // This will be calculated later
-      }))
+      // Map mock sales to 'quantity' history events
+      ...mockSales,
     ].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    const itemQuantityTracker: Record<string, number> = {};
+    // 2. Process events in order to calculate final quantities and generate unique history IDs
+    allHistoryEvents.forEach((log, index) => {
+        const currentQty = itemQuantityTracker[log.itemId] || 0;
+        const newQuantity = currentQty + log.change;
+        itemQuantityTracker[log.itemId] = newQuantity;
 
-    allHistoryEvents.forEach(log => {
-      const currentQty = itemQuantityTracker[log.itemId] || 0;
-      const newQuantity = currentQty + log.change;
-      itemQuantityTracker[log.itemId] = newQuantity;
-
-      finalHistory.push({
-        ...log,
-        id: `hist-${new Date(log.createdAt).getTime()}-${log.itemId}-${historyIdCounter++}`,
-        branchId: branchId,
-        newQuantity: newQuantity,
-      });
+        finalHistory.push({
+            ...log,
+            id: `hist-${index}`, // Use simple index for guaranteed uniqueness
+            branchId: branchId,
+            newQuantity: newQuantity,
+        });
     });
 
-
+    // 3. Create the final list of items with the correctly calculated quantities
     const finalItems = initialItemsWithIds.map(item => ({
         ...item,
-        quantity: itemQuantityTracker[item.id] || 0,
+        quantity: itemQuantityTracker[item.id] || item.quantity,
     }));
+    // --- END OF FIX ---
 
 
     return {
