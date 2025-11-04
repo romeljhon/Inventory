@@ -236,16 +236,16 @@ export function useInventory(branchId: string | undefined) {
     }
   }, [inventory, isLoading, branchId, storageKey]);
 
-  const addHistory = (log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId'>) => {
+  const addHistory = useCallback((log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId'>) => {
     if (!branchId) return;
     const newHistory: InventoryHistory = {
         ...log,
-        id: `hist-${Date.now()}-${log.itemId}`,
+        id: `hist-${Date.now()}-${log.itemId}-${Math.random().toString(36).substring(2, 9)}`,
         createdAt: new Date().toISOString(),
         branchId,
     };
     setInventory(prev => ({ ...prev, history: [newHistory, ...(Array.isArray(prev.history) ? prev.history : [])] }));
-  }
+  }, [branchId]);
 
   const addItem = useCallback((itemData: Omit<Item, "id" | "createdAt">) => {
     const newItem: Item = {
@@ -261,7 +261,7 @@ export function useInventory(branchId: string | undefined) {
         newQuantity: newItem.quantity,
         type: 'add'
     });
-  }, []);
+  }, [addHistory]);
 
   const updateItem = useCallback((id: string, updatedData: Partial<Omit<Item, "id" | "createdAt">>) => {
     let oldItem: Item | undefined;
@@ -285,7 +285,7 @@ export function useInventory(branchId: string | undefined) {
             type: 'update'
         });
     }
-  }, []);
+  }, [addHistory]);
   
   const batchUpdateQuantities = useCallback((updates: Record<string, number>) => {
     setInventory(prev => {
@@ -308,7 +308,7 @@ export function useInventory(branchId: string | undefined) {
         });
         return { ...prev, items: updatedItems };
     });
-}, []);
+}, [addHistory]);
 
 
   const deleteItem = useCallback((id: string) => {
@@ -330,7 +330,7 @@ export function useInventory(branchId: string | undefined) {
             type: 'delete'
         });
     }
-  }, []);
+  }, [addHistory]);
 
   const addCategory = useCallback((name: string): Category => {
     const existingCategory = inventory.categories.find(c => c.name.toLowerCase() === name.toLowerCase());
@@ -397,3 +397,5 @@ export function useInventory(branchId: string | undefined) {
     isLoading
   };
 }
+
+    
