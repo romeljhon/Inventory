@@ -46,7 +46,7 @@ import { format } from "date-fns";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Item name must be at least 2 characters." }),
-  description: z.string().min(5, { message: "Description must be at least 5 characters." }),
+  description: z.string().optional(),
   quantity: z.coerce.number().int().min(0, { message: "Quantity cannot be negative." }),
   value: z.coerce.number().min(0, { message: "Value cannot be negative." }),
   categoryId: z.string().optional(),
@@ -112,17 +112,17 @@ export function ItemFormDialog({
   }, [item, isOpen, form]);
 
   const handleSuggestCategories = async () => {
-    if (!itemName || !itemDescription) {
+    if (!itemName) {
       toast({
         variant: "destructive",
         title: "Missing Information",
-        description: "Please enter an item name and description first.",
+        description: "Please enter an item name first.",
       });
       return;
     }
     setIsSuggesting(true);
     try {
-      const result = await suggestItemCategories({ itemName, itemDescription });
+      const result = await suggestItemCategories({ itemName, itemDescription: itemDescription || "" });
       if (result.categories && result.categories.length > 0) {
         const newCategoryName = result.categories[0];
         const existingCategory = categories.find(
@@ -168,6 +168,7 @@ export function ItemFormDialog({
   const onSubmit = (data: ItemFormData) => {
     const finalData = {
         ...data,
+        description: data.description || "",
         expirationDate: data.expirationDate ? data.expirationDate.toISOString() : undefined,
     }
     onSave(finalData as Omit<Item, 'id' | 'createdAt'>);
@@ -204,7 +205,7 @@ export function ItemFormDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="A brief description of the item" {...field} />
+                    <Textarea placeholder="A brief description of the item (optional)" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
