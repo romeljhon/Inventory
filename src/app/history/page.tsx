@@ -91,9 +91,9 @@ export default function HistoryPage() {
     const getChangeDescription = (log: InventoryHistory) => {
         switch (log.type) {
         case 'add':
-            return `Added new item with an initial quantity of ${log.quantity}.`;
+            return `Added new item with an initial quantity of ${log.newQuantity}.`;
         case 'initial':
-             return `Item added to inventory with an initial stock of ${log.quantity}.`;
+             return `Item added to inventory with an initial stock of ${log.change}.`;
         case 'delete':
             return `Deleted item from inventory.`;
         case 'update':
@@ -174,3 +174,5 @@ export default function HistoryPage() {
     </SidebarLayout>
   );
 }
+
+    

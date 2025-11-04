@@ -37,3 +37,5 @@ export interface InventoryHistory {
     type: 'initial' | 'add' | 'update' | 'delete' | 'quantity';
     createdAt: string;
 }
+
+    
