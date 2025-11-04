@@ -74,10 +74,14 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const newBranch: Branch = { id: `branch-${Date.now()}`, name: branchName };
     const updatedBranches = [...branches, newBranch];
-    const updatedBusiness = { ...business, branches: updatedBranches };
     
-    setBusiness(updatedBusiness);
+    const updatedBusiness: Business = {
+        ...business,
+        branches: updatedBranches,
+    };
+    
     setBranches(updatedBranches);
+    setBusiness(updatedBusiness);
     
     localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
     
