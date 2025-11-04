@@ -202,6 +202,8 @@ const getInitialInventory = (branchId: string): InventoryData => {
     }
 };
 
+// Global counter for history IDs to ensure uniqueness across sessions
+let historyIdCounter = Date.now();
 
 export function useInventory(branchId: string | undefined) {
   const [inventory, setInventory] = useState<InventoryData>({ items: [], categories: [], history: [] });
@@ -246,9 +248,10 @@ export function useInventory(branchId: string | undefined) {
 
   const addHistory = useCallback((log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId' | 'newQuantity'> & { newQuantity: number }) => {
     if (!branchId) return;
+    historyIdCounter += 1;
     const newHistory: InventoryHistory = {
         ...log,
-        id: `hist-${Date.now()}-${log.itemId}-${Math.random().toString(36).substring(2, 9)}`,
+        id: `hist-${historyIdCounter}`,
         createdAt: new Date().toISOString(),
         branchId,
     };
