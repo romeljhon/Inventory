@@ -158,9 +158,8 @@ const getInitialInventory = (branchId: string): InventoryData => {
 
     const finalHistory: InventoryHistory[] = [];
     const itemQuantityTracker: Record<string, number> = {};
-
     initialItemsWithIds.forEach(item => {
-        itemQuantityTracker[item.id] = item.quantity;
+        itemQuantityTracker[item.id] = 0; // Start at 0, will be built up
     });
 
     const allHistoryEvents = [
@@ -169,52 +168,33 @@ const getInitialInventory = (branchId: string): InventoryData => {
             itemId: item.id,
             itemName: item.name,
             change: item.quantity,
-            newQuantity: item.quantity,
+            quantity: item.quantity, // Add quantity for initial type
             createdAt: item.createdAt,
         })),
-        ...mockSales.map(sale => {
-            const currentQty = itemQuantityTracker[sale.itemId] || 0;
-            const newQty = currentQty + sale.change;
-            itemQuantityTracker[sale.itemId] = newQty; // This is a temporary update
-            return {
-                ...sale,
-                newQuantity: newQty,
-            }
-        })
+        ...mockSales,
     ].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-
-    const finalItemsMap = new Map<string, Item>();
-    initialItemsWithIds.forEach(i => finalItemsMap.set(i.id, JSON.parse(JSON.stringify(i))));
-    
-    const quantityRecalculator: Record<string, number> = {};
-
     allHistoryEvents.forEach((log, index) => {
-        const itemRef = finalItemsMap.get(log.itemId);
-        if(!itemRef) return;
-        
-        let newQuantity: number;
-        if(log.type === 'initial') {
-            quantityRecalculator[log.itemId] = log.change;
-            newQuantity = log.change;
-        } else {
-            const currentQty = quantityRecalculator[log.itemId] || 0;
-            newQuantity = currentQty + log.change;
-            quantityRecalculator[log.itemId] = newQuantity;
-        }
+        const currentQty = itemQuantityTracker[log.itemId] || 0;
+        const newQuantity = currentQty + log.change;
+        itemQuantityTracker[log.itemId] = newQuantity;
 
         finalHistory.push({
             ...log,
-            id: `hist-${new Date(log.createdAt).getTime()}-${log.type}-${log.itemId}-${index}`,
+            id: `hist-${new Date(log.createdAt).getTime()}-${log.itemId}-${index}`,
             branchId: branchId,
             newQuantity: newQuantity,
         });
-
-        itemRef.quantity = newQuantity;
     });
 
+    const finalItems = initialItemsWithIds.map(item => ({
+        ...item,
+        quantity: itemQuantityTracker[item.id] || 0,
+    }));
+
+
     return {
-        items: Array.from(finalItemsMap.values()),
+        items: finalItems,
         categories: [
             { id: "cat-1", name: "Electronics", color: "hsl(220, 80%, 50%)" },
             { id: "cat-2", name: "Office Supplies", color: "hsl(140, 60%, 45%)" },
