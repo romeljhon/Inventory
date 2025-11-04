@@ -174,15 +174,14 @@ const getInitialInventory = (branchId: string): InventoryData => {
     const itemQuantityTracker: Record<string, number> = {};
     const finalHistory: InventoryHistory[] = [];
 
-    allEvents.forEach((event) => {
-        historyIdCounter++;
+    allEvents.forEach((event, index) => {
         const currentQty = itemQuantityTracker[event.itemId] || 0;
         const newQuantity = currentQty + event.change;
         itemQuantityTracker[event.itemId] = newQuantity;
 
         finalHistory.push({
             ...event,
-            id: `hist-${historyIdCounter}`, // Use guaranteed unique ID
+            id: `hist-${Date.now()}-${index}`, // Guaranteed unique ID
             branchId,
             newQuantity,
         });
@@ -249,7 +248,7 @@ export function useInventory(branchId: string | undefined) {
 
   const addHistory = useCallback((log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId' | 'newQuantity'> & { newQuantity: number }) => {
     if (!branchId) return;
-    historyIdCounter += 1;
+    historyIdCounter++;
     const newHistory: InventoryHistory = {
         ...log,
         id: `hist-${historyIdCounter}`,
@@ -411,8 +410,3 @@ export function useInventory(branchId: string | undefined) {
 }
 
     
-
-    
-
-    
-
