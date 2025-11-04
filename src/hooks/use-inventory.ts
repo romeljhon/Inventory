@@ -250,7 +250,7 @@ export function useInventory(branchId: string | undefined) {
     if (!branchId) return;
     const newHistory: InventoryHistory = {
         ...log,
-        id: `hist-${Date.now()}-${log.type}-${log.itemId}-${Math.random().toString(36).substring(2, 9)}`,
+        id: `hist-${Date.now()}-${log.itemId}-${Math.random().toString(36).substring(2, 9)}`,
         createdAt: new Date().toISOString(),
         branchId,
     };
@@ -407,5 +407,7 @@ export function useInventory(branchId: string | undefined) {
     isLoading
   };
 }
+
+    
 
     
