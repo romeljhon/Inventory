@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Item, Category, InventoryHistory } from "@/lib/types";
-import { subDays, subWeeks, subMonths, addDays } from 'date-fns';
+import { subDays, subWeeks, subMonths, addDays, subSeconds } from 'date-fns';
 
 
 const LOW_STOCK_THRESHOLD = 10;
@@ -154,9 +154,9 @@ const getInitialInventory = (branchId: string): InventoryData => {
     // Add mock sales data
     const mockSales: Omit<InventoryHistory, 'id' | 'branchId'>[] = [
         // Today
-        { itemId: 'item-2', itemName: 'Wireless Mouse', change: -2, newQuantity: 8, type: 'quantity', createdAt: now.toISOString() },
-        { itemId: 'item-7', itemName: 'Printer Paper (Ream)', change: -5, newQuantity: 50, type: 'quantity', createdAt: now.toISOString() },
-        { itemId: 'item-9', itemName: 'Fresh Milk (1L)', change: -1, newQuantity: 15, type: 'quantity', createdAt: now.toISOString() },
+        { itemId: 'item-2', itemName: 'Wireless Mouse', change: -2, newQuantity: 8, type: 'quantity', createdAt: subSeconds(now, 10).toISOString() },
+        { itemId: 'item-7', itemName: 'Printer Paper (Ream)', change: -5, newQuantity: 50, type: 'quantity', createdAt: subSeconds(now, 20).toISOString() },
+        { itemId: 'item-9', itemName: 'Fresh Milk (1L)', change: -1, newQuantity: 15, type: 'quantity', createdAt: subSeconds(now, 30).toISOString() },
         
         // This Week
         { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, newQuantity: 25, type: 'quantity', createdAt: subDays(now, 2).toISOString() },
@@ -177,7 +177,7 @@ const getInitialInventory = (branchId: string): InventoryData => {
     mockSales.forEach((sale, index) => {
         initialHistory.push({
             ...sale,
-            id: `hist-sale-${now.getTime()}-${index}`,
+            id: `hist-sale-${new Date(sale.createdAt).getTime()}-${index}`,
             branchId,
         });
     });
