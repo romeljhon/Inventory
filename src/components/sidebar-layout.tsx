@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Building, ChevronsUpDown, Home, LayoutDashboard, PlusCircle, Package, History, Shapes } from "lucide-react";
+import { Building, ChevronsUpDown, Home, LayoutDashboard, PlusCircle, Package, History, Shapes, ShoppingCart } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { Icons } from "@/components/icons";
 
@@ -96,6 +96,14 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                   Categories
                 </Link>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/sales"}>
+                    <Link href="/sales">
+                        <ShoppingCart />
+                        Sales
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>

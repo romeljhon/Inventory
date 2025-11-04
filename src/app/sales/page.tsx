@@ -1,0 +1,294 @@
+
+"use client";
+
+import { useState, useMemo } from "react";
+import { useBusiness } from "@/hooks/use-business";
+import { useInventory } from "@/hooks/use-inventory";
+import { SidebarLayout } from "@/components/sidebar-layout";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign } from "lucide-react";
+import { CategoryPills } from "@/components/inventory/category-pills";
+import type { Item } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
+
+type CartItem = Item & { saleQuantity: number };
+
+export default function SalesPage() {
+  const { activeBranch } = useBusiness();
+  const { items, categories, batchUpdateQuantities, isLoading } = useInventory(activeBranch?.id);
+  const { toast } = useToast();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  const filteredItems = useMemo(() => {
+    return (items || [])
+      .filter((item) => {
+        if (activeCategory && item.categoryId !== activeCategory) {
+          return false;
+        }
+        if (searchTerm) {
+          return item.name.toLowerCase().includes(searchTerm.toLowerCase());
+        }
+        return true;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [items, searchTerm, activeCategory]);
+
+  const addToCart = (item: Item) => {
+    setCart((currentCart) => {
+      const existingItem = currentCart.find((cartItem) => cartItem.id === item.id);
+      if (existingItem) {
+        // If item is already in cart, increase its quantity by 1, if stock allows
+        const newQuantity = Math.min(existingItem.saleQuantity + 1, item.quantity);
+        return currentCart.map((cartItem) =>
+          cartItem.id === item.id ? { ...cartItem, saleQuantity: newQuantity } : cartItem
+        );
+      } else {
+        // Add new item to cart with quantity 1
+        return [...currentCart, { ...item, saleQuantity: 1 }];
+      }
+    });
+  };
+
+  const updateCartQuantity = (itemId: string, change: number) => {
+    setCart((currentCart) => {
+      const existingItem = currentCart.find((cartItem) => cartItem.id === itemId);
+      if (!existingItem) return currentCart;
+
+      const newQuantity = existingItem.saleQuantity + change;
+      const stock = items.find(i => i.id === itemId)?.quantity || 0;
+
+      if (newQuantity <= 0) {
+        // Remove item if quantity becomes 0 or less
+        return currentCart.filter((cartItem) => cartItem.id !== itemId);
+      }
+      
+      // Clamp quantity to available stock
+      const clampedQuantity = Math.min(newQuantity, stock);
+      
+      return currentCart.map((cartItem) =>
+        cartItem.id === itemId ? { ...cartItem, saleQuantity: clampedQuantity } : cartItem
+      );
+    });
+  };
+
+  const removeFromCart = (itemId: string) => {
+    setCart((currentCart) => currentCart.filter((item) => item.id !== itemId));
+  };
+  
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+    }).format(amount);
+  };
+
+  const cartTotal = useMemo(() => {
+    return cart.reduce((total, item) => total + item.value * item.saleQuantity, 0);
+  }, [cart]);
+
+  const completeSale = () => {
+    if (cart.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Cart is empty",
+        description: "Add items to the cart to complete a sale.",
+      });
+      return;
+    }
+
+    const updates: Record<string, number> = {};
+    cart.forEach((cartItem) => {
+      const originalItem = items.find(i => i.id === cartItem.id);
+      if (originalItem) {
+        updates[cartItem.id] = originalItem.quantity - cartItem.saleQuantity;
+      }
+    });
+
+    batchUpdateQuantities(updates);
+    
+    toast({
+      title: "Sale Completed!",
+      description: `Sold ${cart.reduce((sum, i) => sum + i.saleQuantity, 0)} items for a total of ${formatCurrency(cartTotal)}.`,
+    });
+
+    setCart([]);
+  };
+
+  return (
+    <SidebarLayout>
+      <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight">Sales / Point of Sale</h1>
+          <p className="text-muted-foreground">Select items from inventory to complete a sale.</p>
+        </header>
+
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {/* Left Column: Item Selection */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Available Items</CardTitle>
+                <div className="flex flex-col gap-4 pt-4 md:flex-row">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search items..."
+                      className="pl-9"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                   <CategoryPills
+                      categories={categories}
+                      activeCategory={activeCategory}
+                      onSelectCategory={setActiveCategory}
+                    />
+                </div>
+              </CardHeader>
+              <CardContent className="max-h-[600px] overflow-y-auto">
+                {isLoading ? (
+                  <p>Loading items...</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead className="text-right">In Stock</TableHead>
+                        <TableHead className="text-right">Price</TableHead>
+                        <TableHead className="w-[100px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredItems.map((item) => (
+                        <TableRow key={item.id} className={item.quantity === 0 ? "opacity-50" : ""}>
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell className="text-right">{item.quantity} {item.unitType}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.value)}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              onClick={() => addToCart(item)}
+                              disabled={item.quantity === 0}
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+                 {filteredItems.length === 0 && !isLoading && (
+                    <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+                        <Package className="h-12 w-12 text-muted-foreground/80" />
+                        <h3 className="text-xl font-semibold">No Items Found</h3>
+                        <p className="text-muted-foreground">
+                        There are no items to display for the current selection.
+                        </p>
+                    </div>
+                 )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column: Cart */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingCart className="h-6 w-6" />
+                  Current Sale
+                </CardTitle>
+                <CardDescription>
+                  Items added to the current sale. Quantities will be deducted upon completion.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {cart.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground">
+                    Your cart is empty.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {cart.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {formatCurrency(item.value)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => updateCartQuantity(item.id, -1)}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          <span className="w-6 text-center font-bold">{item.saleQuantity}</span>
+                           <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => updateCartQuantity(item.id, 1)}
+                               disabled={item.saleQuantity >= item.quantity}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => removeFromCart(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+              {cart.length > 0 && (
+                <div className="border-t p-6 space-y-4">
+                    <div className="flex items-center justify-between text-lg font-bold">
+                        <span>Total:</span>
+                        <div className="flex items-center gap-2">
+                            <DollarSign className="h-5 w-5 text-muted-foreground" />
+                            <span>{formatCurrency(cartTotal)}</span>
+                        </div>
+                    </div>
+                  <Button size="lg" className="w-full" onClick={completeSale}>
+                    Complete Sale
+                  </Button>
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      </div>
+    </SidebarLayout>
+  );
+}
