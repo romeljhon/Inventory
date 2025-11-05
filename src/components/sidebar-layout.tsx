@@ -55,33 +55,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarHeader>
         <SidebarContent>
-            <SidebarGroup>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-between">
-                            <div className="flex items-center gap-2">
-                                <Building className="h-4 w-4" />
-                                <span className="truncate">{activeBranch?.name}</span>
-                            </div>
-                            <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                        <DropdownMenuLabel>Branches</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {branches.map(branch => (
-                            <DropdownMenuItem key={branch.id} onClick={() => switchBranch(branch.id)}>
-                                {branch.name}
-                            </DropdownMenuItem>
-                        ))}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleAddBranch}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Branch
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === "/"}>
