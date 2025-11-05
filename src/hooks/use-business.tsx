@@ -11,6 +11,7 @@ interface BusinessContextType {
   isLoading: boolean;
   setupBusiness: (businessName: string, initialBranchName: string) => Promise<void>;
   addBranch: (branchName: string) => Promise<Branch | undefined>;
+  deleteBranch: (branchId: string) => void;
   switchBranch: (branchId: string | null) => void;
 }
 
@@ -85,6 +86,28 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     return newBranch;
   }, [business, branches]);
 
+  const deleteBranch = useCallback((branchId: string) => {
+    if (!business) return;
+
+    const updatedBranches = branches.filter(b => b.id !== branchId);
+    const updatedBusiness: Business = {
+        ...business,
+        branches: updatedBranches,
+    };
+
+    setBranches(updatedBranches);
+    setBusiness(updatedBusiness);
+    localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
+
+    // Also remove the inventory data for that branch
+    localStorage.removeItem(`stock-sherpa-inventory-${branchId}`);
+
+    if (activeBranch?.id === branchId) {
+        setActiveBranch(null);
+        localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, 'null');
+    }
+  }, [business, branches, activeBranch?.id]);
+
   const switchBranch = useCallback((branchId: string | null) => {
     if (branchId === null) {
       setActiveBranch(null);
@@ -105,8 +128,9 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     isLoading,
     setupBusiness,
     addBranch,
+    deleteBranch,
     switchBranch
-  }), [business, branches, activeBranch, isLoading, setupBusiness, addBranch, switchBranch]);
+  }), [business, branches, activeBranch, isLoading, setupBusiness, addBranch, deleteBranch, switchBranch]);
 
   return (
     <BusinessContext.Provider value={contextValue}>
@@ -122,5 +146,3 @@ export const useBusiness = (): BusinessContextType => {
   }
   return context;
 };
-
-    

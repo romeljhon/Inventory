@@ -13,6 +13,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Table,
@@ -29,12 +30,13 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp, CalendarX2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp, CalendarX2, Trash2 } from "lucide-react";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import type { Branch } from "@/lib/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { subDays, startOfDay, startOfWeek, startOfMonth, startOfYear, isBefore } from "date-fns";
 import { AddBranchDialog } from "@/components/branches/add-branch-dialog";
+import { DeleteBranchAlert } from "@/components/branches/delete-branch-alert";
 
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
@@ -372,9 +374,11 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
 }
 
 export default function DashboardPage() {
-  const { business, branches, activeBranch, addBranch, switchBranch, isLoading: isBusinessLoading } = useBusiness();
+  const { business, branches, activeBranch, addBranch, deleteBranch, switchBranch, isLoading: isBusinessLoading } = useBusiness();
   const router = useRouter();
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
 
   useEffect(() => {
     if (!isBusinessLoading && !business) {
@@ -398,6 +402,19 @@ export default function DashboardPage() {
       }
     }
   };
+
+  const openDeleteDialog = (branch: Branch) => {
+    setDeletingBranch(branch);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deletingBranch) {
+      deleteBranch(deletingBranch.id);
+      setDeletingBranch(null);
+    }
+    setIsDeleteAlertOpen(false);
+  };
   
   const isLoading = isBusinessLoading;
 
@@ -413,21 +430,38 @@ export default function DashboardPage() {
         ) : (
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Select a Branch</h1>
-            <p className="text-muted-foreground mb-6">Click on a branch to view its dashboard, or add a new one.</p>
+            <p className="text-muted-foreground mb-6">Click on a branch to view its dashboard, or add/delete a branch.</p>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {branches.map(branch => (
                 <Card 
                   key={branch.id} 
-                  className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-1"
-                  onClick={() => handleSelectBranch(branch)}
+                  className="flex flex-col justify-between transition-all hover:shadow-md"
                 >
-                  <CardHeader className="flex flex-col items-center justify-center text-center p-6">
+                  <div
+                    className="flex-grow cursor-pointer p-6 flex flex-col items-center justify-center text-center"
+                    onClick={() => handleSelectBranch(branch)}
+                  >
                     <div className="p-4 bg-primary/10 rounded-full mb-4">
                         <Building className="h-8 w-8 text-primary" />
                     </div>
                     <CardTitle className="text-lg">{branch.name}</CardTitle>
                     <CardDescription>View Dashboard</CardDescription>
-                  </CardHeader>
+                  </div>
+                   <CardFooter className="p-2 border-t">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeleteDialog(branch);
+                      }}
+                      disabled={branches.length <= 1}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Branch
+                    </Button>
+                  </CardFooter>
                 </Card>
               ))}
                <Card 
@@ -451,8 +485,12 @@ export default function DashboardPage() {
         onOpenChange={setIsAddBranchOpen}
         onSave={handleSaveNewBranch}
       />
+      <DeleteBranchAlert
+        isOpen={isDeleteAlertOpen}
+        onOpenChange={setIsDeleteAlertOpen}
+        onConfirm={handleConfirmDelete}
+        branchName={deletingBranch?.name || ''}
+      />
     </SidebarLayout>
   );
 }
-
-    
