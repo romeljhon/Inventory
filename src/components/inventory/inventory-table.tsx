@@ -103,7 +103,7 @@ export function InventoryTable({
               {!isCompact && <TableHead className="hidden sm:table-cell">Category</TableHead>}
               {!isCompact && <TableHead className="hidden md:table-cell text-right">Value</TableHead>}
               <TableHead className="text-center w-[150px]">Quantity</TableHead>
-              {!isCompact && <TableHead className="hidden md:table-cell text-right">Total Value</TableHead>}
+              {!isCompact && <TableHead className="hidden lg:table-cell text-right">Total Value</TableHead>}
               {!isCompact && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
@@ -170,7 +170,7 @@ export function InventoryTable({
                      <Badge variant="destructive" className="mt-2">Low Stock</Badge>
                   )}
                 </TableCell>
-                {!isCompact && <TableCell className="hidden md:table-cell text-right font-medium">
+                {!isCompact && <TableCell className="hidden lg:table-cell text-right font-medium">
                   {formatCurrency(item.value * item.quantity)}
                 </TableCell>}
                 {!isCompact && <TableCell className="text-right">

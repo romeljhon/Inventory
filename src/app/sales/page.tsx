@@ -182,39 +182,44 @@ export default function SalesPage() {
                         />
                     </div>
                   </CardHeader>
-                  <CardContent className="max-h-[600px] overflow-y-auto">
+                  <CardContent className="max-h-[60vh] overflow-y-auto">
                     {isLoading ? (
                       <p>Loading items...</p>
                     ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead className="text-right">In Stock</TableHead>
-                            <TableHead className="text-right">Price</TableHead>
-                            <TableHead className="w-[100px]"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredItems.map((item) => (
-                            <TableRow key={item.id} className={item.quantity === 0 ? "opacity-50" : ""}>
-                              <TableCell className="font-medium">{item.name}</TableCell>
-                              <TableCell className="text-right">{item.quantity} {item.unitType}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(item.value)}</TableCell>
-                              <TableCell className="text-right">
-                                <Button
-                                  size="sm"
-                                  onClick={() => addToCart(item)}
-                                  disabled={item.quantity === 0}
-                                >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Add
-                                </Button>
-                              </TableCell>
+                      <div className="w-full overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Item</TableHead>
+                              <TableHead className="text-right">In Stock</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell">Price</TableHead>
+                              <TableHead className="w-[100px]"></TableHead>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredItems.map((item) => (
+                              <TableRow key={item.id} className={item.quantity === 0 ? "opacity-50" : ""}>
+                                <TableCell className="font-medium">
+                                  {item.name}
+                                  <div className="sm:hidden text-muted-foreground">{formatCurrency(item.value)}</div>
+                                </TableCell>
+                                <TableCell className="text-right">{item.quantity} {item.unitType}</TableCell>
+                                <TableCell className="text-right hidden sm:table-cell">{formatCurrency(item.value)}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => addToCart(item)}
+                                    disabled={item.quantity === 0}
+                                  >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
                     )}
                     {filteredItems.length === 0 && !isLoading && (
                         <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
@@ -312,5 +317,3 @@ export default function SalesPage() {
     </SidebarLayout>
   );
 }
-
-    

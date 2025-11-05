@@ -181,15 +181,15 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
               <Button variant="outline" size="icon" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <h1 className="text-3xl font-bold tracking-tight">Dashboard for {branch.name}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard for {branch.name}</h1>
           </div>
-          <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
-            <TabsList>
-              <TabsTrigger value="day">Today</TabsTrigger>
-              <TabsTrigger value="week">This Week</TabsTrigger>
-              <TabsTrigger value="month">This Month</TabsTrigger>
-              <TabsTrigger value="year">This Year</TabsTrigger>
-              <TabsTrigger value="all">All Time</TabsTrigger>
+          <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)} className="w-full sm:w-auto">
+            <TabsList className="w-full sm:w-auto">
+              <TabsTrigger value="day" className="flex-1 sm:flex-initial">Today</TabsTrigger>
+              <TabsTrigger value="week" className="flex-1 sm:flex-initial">Week</TabsTrigger>
+              <TabsTrigger value="month" className="flex-1 sm:flex-initial">Month</TabsTrigger>
+              <TabsTrigger value="year" className="flex-1 sm:flex-initial">Year</TabsTrigger>
+              <TabsTrigger value="all" className="flex-1 sm:flex-initial">All</TabsTrigger>
             </TabsList>
           </Tabs>
       </header>

@@ -135,11 +135,12 @@ export default function HistoryPage() {
           </Card>
         ) : (
           <>
-            <header className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Inventory History for {activeBranch.name}</h1>
-                <Button onClick={handleExport} disabled={sortedHistory.length === 0}>
+            <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Inventory History for {activeBranch.name}</h1>
+                <Button onClick={handleExport} disabled={!sortedHistory || sortedHistory.length === 0}>
                     <Download className="mr-2 h-4 w-4" />
-                    Export to CSV
+                    <span className="hidden sm:inline">Export to CSV</span>
+                    <span className="sm:hidden">Export</span>
                 </Button>
             </header>
             <Card>
@@ -154,10 +155,10 @@ export default function HistoryPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[20%]">Date</TableHead>
-                                    <TableHead className="w-[30%]">Item</TableHead>
-                                    <TableHead className="w-[40%]">Action</TableHead>
-                                    <TableHead className="text-right w-[10%]">New Quantity</TableHead>
+                                    <TableHead className="w-[150px]">Date</TableHead>
+                                    <TableHead>Item</TableHead>
+                                    <TableHead className="hidden sm:table-cell">Action</TableHead>
+                                    <TableHead className="text-right">New Qty</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -174,7 +175,7 @@ export default function HistoryPage() {
                                             <div className="text-sm text-muted-foreground">{format(new Date(log.createdAt), "p")}</div>
                                         </TableCell>
                                         <TableCell className="font-medium">{log.itemName}</TableCell>
-                                        <TableCell>
+                                        <TableCell className="hidden sm:table-cell">
                                             <div className="flex items-center gap-2">
                                                 {getChangeIcon(log)}
                                                 <span>{getChangeDescription(log)}</span>
@@ -200,7 +201,3 @@ export default function HistoryPage() {
     </SidebarLayout>
   );
 }
-
-    
-
-    
