@@ -37,9 +37,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Icons.logo className="w-7 h-7 text-primary" />
-            <span className="text-lg font-semibold">{business?.name}</span>
+            <span className="text-lg font-semibold text-white">{business?.name}</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -97,7 +97,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start gap-2 px-2">
+              <Button variant="ghost" className="w-full justify-start gap-3 px-3 text-white/80 hover:text-white">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="https://picsum.photos/100" />
                   <AvatarFallback>U</AvatarFallback>
@@ -117,7 +117,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-12 items-center justify-between border-b px-4 md:hidden">
+        <header className="flex h-14 items-center justify-between border-b px-4 md:hidden">
             <div className="flex items-center gap-2">
                 <Icons.logo className="w-6 h-6 text-primary" />
                 <span className="font-semibold">{business?.name}</span>
