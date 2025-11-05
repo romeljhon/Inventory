@@ -35,11 +35,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar variant="inset">
         <SidebarHeader>
           <div className="flex items-center gap-3">
             <Icons.logo className="w-7 h-7 text-primary" />
-            <span className="text-lg font-semibold text-white">{business?.name}</span>
+            <span className="text-lg font-semibold text-foreground">{business?.name}</span>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -97,7 +97,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start gap-3 px-3 text-white/80 hover:text-white">
+              <Button variant="ghost" className="w-full justify-start gap-3 px-3 text-foreground/80 hover:text-foreground">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="https://picsum.photos/100" />
                   <AvatarFallback>U</AvatarFallback>
