@@ -14,8 +14,6 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -27,23 +25,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Building, ChevronsUpDown, Home, LayoutDashboard, PlusCircle, Package, History, Shapes, ShoppingCart, Camera } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { Icons } from "@/components/icons";
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const { business, branches, activeBranch, switchBranch, addBranch } = useBusiness();
+  const { business } = useBusiness();
   const pathname = usePathname();
-
-  const handleAddBranch = async () => {
-    const branchName = prompt("Enter the name for the new branch:");
-    if (branchName) {
-      const newBranch = await addBranch(branchName);
-      if (newBranch) {
-        switchBranch(newBranch.id);
-      }
-    }
-  };
 
   return (
     <SidebarProvider>
@@ -56,6 +44,14 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
+                <Link href="/dashboard">
+                  <LayoutDashboard />
+                  Dashboard
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === "/"}>
                 <Link href="/">
@@ -79,14 +75,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                         Sales
                     </Link>
                 </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
-                <Link href="/dashboard">
-                  <LayoutDashboard />
-                  Dashboard
-                </Link>
-              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/history"}>
