@@ -28,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { Icons } from "@/components/icons";
+import { ModeToggle } from "@/components/theme-toggle";
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const { business } = useBusiness();
@@ -110,6 +111,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenuSeparator />
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <ModeToggle />
               <DropdownMenuSeparator />
               <DropdownMenuItem>Logout</DropdownMenuItem>
             </DropdownMenuContent>

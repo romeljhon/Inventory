@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { BusinessProvider } from "@/hooks/use-business";
+import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
   title: 'Stock Sherpa',
@@ -24,10 +25,17 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <BusinessProvider>
-          {children}
-          <Toaster />
-        </BusinessProvider>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+          <BusinessProvider>
+            {children}
+            <Toaster />
+          </BusinessProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
