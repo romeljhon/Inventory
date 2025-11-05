@@ -38,7 +38,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const handleAddBranch = async () => {
     const branchName = prompt("Enter the name for the new branch:");
     if (branchName) {
-      await addBranch(branchName);
+      const newBranch = await addBranch(branchName);
+      if (newBranch) {
+        switchBranch(newBranch.id);
+      }
     }
   };
 

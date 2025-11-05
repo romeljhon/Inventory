@@ -10,7 +10,7 @@ interface BusinessContextType {
   activeBranch: Branch | null;
   isLoading: boolean;
   setupBusiness: (businessName: string, initialBranchName: string) => Promise<void>;
-  addBranch: (branchName: string) => Promise<void>;
+  addBranch: (branchName: string) => Promise<Branch | undefined>;
   switchBranch: (branchId: string) => void;
 }
 
@@ -69,26 +69,22 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, newBranch.id);
   }, []);
 
-  const addBranch = useCallback(async (branchName: string): Promise<void> => {
-    setBusiness(prevBusiness => {
-      if (!prevBusiness) throw new Error("Business not loaded yet.");
-      const newBranch: Branch = { id: `branch-${Date.now()}`, name: branchName };
-      const updatedBranches = [...prevBusiness.branches, newBranch];
-      const updatedBusiness: Business = {
-        ...prevBusiness,
-        branches: updatedBranches,
-      };
-      
-      setBranches(updatedBranches);
-      localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
-      
-      // Automatically switch to the new branch
-      setActiveBranch(newBranch);
-      localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, newBranch.id);
-      
-      return updatedBusiness;
-    });
-  }, []);
+  const addBranch = useCallback(async (branchName: string): Promise<Branch | undefined> => {
+    if (!business) return undefined;
+
+    const newBranch: Branch = { id: `branch-${Date.now()}`, name: branchName };
+    const updatedBranches = [...branches, newBranch];
+    const updatedBusiness: Business = {
+      ...business,
+      branches: updatedBranches,
+    };
+
+    setBusiness(updatedBusiness);
+    setBranches(updatedBranches);
+    localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
+    
+    return newBranch;
+  }, [business, branches]);
 
   const switchBranch = useCallback((branchId: string) => {
     const branchToActivate = branches.find(b => b.id === branchId);
