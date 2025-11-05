@@ -37,6 +37,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { subDays, startOfDay, startOfWeek, startOfMonth, startOfYear, isBefore } from "date-fns";
 import { AddBranchDialog } from "@/components/branches/add-branch-dialog";
 import { DeleteBranchAlert } from "@/components/branches/delete-branch-alert";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Icons } from "@/components/icons";
 
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
@@ -425,6 +427,13 @@ export default function DashboardPage() {
   return (
     <SidebarLayout>
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+        <header className="flex h-14 items-center justify-between border-b px-4 md:hidden">
+            <div className="flex items-center gap-2">
+                <Icons.logo className="w-6 h-6 text-primary" />
+                <span className="font-semibold">{business?.name}</span>
+            </div>
+            <SidebarTrigger />
+        </header>
         {activeBranch ? (
           <BranchDashboard branch={activeBranch} onBack={handleBackToBranches} />
         ) : (

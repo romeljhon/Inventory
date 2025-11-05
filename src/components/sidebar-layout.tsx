@@ -117,13 +117,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center justify-between border-b px-4 md:hidden">
-            <div className="flex items-center gap-2">
-                <Icons.logo className="w-6 h-6 text-primary" />
-                <span className="font-semibold">{business?.name}</span>
-            </div>
-            <SidebarTrigger />
-        </header>
         {children}
       </SidebarInset>
     </SidebarProvider>
