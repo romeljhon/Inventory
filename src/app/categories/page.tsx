@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useBusiness } from "@/hooks/use-business";
 import { useInventory } from "@/hooks/use-inventory";
 import { SidebarLayout } from "@/components/sidebar-layout";
@@ -29,7 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CategoryForm } from "@/components/categories/category-form";
-import { PlusCircle, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Building } from "lucide-react";
 import type { Category } from "@/lib/types";
 
 export default function CategoriesPage() {
@@ -64,92 +65,114 @@ export default function CategoriesPage() {
   return (
     <SidebarLayout>
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Manage Categories</h1>
-          <Button onClick={() => handleOpenForm()}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Category
-          </Button>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Category List</CardTitle>
-            <CardDescription>
-              View, create, and edit your item categories.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Category Name</TableHead>
-                    <TableHead className="w-[100px] text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {categories.length > 0 ? (
-                    categories.map((category) => (
-                      <TableRow key={category.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="h-4 w-4 rounded-full"
-                              style={{ backgroundColor: category.color }}
-                            />
-                            <span className="font-medium">{category.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenForm(category)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteCategory(category.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={2} className="h-24 text-center">
-                        No categories found.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+        {!activeBranch ? (
+           <Card>
+            <CardHeader className="flex flex-col items-center justify-center text-center p-8">
+              <div className="p-4 bg-primary/10 rounded-full mb-4">
+                <Building className="h-10 w-10 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">No Branch Selected</CardTitle>
+              <CardDescription>
+                Please select a branch from the dashboard to manage its
+                categories.
+              </CardDescription>
+              <Link href="/dashboard" className="mt-4">
+                  <Button>Go to Dashboard</Button>
+              </Link>
+            </CardHeader>
+          </Card>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold tracking-tight">Manage Categories for {activeBranch.name}</h1>
+              <Button onClick={() => handleOpenForm()}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Category
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingCategory ? "Edit Category" : "Add New Category"}
-            </DialogTitle>
-          </DialogHeader>
-          <CategoryForm
-            category={editingCategory}
-            onSave={handleSaveCategory}
-            onCancel={() => setIsFormOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+            <Card>
+              <CardHeader>
+                <CardTitle>Category List</CardTitle>
+                <CardDescription>
+                  View, create, and edit your item categories for this branch.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Category Name</TableHead>
+                        <TableHead className="w-[100px] text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {categories.length > 0 ? (
+                        categories.map((category) => (
+                          <TableRow key={category.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="h-4 w-4 rounded-full"
+                                  style={{ backgroundColor: category.color }}
+                                />
+                                <span className="font-medium">{category.name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleOpenForm(category)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => handleDeleteCategory(category.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={2} className="h-24 text-center">
+                            No categories found for this branch.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>
+                    {editingCategory ? "Edit Category" : "Add New Category"}
+                    </DialogTitle>
+                </DialogHeader>
+                <CategoryForm
+                    category={editingCategory}
+                    onSave={handleSaveCategory}
+                    onCancel={() => setIsFormOpen(false)}
+                />
+                </DialogContent>
+            </Dialog>
+          </>
+        )}
+      </div>
     </SidebarLayout>
   );
 }
+
+    

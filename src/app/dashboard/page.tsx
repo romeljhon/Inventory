@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp, CalendarX2 } from "lucide-react";
+import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp, CalendarX2, CheckCircle } from "lucide-react";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import type { Branch } from "@/lib/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -372,9 +372,8 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
 }
 
 export default function DashboardPage() {
-  const { business, branches, addBranch, switchBranch, isLoading: isBusinessLoading } = useBusiness();
+  const { business, branches, activeBranch, addBranch, switchBranch, isLoading: isBusinessLoading } = useBusiness();
   const router = useRouter();
-  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
 
   useEffect(() => {
@@ -384,11 +383,11 @@ export default function DashboardPage() {
   }, [business, isBusinessLoading, router]);
 
   const handleSelectBranch = (branch: Branch) => {
-    setSelectedBranch(branch);
+    switchBranch(branch.id);
   };
 
   const handleBackToBranches = () => {
-    setSelectedBranch(null);
+    switchBranch(null);
   };
 
   const handleSaveNewBranch = async (branchName: string) => {
@@ -396,7 +395,6 @@ export default function DashboardPage() {
       const newBranch = await addBranch(branchName);
       if (newBranch) {
         switchBranch(newBranch.id);
-        setSelectedBranch(newBranch);
       }
     }
   };
@@ -410,8 +408,8 @@ export default function DashboardPage() {
   return (
     <SidebarLayout>
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-        {selectedBranch ? (
-          <BranchDashboard branch={selectedBranch} onBack={handleBackToBranches} />
+        {activeBranch ? (
+          <BranchDashboard branch={activeBranch} onBack={handleBackToBranches} />
         ) : (
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Select a Branch</h1>
@@ -456,3 +454,5 @@ export default function DashboardPage() {
     </SidebarLayout>
   );
 }
+
+    

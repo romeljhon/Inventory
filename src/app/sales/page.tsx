@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { useBusiness } from "@/hooks/use-business";
 import { useInventory } from "@/hooks/use-inventory";
 import { SidebarLayout } from "@/components/sidebar-layout";
@@ -22,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign } from "lucide-react";
+import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign, Building } from "lucide-react";
 import { CategoryPills } from "@/components/inventory/category-pills";
 import type { Item } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -136,159 +137,180 @@ export default function SalesPage() {
   return (
     <SidebarLayout>
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight">Sales / Point of Sale</h1>
-          <p className="text-muted-foreground">Select items from inventory to complete a sale.</p>
-        </header>
+        {!activeBranch ? (
+           <Card>
+            <CardHeader className="flex flex-col items-center justify-center text-center p-8">
+              <div className="p-4 bg-primary/10 rounded-full mb-4">
+                <Building className="h-10 w-10 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">No Branch Selected</CardTitle>
+              <CardDescription>
+                Please select a branch from the dashboard to start a sale.
+              </CardDescription>
+              <Link href="/dashboard" className="mt-4">
+                  <Button>Go to Dashboard</Button>
+              </Link>
+            </CardHeader>
+          </Card>
+        ) : (
+          <>
+            <header>
+              <h1 className="text-3xl font-bold tracking-tight">Sales for {activeBranch.name}</h1>
+              <p className="text-muted-foreground">Select items from inventory to complete a sale.</p>
+            </header>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Left Column: Item Selection */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Available Items</CardTitle>
-                <div className="flex flex-col gap-4 pt-4 md:flex-row">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      placeholder="Search items..."
-                      className="pl-9"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                   <CategoryPills
-                      categories={categories}
-                      activeCategory={activeCategory}
-                      onSelectCategory={setActiveCategory}
-                    />
-                </div>
-              </CardHeader>
-              <CardContent className="max-h-[600px] overflow-y-auto">
-                {isLoading ? (
-                  <p>Loading items...</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Item</TableHead>
-                        <TableHead className="text-right">In Stock</TableHead>
-                        <TableHead className="text-right">Price</TableHead>
-                        <TableHead className="w-[100px]"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredItems.map((item) => (
-                        <TableRow key={item.id} className={item.quantity === 0 ? "opacity-50" : ""}>
-                          <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell className="text-right">{item.quantity} {item.unitType}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(item.value)}</TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              onClick={() => addToCart(item)}
-                              disabled={item.quantity === 0}
-                            >
-                              <Plus className="mr-2 h-4 w-4" />
-                              Add
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-                 {filteredItems.length === 0 && !isLoading && (
-                    <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-                        <Package className="h-12 w-12 text-muted-foreground/80" />
-                        <h3 className="text-xl font-semibold">No Items Found</h3>
-                        <p className="text-muted-foreground">
-                        There are no items to display for the current selection.
-                        </p>
-                    </div>
-                 )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column: Cart */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="h-6 w-6" />
-                  Current Sale
-                </CardTitle>
-                <CardDescription>
-                  Items added to the current sale. Quantities will be deducted upon completion.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {cart.length === 0 ? (
-                  <div className="py-12 text-center text-muted-foreground">
-                    Your cart is empty.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {cart.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatCurrency(item.value)}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                           <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => updateCartQuantity(item.id, -1)}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                          <span className="w-6 text-center font-bold">{item.saleQuantity}</span>
-                           <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => updateCartQuantity(item.id, 1)}
-                               disabled={item.saleQuantity >= item.quantity}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => removeFromCart(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+              {/* Left Column: Item Selection */}
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Available Items</CardTitle>
+                    <div className="flex flex-col gap-4 pt-4 md:flex-row">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Search items..."
+                          className="pl-9"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-              {cart.length > 0 && (
-                <div className="border-t p-6 space-y-4">
-                    <div className="flex items-center justify-between text-lg font-bold">
-                        <span>Total:</span>
-                        <div className="flex items-center gap-2">
-                            <DollarSign className="h-5 w-5 text-muted-foreground" />
-                            <span>{formatCurrency(cartTotal)}</span>
-                        </div>
+                      <CategoryPills
+                          categories={categories}
+                          activeCategory={activeCategory}
+                          onSelectCategory={setActiveCategory}
+                        />
                     </div>
-                  <Button size="lg" className="w-full" onClick={completeSale}>
-                    Complete Sale
-                  </Button>
-                </div>
-              )}
-            </Card>
-          </div>
-        </div>
+                  </CardHeader>
+                  <CardContent className="max-h-[600px] overflow-y-auto">
+                    {isLoading ? (
+                      <p>Loading items...</p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Item</TableHead>
+                            <TableHead className="text-right">In Stock</TableHead>
+                            <TableHead className="text-right">Price</TableHead>
+                            <TableHead className="w-[100px]"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredItems.map((item) => (
+                            <TableRow key={item.id} className={item.quantity === 0 ? "opacity-50" : ""}>
+                              <TableCell className="font-medium">{item.name}</TableCell>
+                              <TableCell className="text-right">{item.quantity} {item.unitType}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(item.value)}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  size="sm"
+                                  onClick={() => addToCart(item)}
+                                  disabled={item.quantity === 0}
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Add
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                    {filteredItems.length === 0 && !isLoading && (
+                        <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+                            <Package className="h-12 w-12 text-muted-foreground/80" />
+                            <h3 className="text-xl font-semibold">No Items Found</h3>
+                            <p className="text-muted-foreground">
+                            There are no items to display for the current selection.
+                            </p>
+                        </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Column: Cart */}
+              <div className="lg:col-span-1">
+                <Card className="sticky top-20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ShoppingCart className="h-6 w-6" />
+                      Current Sale
+                    </CardTitle>
+                    <CardDescription>
+                      Items added to the current sale. Quantities will be deducted upon completion.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {cart.length === 0 ? (
+                      <div className="py-12 text-center text-muted-foreground">
+                        Your cart is empty.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {cart.map((item) => (
+                          <div key={item.id} className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{item.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {formatCurrency(item.value)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={() => updateCartQuantity(item.id, -1)}
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                              <span className="w-6 text-center font-bold">{item.saleQuantity}</span>
+                              <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={() => updateCartQuantity(item.id, 1)}
+                                  disabled={item.saleQuantity >= item.quantity}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => removeFromCart(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                  {cart.length > 0 && (
+                    <div className="border-t p-6 space-y-4">
+                        <div className="flex items-center justify-between text-lg font-bold">
+                            <span>Total:</span>
+                            <div className="flex items-center gap-2">
+                                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                                <span>{formatCurrency(cartTotal)}</span>
+                            </div>
+                        </div>
+                      <Button size="lg" className="w-full" onClick={completeSale}>
+                        Complete Sale
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </SidebarLayout>
   );
 }
+
+    

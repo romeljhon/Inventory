@@ -26,10 +26,9 @@ import { Button } from "@/components/ui/button";
 
 interface InventoryViewProps {
     branch: Branch;
-    onBack: () => void;
 }
 
-export function InventoryView({ branch, onBack }: InventoryViewProps) {
+export function InventoryView({ branch }: InventoryViewProps) {
   const {
     items,
     categories,
@@ -213,7 +212,6 @@ export function InventoryView({ branch, onBack }: InventoryViewProps) {
     <div className="space-y-6">
        <InventoryHeader
           branchName={branch.name}
-          onBack={onBack}
           onAddItem={() => handleOpenForm()}
           onStartNewCount={() => setIsNewCountAlertOpen(true)}
           onExport={handleExport}
@@ -308,3 +306,5 @@ export function InventoryView({ branch, onBack }: InventoryViewProps) {
     </div>
   );
 }
+
+    

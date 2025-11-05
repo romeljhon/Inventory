@@ -11,7 +11,7 @@ interface BusinessContextType {
   isLoading: boolean;
   setupBusiness: (businessName: string, initialBranchName: string) => Promise<void>;
   addBranch: (branchName: string) => Promise<Branch | undefined>;
-  switchBranch: (branchId: string) => void;
+  switchBranch: (branchId: string | null) => void;
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
@@ -37,13 +37,11 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         setBusiness(parsedBusiness);
         setBranches(parsedBranches);
 
-        if (storedActiveBranchId) {
+        if (storedActiveBranchId && storedActiveBranchId !== 'null') {
           const foundActiveBranch = parsedBranches.find((b: Branch) => b.id === storedActiveBranchId);
-          setActiveBranch(foundActiveBranch || parsedBranches[0] || null);
-        } else if (parsedBranches.length > 0) {
-          const firstBranch = parsedBranches[0];
-          setActiveBranch(firstBranch);
-          localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, firstBranch.id);
+          setActiveBranch(foundActiveBranch || null);
+        } else {
+            setActiveBranch(null);
         }
       }
     } catch (error) {
@@ -75,20 +73,24 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     const newBranch: Branch = { id: `branch-${Date.now()}`, name: branchName };
     const updatedBranches = [...branches, newBranch];
     
-    // Create a new business object to ensure React state update is detected
     const updatedBusiness: Business = {
       ...business,
       branches: updatedBranches,
     };
 
     setBranches(updatedBranches);
-    setBusiness(updatedBusiness); // This will trigger re-renders for consumers of `business`
+    setBusiness(updatedBusiness);
     localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
     
     return newBranch;
   }, [business, branches]);
 
-  const switchBranch = useCallback((branchId: string) => {
+  const switchBranch = useCallback((branchId: string | null) => {
+    if (branchId === null) {
+      setActiveBranch(null);
+      localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, 'null');
+      return;
+    }
     const branchToActivate = branches.find(b => b.id === branchId);
     if (branchToActivate) {
       setActiveBranch(branchToActivate);
@@ -120,3 +122,5 @@ export const useBusiness = (): BusinessContextType => {
   }
   return context;
 };
+
+    
