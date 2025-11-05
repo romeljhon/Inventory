@@ -74,13 +74,15 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const newBranch: Branch = { id: `branch-${Date.now()}`, name: branchName };
     const updatedBranches = [...branches, newBranch];
+    
+    // Create a new business object to ensure React state update is detected
     const updatedBusiness: Business = {
       ...business,
       branches: updatedBranches,
     };
 
-    setBusiness(updatedBusiness);
     setBranches(updatedBranches);
+    setBusiness(updatedBusiness); // This will trigger re-renders for consumers of `business`
     localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
     
     return newBranch;
