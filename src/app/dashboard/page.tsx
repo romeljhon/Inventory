@@ -34,6 +34,7 @@ import { InventoryTable } from "@/components/inventory/inventory-table";
 import type { Branch } from "@/lib/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { subDays, startOfDay, startOfWeek, startOfMonth, startOfYear, isBefore } from "date-fns";
+import { AddBranchDialog } from "@/components/branches/add-branch-dialog";
 
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
@@ -374,6 +375,7 @@ export default function DashboardPage() {
   const { business, branches, addBranch, switchBranch, isLoading: isBusinessLoading } = useBusiness();
   const router = useRouter();
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
 
   useEffect(() => {
     if (!isBusinessLoading && !business) {
@@ -389,13 +391,12 @@ export default function DashboardPage() {
     setSelectedBranch(null);
   };
 
-  const handleAddBranch = async () => {
-    const branchName = prompt("Enter the name for the new branch:");
+  const handleSaveNewBranch = async (branchName: string) => {
     if (branchName) {
       const newBranch = await addBranch(branchName);
       if (newBranch) {
-          switchBranch(newBranch.id);
-          setSelectedBranch(newBranch);
+        switchBranch(newBranch.id);
+        setSelectedBranch(newBranch);
       }
     }
   };
@@ -433,7 +434,7 @@ export default function DashboardPage() {
               ))}
                <Card 
                   className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-1 border-2 border-dashed bg-muted/20 hover:border-primary/50 hover:bg-muted/50"
-                  onClick={handleAddBranch}
+                  onClick={() => setIsAddBranchOpen(true)}
                 >
                   <CardHeader className="flex flex-col items-center justify-center text-center p-6 h-full">
                      <div className="p-4 bg-primary/10 rounded-full mb-4">
@@ -447,6 +448,11 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+      <AddBranchDialog
+        isOpen={isAddBranchOpen}
+        onOpenChange={setIsAddBranchOpen}
+        onSave={handleSaveNewBranch}
+      />
     </SidebarLayout>
   );
 }
