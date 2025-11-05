@@ -3,8 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Save, XCircle, ArrowRight, RotateCw, Download } from "lucide-react";
-import { useBusiness } from "@/hooks/use-business";
+import { Plus, Search, Save, XCircle, ArrowRight, RotateCw, Download, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -15,6 +14,8 @@ import {
 import { MoreVertical } from "lucide-react";
 
 interface InventoryHeaderProps {
+  branchName: string;
+  onBack: () => void;
   onAddItem: () => void;
   onStartNewCount: () => void;
   onExport: () => void;
@@ -30,6 +31,8 @@ interface InventoryHeaderProps {
 }
 
 export function InventoryHeader({
+  branchName,
+  onBack,
   onAddItem,
   onStartNewCount,
   onExport,
@@ -40,7 +43,6 @@ export function InventoryHeader({
   onCancel,
   pendingChangesSummary
 }: InventoryHeaderProps) {
-  const { activeBranch } = useBusiness();
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
       style: "currency",
@@ -48,11 +50,14 @@ export function InventoryHeader({
     }).format(amount);
   };
   return (
-    <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          {activeBranch?.name} Inventory
-        </h1>
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+       <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {branchName} Inventory
+          </h1>
       </div>
       <div className="flex flex-1 flex-wrap items-center justify-end gap-2 md:max-w-2xl">
         <div className="relative flex-1 min-w-[200px] md:min-w-[300px]">

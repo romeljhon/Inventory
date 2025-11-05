@@ -1,10 +1,9 @@
 
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
-import type { Item } from "@/lib/types";
+import { useMemo, useState } from "react";
+import type { Item, Branch } from "@/lib/types";
 import { useInventory } from "@/hooks/use-inventory";
-import { useBusiness } from "@/hooks/use-business";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -19,24 +18,28 @@ import { ItemFormDialog } from "@/components/inventory/item-form-dialog";
 import { DeleteItemAlert } from "@/components/inventory/delete-item-alert";
 import { StartNewCountAlert } from "@/components/inventory/start-new-count-alert";
 import { useToast } from "@/hooks/use-toast";
-import { History } from "lucide-react";
+import { History, ArrowLeft } from "lucide-react";
 import { downloadCSV } from "@/lib/utils";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 
-export function InventoryView() {
-  const { activeBranch } = useBusiness();
+interface InventoryViewProps {
+    branch: Branch;
+    onBack: () => void;
+}
+
+export function InventoryView({ branch, onBack }: InventoryViewProps) {
   const {
     items,
     categories,
-    history,
     addItem,
     updateItem,
     deleteItem,
     addCategory,
     batchUpdateQuantities,
     isLoading,
-  } = useInventory(activeBranch?.id);
+  } = useInventory(branch.id);
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -196,7 +199,7 @@ export function InventoryView() {
       createdAt: format(new Date(item.createdAt), "yyyy-MM-dd HH:mm:ss"),
     }));
     
-    const branchName = activeBranch?.name.replace(/ /g, "_") || "inventory";
+    const branchName = branch.name.replace(/ /g, "_") || "inventory";
     const date = format(new Date(), "yyyy-MM-dd");
     downloadCSV(dataToExport, `${branchName}_inventory_${date}.csv`);
     
@@ -207,9 +210,10 @@ export function InventoryView() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-      <div className="space-y-6">
-        <InventoryHeader
+    <div className="space-y-6">
+       <InventoryHeader
+          branchName={branch.name}
+          onBack={onBack}
           onAddItem={() => handleOpenForm()}
           onStartNewCount={() => setIsNewCountAlertOpen(true)}
           onExport={handleExport}
@@ -222,9 +226,9 @@ export function InventoryView() {
         />
         <Card>
           <CardHeader>
-            <CardTitle>Inventory</CardTitle>
+            <CardTitle>Inventory List</CardTitle>
             <CardDescription>
-              A list of all items in your inventory.
+              A list of all items in your inventory for this branch.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -280,7 +284,6 @@ export function InventoryView() {
             </AccordionItem>
           </Accordion>
         )}
-      </div>
       
       <ItemFormDialog
         isOpen={isFormOpen}
