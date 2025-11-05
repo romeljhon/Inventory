@@ -35,7 +35,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar variant="inset">
+      <Sidebar>
         <SidebarHeader>
           <div className="flex items-center gap-3">
             <Icons.logo className="w-7 h-7 text-primary" />
@@ -117,10 +117,15 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
+         <header className="flex h-14 items-center justify-between border-b px-4 md:hidden">
+            <Link href="/" className="flex items-center gap-2">
+                <Icons.logo className="w-6 h-6 text-primary" />
+                <span className="font-semibold">{business?.name}</span>
+            </Link>
+            <SidebarTrigger />
+        </header>
         {children}
       </SidebarInset>
     </SidebarProvider>
   );
 }
-
-    
