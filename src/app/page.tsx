@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Building, Package } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const { business, activeBranch, isLoading } = useBusiness();
@@ -59,5 +60,3 @@ export default function Home() {
     </SidebarLayout>
   );
 }
-
-    
