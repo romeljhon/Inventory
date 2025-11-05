@@ -204,23 +204,25 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableBody>
-              {summaryData.map(item => (
-                <TableRow key={item.metric}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <item.icon className="h-5 w-5 text-muted-foreground" />
-                      <span className="font-medium">{item.metric}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className={`text-right text-lg font-bold ${item.valueClassName}`}>
-                    {item.value}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="w-full overflow-x-auto">
+            <Table>
+              <TableBody>
+                {summaryData.map(item => (
+                  <TableRow key={item.metric}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <item.icon className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-medium">{item.metric}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className={`text-right text-lg font-bold ${item.valueClassName}`}>
+                      {item.value}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

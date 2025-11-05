@@ -236,7 +236,7 @@ export default function SalesPage() {
 
               {/* Right Column: Cart */}
               <div className="lg:col-span-1">
-                <Card className="sticky top-20">
+                <Card className="sticky top-4 lg:top-20">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <ShoppingCart className="h-6 w-6" />

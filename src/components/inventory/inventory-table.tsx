@@ -102,9 +102,9 @@ export function InventoryTable({
               <TableHead className={cn(isCompact ? 'w-auto' : 'w-[40%] sm:w-[30%]')}>Item</TableHead>
               {!isCompact && <TableHead className="hidden sm:table-cell">Category</TableHead>}
               {!isCompact && <TableHead className="hidden md:table-cell text-right">Value</TableHead>}
-              <TableHead className="text-center w-[150px]">Quantity</TableHead>
+              <TableHead className="text-center w-[120px] sm:w-[150px]">Quantity</TableHead>
               {!isCompact && <TableHead className="hidden lg:table-cell text-right">Total Value</TableHead>}
-              {!isCompact && <TableHead className="text-right">Actions</TableHead>}
+              {!isCompact && <TableHead className="text-right w-[80px] sm:w-auto">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -135,8 +135,8 @@ export function InventoryTable({
                 {!isCompact && <TableCell className="hidden md:table-cell text-right">
                   {formatCurrency(item.value)}
                 </TableCell>}
-                <TableCell className="text-center">
-                  <div className={cn("flex items-center gap-2", isCompact ? "justify-center" : "justify-center")}>
+                <TableCell>
+                  <div className={cn("flex items-center gap-1 sm:gap-2", isCompact ? "justify-center" : "justify-center")}>
                     {!isCompact && <Button
                       size="icon"
                       variant="ghost"
@@ -146,15 +146,17 @@ export function InventoryTable({
                     >
                       <Minus className="h-4 w-4" />
                     </Button>}
-                    <div className="flex items-center gap-1 font-semibold">
+                    <div className="flex flex-col items-center gap-1 font-semibold">
                        {hasPendingChange && originalItem ? (
-                        <>
-                          <span className="text-muted-foreground text-xs line-through">{originalItem.quantity}</span>
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="text-muted-foreground line-through">{originalItem.quantity}</span>
                           <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                        </>
+                        </div>
                       ) : null}
-                      <span>{item.quantity}</span>
-                      {item.unitType && <span className="text-xs text-muted-foreground">({item.unitType})</span>}
+                      <div className="flex items-baseline gap-1">
+                        <span>{item.quantity}</span>
+                        {item.unitType && <span className="text-xs text-muted-foreground">({item.unitType})</span>}
+                      </div>
                     </div>
                     {!isCompact && <Button
                       size="icon"
@@ -167,7 +169,7 @@ export function InventoryTable({
                     </Button>}
                   </div>
                   {item.quantity < LOW_STOCK_THRESHOLD && !isCompact && (
-                     <Badge variant="destructive" className="mt-2">Low Stock</Badge>
+                     <Badge variant="destructive" className="mt-2 text-center w-full max-w-fit mx-auto">Low Stock</Badge>
                   )}
                 </TableCell>
                 {!isCompact && <TableCell className="hidden lg:table-cell text-right font-medium">
