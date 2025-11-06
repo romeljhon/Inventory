@@ -1,0 +1,168 @@
+'use client';
+
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Icons } from '@/components/icons';
+import { BarChart, Package, Smartphone, Users } from 'lucide-react';
+import Image from 'next/image';
+
+export function LandingPage() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
+        <div className="container flex h-14 items-center">
+          <Link href="/" className="mr-6 flex items-center space-x-2">
+            <Icons.logo className="h-6 w-6 text-primary" />
+            <span className="font-bold">Stock Sherpa</span>
+          </Link>
+          <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
+            <Link
+              href="#features"
+              className="transition-colors hover:text-foreground/80 text-foreground/60"
+            >
+              Features
+            </Link>
+          </nav>
+          <div className="flex flex-1 items-center justify-end space-x-4">
+            <Button asChild variant="ghost">
+              <Link href="/login">Login</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/signup">Sign Up</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative py-20 md:py-32">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 grid grid-cols-2 -space-x-52 opacity-40 dark:opacity-20"
+          >
+            <div className="h-56 bg-gradient-to-br from-primary to-purple-400 blur-[106px] dark:from-blue-700"></div>
+            <div className="h-32 bg-gradient-to-r from-cyan-400 to-sky-300 blur-[106px] dark:to-indigo-600"></div>
+          </div>
+          <div className="container relative z-10 mx-auto flex flex-col items-center justify-center px-4 text-center">
+            <h1 className="text-4xl font-extrabold tracking-tight md:text-6xl lg:text-7xl">
+              Intelligent Inventory Management
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
+              Take control of your stock with an intuitive, powerful, and smart
+              inventory system. Stock Sherpa helps you track, manage, and analyze
+              your inventory with ease.
+            </p>
+            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row">
+              <Button asChild size="lg">
+                <Link href="/signup">Get Started for Free</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/login">Login to Dashboard</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="py-16 md:py-24 bg-muted/40">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <h2 className="text-3xl font-bold md:text-4xl">
+                Features to Run Your Business
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                Everything you need to streamline your inventory process and make
+                smarter decisions.
+              </p>
+            </div>
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Package className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Inventory Tracking
+                </h3>
+                <p className="text-muted-foreground">
+                  Keep a real-time record of all your items across multiple
+                  branches.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Users className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Multi-Branch Support
+                </h3>
+                <p className="text-muted-foreground">
+                  Manage inventory for all your locations from a single, unified
+                  dashboard.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <BarChart className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Insightful Analytics
+                </h3>
+                <p className="text-muted-foreground">
+                  Get valuable insights into sales, stock levels, and inventory
+                  value.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Smartphone className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Sales Terminal (POS)
+                </h3>
+                <p className="text-muted-foreground">
+                  Process sales directly from your inventory, with automatic stock
+                  deductions.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-16 md:py-24">
+            <div className="container mx-auto px-4 text-center">
+                 <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+                    Ready to Streamline Your Inventory?
+                </h2>
+                <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
+                    Sign up today and get control over your stock in minutes. No credit card required.
+                </p>
+                <div className="mt-8">
+                    <Button asChild size="lg">
+                        <Link href="/signup">Start Managing Your Stock</Link>
+                    </Button>
+                </div>
+            </div>
+        </section>
+      </main>
+
+      <footer className="border-t">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 py-6 sm:flex-row">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Icons.logo className="h-5 w-5" />
+            <span>© {new Date().getFullYear()} Stock Sherpa. All rights reserved.</span>
+          </div>
+          <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+            <Link href="#" className="transition-colors hover:text-foreground">
+              Terms of Service
+            </Link>
+            <Link href="#" className="transition-colors hover:text-foreground">
+              Privacy Policy
+            </Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
+  );
+}
