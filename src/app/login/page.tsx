@@ -52,16 +52,19 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       router.push("/inventory"); // Redirect to inventory page on successful login
     } catch (error: any) {
-      console.error("Login failed:", error);
       let description = "An unexpected error occurred. Please try again.";
       if (error.code === AuthErrorCodes.INVALID_CREDENTIAL) {
         description = "Invalid email or password. Please try again.";
+      } else {
+        console.error("Login failed:", error);
       }
+      
       toast({
         variant: "destructive",
         title: "Login Failed",
         description: description,
       });
+      
       setIsSubmitting(false);
     }
   };
