@@ -31,8 +31,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const businessId = user ? `business-for-${user.uid}` : null;
   
   const { data: businesses, loading: businessLoading } = useCollection<Business>(
-    firestore && businessId ? collection(firestore, 'businesses') : null,
-    businessId ? where('ownerId', '==', user?.uid) : undefined
+    firestore && user?.uid ? query(collection(firestore, 'businesses'), where('ownerId', '==', user.uid)) : null
   );
   
   const business = useMemo(() => (businesses && businesses.length > 0 ? businesses[0] : null), [businesses]);
@@ -56,14 +55,15 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const activeBranch = useMemo(() => {
-    return branches.find(b => b.id === activeBranchId) || null;
+    return branches?.find(b => b.id === activeBranchId) || null;
   }, [branches, activeBranchId]);
 
   const setupBusiness = useCallback(async (businessName: string, initialBranchName: string) => {
     if (!firestore || !user) return;
     
-    const businessIdForSetup = `business-for-${user.uid}`;
-    const businessDocRef = doc(firestore, 'businesses', businessIdForSetup);
+    // We can't use the `business` object here because it might not be loaded yet.
+    // The user has no business, so we create one.
+    const businessDocRef = doc(firestore, 'businesses', businessId!);
     
     const businessData: Omit<Business, 'id'> = { 
       name: businessName,
@@ -81,16 +81,18 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       const batch = writeBatch(firestore);
       batch.set(businessDocRef, businessData);
       
-      // We need to add the branch and then get its ID to set it as active.
-      const branchDocRef = await addDoc(branchCollectionRef, branchData);
+      const newBranchDoc = doc(branchCollectionRef);
+      batch.set(newBranchDoc, branchData);
       
-      switchBranch(branchDocRef.id);
+      await batch.commit();
+
+      switchBranch(newBranchDoc.id);
       
     } catch(e) {
       console.error("Failed to setup business", e);
     }
     
-  }, [firestore, user]);
+  }, [firestore, user, businessId]);
 
   const addBranch = useCallback(async (branchName: string): Promise<Branch | undefined> => {
     if (!branchesCollectionRef) return undefined;
@@ -141,15 +143,15 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const contextValue = useMemo(() => ({
-    business: business ? { ...business, id: businessId! } : null,
-    branches,
+    business,
+    branches: branches || [],
     activeBranch,
     isLoading,
     setupBusiness,
     addBranch,
     deleteBranch,
     switchBranch
-  }), [business, businessId, branches, activeBranch, isLoading, setupBusiness, addBranch, deleteBranch, switchBranch]);
+  }), [business, branches, activeBranch, isLoading, setupBusiness, addBranch, deleteBranch, switchBranch]);
 
   return (
     <BusinessContext.Provider value={contextValue}>

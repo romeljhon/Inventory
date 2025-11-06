@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { useToast } from './ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 
 // This is a global listener for Firebase permission errors.

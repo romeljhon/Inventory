@@ -12,13 +12,12 @@ import {
   serverTimestamp,
   query,
   orderBy,
-  startOfDay,
-  parseISO,
-  isAfter,
 } from "firebase/firestore";
+import { startOfDay, parseISO, isAfter } from "date-fns";
 import { useFirestore } from "@/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import type { Item, Category, InventoryHistory } from "@/lib/types";
+import { useBusiness } from "./use-business";
 
 export const LOW_STOCK_THRESHOLD = 10;
 
@@ -31,37 +30,40 @@ const getRandomColor = () => {
 
 export function useInventory(branchId: string | undefined) {
   const firestore = useFirestore();
-
-  const businessId = "business-for-user"; // In a real app this would come from the user session/business context
+  const { business } = useBusiness();
 
   const branchRef = useMemo(() =>
-    firestore && businessId && branchId ? doc(firestore, 'businesses', businessId, 'branches', branchId) : null,
-    [firestore, businessId, branchId]
+    firestore && business?.id && branchId ? doc(firestore, 'businesses', business.id, 'branches', branchId) : null,
+    [firestore, business?.id, branchId]
   );
   
   const itemsCollection = useMemo(() => branchRef ? collection(branchRef, 'items') : null, [branchRef]);
   const categoriesCollection = useMemo(() => branchRef ? collection(branchRef, 'categories') : null, [branchRef]);
   const historyCollection = useMemo(() => branchRef ? collection(branchRef, 'history') : null, [branchRef]);
   
-  const { data: items, loading: itemsLoading } = useCollection<Item>(
+  const { data: itemsData, loading: itemsLoading } = useCollection<Item>(
     itemsCollection ? query(itemsCollection, orderBy('createdAt', 'desc')) : null
   );
-  const { data: categories, loading: categoriesLoading } = useCollection<Category>(categoriesCollection);
-  const { data: history, loading: historyLoading } = useCollection<InventoryHistory>(
+  const { data: categoriesData, loading: categoriesLoading } = useCollection<Category>(categoriesCollection);
+  const { data: historyData, loading: historyLoading } = useCollection<InventoryHistory>(
      historyCollection ? query(historyCollection, orderBy('createdAt', 'desc')) : null
   );
+
+  // Memoize data to prevent unnecessary re-renders
+  const items = useMemo(() => itemsData || [], [itemsData]);
+  const categories = useMemo(() => categoriesData || [], [categoriesData]);
+  const history = useMemo(() => historyData || [], [historyData]);
 
   const isLoading = itemsLoading || categoriesLoading || historyLoading;
 
   const addHistory = useCallback(async (log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId'>) => {
     if (!historyCollection) return;
-    const newHistory: Omit<InventoryHistory, 'id'> = {
+    const newHistory: Omit<InventoryHistory, 'id'|'branchId'> = {
         ...log,
         createdAt: serverTimestamp(),
-        branchId: branchId!,
     };
     await addDoc(historyCollection, newHistory);
-  }, [historyCollection, branchId]);
+  }, [historyCollection]);
 
   const addItem = useCallback(async (itemData: Omit<Item, "id" | "createdAt">) => {
     if (!itemsCollection) return;
@@ -167,7 +169,7 @@ export function useInventory(branchId: string | undefined) {
   }, [categoriesCollection]);
 
   const deleteCategory = useCallback(async (id: string) => {
-     if (!firestore || !itemsCollection || !categoriesCollection) return;
+     if (!firestore || !itemsCollection || !categoriesCollection || !items) return;
      
      const batch = writeBatch(firestore);
      
@@ -175,7 +177,7 @@ export function useInventory(branchId: string | undefined) {
      batch.delete(categoryDoc);
      
      // Un-categorize items that belonged to this category
-     const itemsToUpdate = items?.filter(item => item.categoryId === id) || [];
+     const itemsToUpdate = items.filter(item => item.categoryId === id);
      itemsToUpdate.forEach(item => {
          const itemDoc = doc(itemsCollection, item.id);
          batch.update(itemDoc, { categoryId: '' });
@@ -235,9 +237,9 @@ export function useInventory(branchId: string | undefined) {
 
 
   return {
-    items: items || [],
-    categories: categories || [],
-    history: history || [],
+    items,
+    categories,
+    history,
     addItem,
     updateItem,
     batchUpdateQuantities,

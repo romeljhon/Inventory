@@ -1,17 +1,12 @@
+
 // This file is intentionally left blank.
 // The Firebase configuration will be injected automatically during deployment.
 // You can use placeholder values for local development if needed.
-// For example:
-/*
 export const firebaseConfig = {
-  apiKey: "AIza....",
+  apiKey: "AIzaSyAAAAAAAAAAAAAAAAAAAAAA",
   authDomain: "your-project-id.firebaseapp.com",
   projectId: "your-project-id",
   storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "...",
-  appId: "1:...:web:..."
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:1234567890abcdef"
 };
-*/
-// In a real production environment, you would use environment variables
-// to store your Firebase config and not commit it to your repository.
-export const firebaseConfig = {};
