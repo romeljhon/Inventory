@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useAuth } from '@/firebase/provider';
 import type { UserProfile } from '@/lib/types';
@@ -7,17 +7,27 @@ import { doc, setDoc, getFirestore, serverTimestamp } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-
 export function useUser() {
   const auth = useAuth();
   const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  const userProfile: UserProfile | null = useMemo(() => {
+    if (!user) return null;
+    return {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+    };
+  }, [user]);
+
   useEffect(() => {
     if (!auth) {
-      setLoading(false);
+      // If auth is not ready, we are still loading.
+      // This might happen on initial server render.
+      setLoading(true);
       return;
     }
 
@@ -26,15 +36,6 @@ export function useUser() {
       async (user) => {
         if (user) {
           setUser(user);
-          const profile: UserProfile = {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-          };
-          setUserProfile(profile);
-
-          // Save/update user profile to Firestore
           const db = getFirestore(auth.app);
           const userDocRef = doc(db, 'users', user.uid);
           const userProfileData = {
@@ -53,10 +54,8 @@ export function useUser() {
             });
             errorEmitter.emit('permission-error', permissionError);
           });
-
         } else {
           setUser(null);
-          setUserProfile(null);
         }
         setLoading(false);
       },

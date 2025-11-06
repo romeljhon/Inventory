@@ -50,7 +50,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
-      router.push("/inventory"); // Redirect to inventory page on successful login
+      router.push("/dashboard"); // Redirect to dashboard page on successful login
     } catch (error: any) {
       let description = "An unexpected error occurred. Please try again.";
       if (error.code === AuthErrorCodes.INVALID_CREDENTIAL) {

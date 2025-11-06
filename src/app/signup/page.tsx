@@ -69,7 +69,7 @@ export default function SignUpPage() {
         description: "You have been successfully signed up.",
       });
 
-      router.push("/inventory"); // Redirect to inventory on successful sign up
+      router.push("/setup"); // Redirect to setup on successful sign up
     } catch (error: any) {
       let description = "An unexpected error occurred. Please try again.";
       
