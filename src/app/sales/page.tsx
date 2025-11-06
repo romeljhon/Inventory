@@ -182,7 +182,7 @@ export default function SalesPage() {
           </Card>
         ) : (
           <>
-            <header>
+            <header id="sales-header">
               <h1 className="text-3xl font-bold tracking-tight">Sales for {activeBranch.name}</h1>
               <p className="text-muted-foreground">Select products from inventory to complete a sale.</p>
             </header>

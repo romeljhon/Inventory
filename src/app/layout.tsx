@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { BusinessProvider } from "@/hooks/use-business";
 import { FirebaseProvider } from '@/firebase/provider';
+import { TourProvider } from '@/components/tour/tour-provider';
 
 export const metadata: Metadata = {
   title: 'Inventory',
@@ -28,7 +29,9 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <FirebaseProvider>
           <BusinessProvider>
-            {children}
+            <TourProvider>
+              {children}
+            </TourProvider>
             <Toaster />
           </BusinessProvider>
         </FirebaseProvider>

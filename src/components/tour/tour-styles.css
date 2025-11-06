@@ -1,0 +1,117 @@
+
+/* Overriding Shepherd's default styles to match the app's theme */
+
+.shepherd-custom {
+  max-width: 400px;
+}
+
+.shepherd-element {
+  background: hsl(var(--card));
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.shepherd-header {
+  background: hsl(var(--muted));
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.shepherd-title {
+  color: hsl(var(--card-foreground));
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.shepherd-text {
+  color: hsl(var(--muted-foreground));
+  padding: 1rem 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.shepherd-footer {
+  padding: 0 1.5rem 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.shepherd-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  height: 2.25rem;
+  padding: 0 1rem;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.shepherd-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+}
+
+.shepherd-button-primary {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.shepherd-button-primary:hover {
+  background-color: hsl(var(--primary) / 0.9);
+}
+
+.shepherd-button.shepherd-button-secondary,
+.shepherd-button[data-shepherd-step-id$="-0"] { /* Targeting 'Back' and 'Skip' buttons */
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-color: hsl(var(--border));
+}
+
+.shepherd-button.shepherd-button-secondary:hover,
+.shepherd-button[data-shepherd-step-id$="-0"]:hover {
+  background-color: hsl(var(--secondary) / 0.8);
+}
+
+.shepherd-cancel-icon {
+  font-size: 1.5rem;
+  color: hsl(var(--muted-foreground));
+  transition: color 0.2s;
+}
+
+.shepherd-cancel-icon:hover {
+  color: hsl(var(--foreground));
+}
+
+.shepherd-arrow,
+.shepherd-arrow:before {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+}
+
+.shepherd-arrow:before {
+    border-color: transparent;
+    border-width: 9px;
+}
+
+/* Fix arrow border issue */
+[data-popper-placement^=top] > .shepherd-arrow {
+  bottom: -9px;
+}
+[data-popper-placement^=bottom] > .shepherd-arrow {
+  top: -9px;
+}
+[data-popper-placement^=left] > .shepherd-arrow {
+  right: -9px;
+}
+[data-popper-placement^=right] > .shepherd-arrow {
+  left: -9px;
+}
+
