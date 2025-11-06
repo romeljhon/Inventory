@@ -17,6 +17,7 @@ import type { Item, Category } from "@/lib/types";
 import { LOW_STOCK_THRESHOLD } from "@/hooks/use-inventory";
 import { cn } from "@/lib/utils";
 import { format, isBefore, isWithinInterval, addDays } from 'date-fns';
+import { EditableQuantity } from "./editable-quantity";
 
 
 interface InventoryTableProps {
@@ -153,8 +154,15 @@ export function InventoryTable({
                           <ArrowRight className="h-3 w-3 text-muted-foreground" />
                         </div>
                       ) : null}
-                      <div className="flex items-baseline gap-1">
-                        <span>{item.quantity}</span>
+                      <div className="flex items-center gap-1">
+                          {isCompact || !originalItems || originalItems.length === 0 ? (
+                             <div className="py-1 px-2">{item.quantity}</div>
+                          ) : (
+                             <EditableQuantity
+                                initialValue={item.quantity}
+                                onSave={(newQuantity) => onUpdateQuantity(item.id, newQuantity)}
+                            />
+                          )}
                         {item.unitType && <span className="text-xs text-muted-foreground">({item.unitType})</span>}
                       </div>
                     </div>
