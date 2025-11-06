@@ -1,11 +1,10 @@
 
-// This file contains placeholder values for local development.
-// The real Firebase configuration will be injected automatically during deployment.
+// This file contains the Firebase configuration for your project.
 export const firebaseConfig = {
-  apiKey: "AIzaSyCXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
+  apiKey: "AIza...",
+  authDomain: "your-project-name.firebaseapp.com",
+  projectId: "your-project-name",
+  storageBucket: "your-project-name.appspot.com",
   messagingSenderId: "1234567890",
-  appId: "1:1234567890:web:1234567890abcdef"
+  appId: "1:1234567890:web:abcdef123456"
 };
