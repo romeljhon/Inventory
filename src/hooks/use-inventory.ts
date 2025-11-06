@@ -18,6 +18,8 @@ import { useFirestore } from "@/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import type { Item, Category, InventoryHistory } from "@/lib/types";
 import { useBusiness } from "./use-business";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 export const LOW_STOCK_THRESHOLD = 10;
 
@@ -62,7 +64,14 @@ export function useInventory(branchId: string | undefined) {
         ...log,
         createdAt: serverTimestamp(),
     };
-    await addDoc(historyCollection, newHistory);
+    addDoc(historyCollection, newHistory).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: historyCollection.path,
+            operation: 'create',
+            requestResourceData: newHistory,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   }, [historyCollection]);
 
   const addItem = useCallback(async (itemData: Omit<Item, "id" | "createdAt">) => {
@@ -71,14 +80,21 @@ export function useInventory(branchId: string | undefined) {
         ...itemData,
         createdAt: serverTimestamp(),
       };
-    const docRef = await addDoc(itemsCollection, newItemData);
-    
-    await addHistory({
-        itemId: docRef.id,
-        itemName: itemData.name,
-        change: itemData.quantity,
-        newQuantity: itemData.quantity,
-        type: 'add'
+    addDoc(itemsCollection, newItemData).then(docRef => {
+        addHistory({
+            itemId: docRef.id,
+            itemName: itemData.name,
+            change: itemData.quantity,
+            newQuantity: itemData.quantity,
+            type: 'add'
+        });
+    }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: itemsCollection.path,
+            operation: 'create',
+            requestResourceData: newItemData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
     });
   }, [itemsCollection, addHistory]);
 
@@ -87,18 +103,24 @@ export function useInventory(branchId: string | undefined) {
     const itemDoc = doc(itemsCollection, id);
     const oldItem = items.find(i => i.id === id);
     
-    await updateDoc(itemDoc, updatedData);
-    
-    if (oldItem && updatedData.quantity !== undefined && oldItem.quantity !== updatedData.quantity) {
-        await addHistory({
-            itemId: id,
-            itemName: updatedData.name || oldItem.name,
-            change: updatedData.quantity - oldItem.quantity,
-            newQuantity: updatedData.quantity,
-            type: 'update'
+    updateDoc(itemDoc, updatedData).then(() => {
+        if (oldItem && updatedData.quantity !== undefined && oldItem.quantity !== updatedData.quantity) {
+            addHistory({
+                itemId: id,
+                itemName: updatedData.name || oldItem.name,
+                change: updatedData.quantity - oldItem.quantity,
+                newQuantity: updatedData.quantity,
+                type: 'update'
+            });
+        }
+    }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: itemDoc.path,
+            operation: 'update',
+            requestResourceData: updatedData,
         });
-    }
-
+        errorEmitter.emit('permission-error', permissionError);
+    });
   }, [itemsCollection, addHistory, items]);
   
   const batchUpdateQuantities = useCallback(async (updates: Record<string, number>) => {
@@ -112,9 +134,7 @@ export function useInventory(branchId: string | undefined) {
       
       const oldItem = items.find(i => i.id === itemId);
       if (oldItem && oldItem.quantity !== newQuantity) {
-          // This should ideally be batched too, but Firestore batching doesn't allow reads.
-          // For a high-throughput system, this history logging would be done via a Cloud Function.
-          await addHistory({
+          addHistory({
               itemId: itemId,
               itemName: oldItem.name,
               change: newQuantity - oldItem.quantity,
@@ -123,7 +143,14 @@ export function useInventory(branchId: string | undefined) {
           });
       }
     }
-    await batch.commit();
+    batch.commit().catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: itemsCollection.path,
+            operation: 'update',
+            requestResourceData: updates,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
 }, [firestore, itemsCollection, items, addHistory]);
 
 
@@ -133,20 +160,25 @@ export function useInventory(branchId: string | undefined) {
     if (!deletedItem) return;
     
     const itemDoc = doc(itemsCollection, id);
-    await deleteDoc(itemDoc);
-
-    await addHistory({
-        itemId: id,
-        itemName: deletedItem.name,
-        change: -deletedItem.quantity,
-        newQuantity: 0,
-        type: 'delete'
+    deleteDoc(itemDoc).then(() => {
+        addHistory({
+            itemId: id,
+            itemName: deletedItem.name,
+            change: -deletedItem.quantity,
+            newQuantity: 0,
+            type: 'delete'
+        });
+    }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: itemDoc.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
     });
   }, [itemsCollection, items, addHistory]);
 
   const addCategory = useCallback(async (name: string): Promise<Category> => {
     if (!categoriesCollection || !categories) {
-        // This is a fallback if the collection isn't ready, but it won't be saved to DB.
         return { id: `local-${Date.now()}`, name, color: getRandomColor() };
     }
     const existingCategory = categories.find(c => c.name.toLowerCase() === name.toLowerCase());
@@ -154,18 +186,34 @@ export function useInventory(branchId: string | undefined) {
         return existingCategory;
     }
     
-    const newCategoryData = {
-      name,
-      color: getRandomColor(),
-    };
-    const docRef = await addDoc(categoriesCollection, newCategoryData);
+    const newCategoryData = { name, color: getRandomColor() };
+    const docRef = await addDoc(categoriesCollection, newCategoryData)
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: categoriesCollection.path,
+                operation: 'create',
+                requestResourceData: newCategoryData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            return null;
+        });
+
+    if (!docRef) return { id: `local-${Date.now()}`, name, color: newCategoryData.color };
+    
     return { ...newCategoryData, id: docRef.id };
   }, [categoriesCollection, categories]);
 
   const updateCategory = useCallback(async (id: string, name: string, color: string) => {
     if (!categoriesCollection) return;
     const categoryDoc = doc(categoriesCollection, id);
-    await updateDoc(categoryDoc, { name, color });
+    updateDoc(categoryDoc, { name, color }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: categoryDoc.path,
+            operation: 'update',
+            requestResourceData: { name, color },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
   }, [categoriesCollection]);
 
   const deleteCategory = useCallback(async (id: string) => {
@@ -176,14 +224,19 @@ export function useInventory(branchId: string | undefined) {
      const categoryDoc = doc(categoriesCollection, id);
      batch.delete(categoryDoc);
      
-     // Un-categorize items that belonged to this category
      const itemsToUpdate = items.filter(item => item.categoryId === id);
      itemsToUpdate.forEach(item => {
          const itemDoc = doc(itemsCollection, item.id);
          batch.update(itemDoc, { categoryId: '' });
      });
      
-     await batch.commit();
+     batch.commit().catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: categoryDoc.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+     });
 
   }, [firestore, items, itemsCollection, categoriesCollection]);
 

@@ -99,7 +99,6 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
           requestResourceData: { businessData, branchData },
       });
       errorEmitter.emit('permission-error', permissionError);
-      console.error("Failed to setup business with batched write", serverError);
     });
     
   }, [firestore, user]);
@@ -127,39 +126,32 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const deleteBranch = useCallback(async (branchId: string) => {
     if (!firestore || !business?.id) return;
     
+    const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
+    
+    // Use a transaction to ensure all or nothing deletion
     try {
-      const batch = writeBatch(firestore);
-      
-      const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
-      batch.delete(branchDocRef);
+        const batch = writeBatch(firestore);
 
-      // Recursively delete subcollections (items, categories, history)
-      const itemsRef = collection(branchDocRef, 'items');
-      const categoriesRef = collection(branchDocRef, 'categories');
-      const historyRef = collection(branchDocRef, 'history');
-      
-      const [itemsSnapshot, categoriesSnapshot, historySnapshot] = await Promise.all([
-        getDocs(itemsRef),
-        getDocs(categoriesRef),
-        getDocs(historyRef)
-      ]);
-      
-      itemsSnapshot.forEach(doc => batch.delete(doc.ref));
-      categoriesSnapshot.forEach(doc => batch.delete(doc.ref));
-      historySnapshot.forEach(doc => batch.delete(doc.ref));
+        batch.delete(branchDocRef);
 
-      await batch.commit();
+        const collectionsToDelete = ['items', 'categories', 'history'];
+        for (const subcollection of collectionsToDelete) {
+            const subcollectionRef = collection(branchDocRef, subcollection);
+            const snapshot = await getDocs(subcollectionRef);
+            snapshot.forEach(doc => batch.delete(doc.ref));
+        }
 
-      if (activeBranch?.id === branchId) {
-        switchBranch(null);
-      }
+        await batch.commit();
+
+        if (activeBranch?.id === branchId) {
+            switchBranch(null);
+        }
     } catch (e) {
-      console.error("Failed to delete branch and its data", e);
-       const permissionError = new FirestorePermissionError({
-          path: `/businesses/${business.id}/branches/${branchId}`,
-          operation: 'delete',
+        const permissionError = new FirestorePermissionError({
+            path: branchDocRef.path,
+            operation: 'delete',
         });
-      errorEmitter.emit('permission-error', permissionError);
+        errorEmitter.emit('permission-error', permissionError);
     }
   }, [firestore, business?.id, activeBranch?.id]);
 
