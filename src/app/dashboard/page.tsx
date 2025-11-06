@@ -43,7 +43,7 @@ import { Icons } from "@/components/icons";
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
 
-function BranchDashboard({ branch }: { branch: Branch }) {
+function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => void }) {
   const { items, categories, history, isLoading: isInventoryLoading } = useInventory(branch?.id);
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
 
@@ -180,7 +180,11 @@ function BranchDashboard({ branch }: { branch: Branch }) {
     <>
       <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-              <h1 className="hidden sm:block text-2xl md:text-3xl font-bold tracking-tight">Dashboard for {branch.name}</h1>
+               <Button variant="outline" size="icon" className="h-8 w-8" onClick={onBack}>
+                    <ArrowLeft className="h-4 w-4" />
+                    <span className="sr-only">Back to Branches</span>
+                </Button>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard for {branch.name}</h1>
           </div>
           <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)} className="w-full sm:w-auto">
             <TabsList className="w-full sm:w-auto grid grid-cols-5">
@@ -423,7 +427,7 @@ export default function DashboardPage() {
     <SidebarLayout>
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
         {activeBranch ? (
-          <BranchDashboard branch={activeBranch} />
+          <BranchDashboard branch={activeBranch} onBack={() => switchBranch(null)} />
         ) : (
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Select a Branch</h1>

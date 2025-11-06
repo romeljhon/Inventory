@@ -46,8 +46,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   
   const user = auth?.currentUser;
 
-  const showBackButton = activeBranch && pathname === '/dashboard';
-
   const handleBackToBranches = () => {
     switchBranch(null);
   };
@@ -143,15 +141,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
          <header className="flex h-14 items-center justify-between border-b px-4 md:hidden">
             <div className="flex items-center gap-2">
-                {showBackButton ? (
-                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBackToBranches}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                ) : (
-                    <Link href="/" className="flex items-center gap-2">
-                        <Icons.logo className="w-6 h-6 text-primary" />
-                    </Link>
-                )}
+                <Link href="/" className="flex items-center gap-2">
+                    <Icons.logo className="w-6 h-6 text-primary" />
+                </Link>
                 <span className="font-semibold">{activeBranch ? activeBranch.name : business?.name}</span>
             </div>
             <SidebarTrigger />
