@@ -1,7 +1,8 @@
 
 // This file contains the Firebase configuration for your project.
+// IMPORTANT: Replace this with the actual config from your Firebase project settings.
 export const firebaseConfig = {
-  apiKey: "AIza...",
+  apiKey: "AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
   authDomain: "your-project-name.firebaseapp.com",
   projectId: "your-project-name",
   storageBucket: "your-project-name.appspot.com",
