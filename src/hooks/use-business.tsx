@@ -63,8 +63,8 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !user && window.location.pathname !== "/") {
-        router.push('/');
+    if (!isLoading && !user) {
+        router.push('/login');
     }
   }, [isLoading, user, router]);
 

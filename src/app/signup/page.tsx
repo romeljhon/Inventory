@@ -69,7 +69,7 @@ export default function SignUpPage() {
         description: "You have been successfully signed up.",
       });
 
-      router.push("/"); // Redirect to home on successful sign up
+      router.push("/inventory"); // Redirect to inventory on successful sign up
     } catch (error: any) {
       console.error("Sign up failed:", error);
       toast({

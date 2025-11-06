@@ -66,8 +66,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/"}>
-                <Link href="/">
+              <SidebarMenuButton asChild isActive={pathname === "/inventory"}>
+                <Link href="/inventory">
                   <Package />
                   Inventory
                 </Link>

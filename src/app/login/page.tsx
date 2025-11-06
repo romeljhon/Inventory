@@ -50,7 +50,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
-      router.push("/"); // Redirect to home page on successful login
+      router.push("/inventory"); // Redirect to inventory page on successful login
     } catch (error: any) {
       console.error("Login failed:", error);
       toast({
