@@ -71,11 +71,14 @@ export default function SignUpPage() {
 
       router.push("/inventory"); // Redirect to inventory on successful sign up
     } catch (error: any) {
-      console.error("Sign up failed:", error);
       let description = "An unexpected error occurred. Please try again.";
+      
       if (error.code === AuthErrorCodes.EMAIL_EXISTS) {
         description = "An account with this email already exists. Please try logging in.";
+      } else {
+        console.error("Sign up failed:", error);
       }
+      
       toast({
         variant: "destructive",
         title: "Sign Up Failed",
