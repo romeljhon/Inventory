@@ -2,10 +2,10 @@
 // This file contains the Firebase configuration for your project.
 // IMPORTANT: Replace this with the actual config from your Firebase project settings.
 export const firebaseConfig = {
-  apiKey: "AIzaSyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-  authDomain: "your-project-name.firebaseapp.com",
-  projectId: "your-project-name",
-  storageBucket: "your-project-name.appspot.com",
-  messagingSenderId: "1234567890",
-  appId: "1:1234567890:web:abcdef123456"
+  apiKey: "AIzaSyAfxV-LBtzoAUasbRZRTzGhBRw5CW4pnb0",
+  authDomain: "stockwise-plf8a.firebaseapp.com",
+  projectId: "stockwise-plf8a",
+  storageBucket: "stockwise-plf8a.firebasestorage.app",
+  messagingSenderId: "434763397253",
+  appId: "1:434763397253:web:209bcde47be19a78d651ec"
 };
