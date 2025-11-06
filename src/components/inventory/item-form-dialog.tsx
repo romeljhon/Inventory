@@ -166,12 +166,20 @@ export function ItemFormDialog({
   };
 
   const onSubmit = (data: ItemFormData) => {
-    const finalData = {
-        ...data,
+    const finalData: Omit<Item, 'id' | 'createdAt'> = {
+        name: data.name,
         description: data.description || "",
-        expirationDate: data.expirationDate ? data.expirationDate.toISOString() : undefined,
+        quantity: data.quantity,
+        value: data.value,
+        categoryId: data.categoryId || "",
+        unitType: data.unitType || 'pcs',
+    };
+
+    if (data.expirationDate) {
+        finalData.expirationDate = data.expirationDate.toISOString();
     }
-    onSave(finalData as Omit<Item, 'id' | 'createdAt'>);
+    
+    onSave(finalData);
   };
 
   return (
