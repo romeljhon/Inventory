@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
@@ -123,6 +123,14 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/inventory">
                   <Package />
                   Inventory
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/recipes"}>
+                <Link href="/recipes">
+                  <BookCopy />
+                  Recipes
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

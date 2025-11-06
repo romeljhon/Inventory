@@ -40,7 +40,7 @@
     },
     "item": {
       "title": "Inventory Item",
-      "description": "Represents an item in the inventory.",
+      "description": "Represents an item in the inventory. It can be a finished product or a raw component.",
       "type": "object",
       "properties": {
         "name": {
@@ -53,7 +53,7 @@
         },
         "quantity": {
           "type": "number",
-          "description": "The current stock quantity."
+          "description": "The current stock quantity. Not applicable for products with recipes."
         },
         "value": {
           "type": "number",
@@ -63,6 +63,11 @@
           "type": "string",
           "enum": ["pcs", "box", "pack"],
           "description": "The unit of measurement for the quantity."
+        },
+        "itemType": {
+          "type": "string",
+          "enum": ["Product", "Component"],
+          "description": "The type of item: a sellable Product or a raw Component."
         },
         "categoryId": {
           "type": "string",
@@ -79,7 +84,7 @@
           "description": "Timestamp of when the item was added."
         }
       },
-      "required": ["name", "quantity", "value", "createdAt"]
+      "required": ["name", "itemType", "value", "createdAt"]
     },
     "category": {
       "title": "Item Category",
@@ -96,6 +101,45 @@
         }
       },
       "required": ["name", "color"]
+    },
+    "recipe": {
+      "title": "Recipe",
+      "description": "Defines the components and quantities needed to make a product.",
+      "type": "object",
+      "properties": {
+        "productId": {
+          "type": "string",
+          "description": "The ID of the finished product item."
+        },
+        "productName": {
+          "type": "string",
+          "description": "The name of the finished product."
+        },
+        "components": {
+          "type": "array",
+          "description": "An array of components that make up the product.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string",
+                "description": "The ID of the component item."
+              },
+              "quantity": {
+                "type": "number",
+                "description": "The quantity of the component needed."
+              }
+            },
+            "required": ["itemId", "quantity"]
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the recipe was created."
+        }
+      },
+      "required": ["productId", "productName", "components", "createdAt"]
     },
     "inventoryHistory": {
       "title": "Inventory History Log",
@@ -172,6 +216,12 @@
         "$ref": "#/entities/category"
       },
       "description": "Sub-collection for categories within a branch."
+    },
+    "/businesses/{businessId}/branches/{branchId}/recipes/{recipeId}": {
+      "schema": {
+        "$ref": "#/entities/recipe"
+      },
+      "description": "Sub-collection for recipes within a branch."
     },
     "/businesses/{businessId}/branches/{branchId}/history/{historyId}": {
       "schema": {

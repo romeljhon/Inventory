@@ -9,6 +9,7 @@ export interface Item {
   createdAt: FieldValue | string;
   value: number;
   unitType?: 'pcs' | 'box' | 'pack';
+  itemType: 'Product' | 'Component';
   expirationDate?: string;
 }
 
@@ -16,6 +17,18 @@ export interface Category {
   id: string;
   name: string;
   color: string;
+}
+
+export interface RecipeComponent {
+  itemId: string;
+  quantity: number;
+}
+export interface Recipe {
+  id: string;
+  productId: string;
+  productName: string;
+  components: RecipeComponent[];
+  createdAt: FieldValue | string;
 }
 
 export interface Branch {

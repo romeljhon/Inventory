@@ -32,6 +32,11 @@ service cloud.firestore {
             allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
         }
 
+        // The owner of the business can manage recipes in a branch
+        match /recipes/{recipeId} {
+            allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+        }
+
         // All other subcollections can only be accessed if the parent business exists and is owned by the user.
         match /{path=**} {
           allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
