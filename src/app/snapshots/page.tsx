@@ -23,13 +23,16 @@ import {
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import { format } from "date-fns";
 import type { Item } from "@/lib/types";
-import { Camera, Building } from "lucide-react";
+import { Camera, Building, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { downloadCSV } from "@/lib/utils";
 
 export default function SnapshotsPage() {
   const { activeBranch } = useBusiness();
   const { categories, getInventorySnapshot, availableSnapshotDates, isLoading } =
     useInventory(activeBranch?.id);
+  const { toast } = useToast();
 
   const [selectedDate, setSelectedDate] = useState<string | undefined>(
     availableSnapshotDates.length > 0 ? availableSnapshotDates[0] : undefined
@@ -44,6 +47,39 @@ export default function SnapshotsPage() {
     setSelectedDate(dateString);
   };
   
+  const handleExport = () => {
+    if (!snapshotData.length || !selectedDate) {
+      toast({
+        variant: "destructive",
+        title: "No Data to Export",
+        description: "There is no snapshot data for the selected date to export.",
+      });
+      return;
+    }
+
+    const dataToExport = snapshotData.map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      category: categories.find(c => c.id === item.categoryId)?.name || "Uncategorized",
+      quantity: item.quantity,
+      unitType: item.unitType,
+      value: item.value,
+      totalValue: item.quantity * item.value,
+      expirationDate: item.expirationDate ? format(new Date(item.expirationDate), "yyyy-MM-dd") : "",
+      createdAt: format(new Date(item.createdAt as string), "yyyy-MM-dd HH:mm:ss"),
+    }));
+    
+    const branchName = activeBranch?.name.replace(/ /g, "_") || "inventory";
+    const date = format(new Date(selectedDate), "yyyy-MM-dd");
+    downloadCSV(dataToExport, `${branchName}_snapshot_${date}.csv`);
+    
+    toast({
+      title: "Export Started",
+      description: `The inventory snapshot from ${format(new Date(selectedDate), "PP")} is being downloaded.`,
+    });
+  };
+
   if (isLoading && !activeBranch) {
     return <div className="flex h-screen items-center justify-center">Loading snapshots...</div>;
   }
@@ -87,23 +123,29 @@ export default function SnapshotsPage() {
                       of that day.
                     </CardDescription>
                   </div>
-                  {availableSnapshotDates.length > 0 ? (
-                    <Select
-                      onValueChange={handleDateChange}
-                      value={selectedDate}
-                    >
-                      <SelectTrigger className="w-full sm:w-[240px]">
-                        <SelectValue placeholder="Select a date" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableSnapshotDates.map((date) => (
-                          <SelectItem key={date} value={date}>
-                            {format(new Date(date), "PP")}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : null}
+                   <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2">
+                    {availableSnapshotDates.length > 0 ? (
+                      <Select
+                        onValueChange={handleDateChange}
+                        value={selectedDate}
+                      >
+                        <SelectTrigger className="w-full sm:w-[240px]">
+                          <SelectValue placeholder="Select a date" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableSnapshotDates.map((date) => (
+                            <SelectItem key={date} value={date}>
+                              {format(new Date(date), "PP")}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : null}
+                    <Button onClick={handleExport} disabled={!snapshotData || snapshotData.length === 0} className="w-full sm:w-auto">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export
+                    </Button>
+                   </div>
                 </div>
               </CardHeader>
               <CardContent>
