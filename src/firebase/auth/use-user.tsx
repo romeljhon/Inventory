@@ -4,6 +4,9 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { useAuth } from '@/firebase/provider';
 import type { UserProfile } from '@/lib/types';
 import { doc, setDoc, getFirestore, serverTimestamp } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 export function useUser() {
   const auth = useAuth();
@@ -34,16 +37,22 @@ export function useUser() {
           // Save/update user profile to Firestore
           const db = getFirestore(auth.app);
           const userDocRef = doc(db, 'users', user.uid);
-          try {
-             await setDoc(userDocRef, {
-                displayName: user.displayName,
-                email: user.email,
-                photoURL: user.photoURL,
-                lastLogin: serverTimestamp()
-            }, { merge: true });
-          } catch (e) {
-            console.error("Error saving user profile:", e);
-          }
+          const userProfileData = {
+              displayName: user.displayName,
+              email: user.email,
+              photoURL: user.photoURL,
+              lastLogin: serverTimestamp()
+          };
+
+          setDoc(userDocRef, userProfileData, { merge: true }).catch(async (serverError) => {
+            console.error("Error saving user profile:", serverError);
+            const permissionError = new FirestorePermissionError({
+                path: userDocRef.path,
+                operation: 'update',
+                requestResourceData: userProfileData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+          });
 
         } else {
           setUser(null);
