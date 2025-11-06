@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, AuthErrorCodes } from "firebase/auth";
 import { useAuth } from "@/firebase/provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,10 +53,14 @@ export default function LoginPage() {
       router.push("/inventory"); // Redirect to inventory page on successful login
     } catch (error: any) {
       console.error("Login failed:", error);
+      let description = "An unexpected error occurred. Please try again.";
+      if (error.code === AuthErrorCodes.INVALID_CREDENTIAL) {
+        description = "Invalid email or password. Please try again.";
+      }
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message || "An unexpected error occurred.",
+        description: description,
       });
       setIsSubmitting(false);
     }
