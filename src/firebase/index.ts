@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
@@ -15,19 +16,7 @@ let auth: Auth;
 let firestore: Firestore;
 
 function initializeFirebase(): { app: FirebaseApp; auth: Auth; firestore: Firestore } {
-  if (typeof window === 'undefined') {
-    // On the server, we need to create a new instance for each request.
-    // However, for this simple client-side app, we can just return dummy/uninitialized services.
-    // A more robust SSR app would handle initialization differently.
-    const tempApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    return {
-      app: tempApp,
-      auth: getAuth(tempApp),
-      firestore: getFirestore(tempApp),
-    };
-  }
-
-  if (!getApps().length) {
+  if (getApps().length === 0) {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     firestore = getFirestore(app);
