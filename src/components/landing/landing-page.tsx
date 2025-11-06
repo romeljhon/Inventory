@@ -14,7 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import Image from 'next/image';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 export function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -54,6 +54,9 @@ export function LandingPage() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-full bg-gray-900 text-white border-l-0">
+                  <SheetHeader>
+                    <SheetTitle className="sr-only">Mobile Menu</SheetTitle>
+                  </SheetHeader>
                   <div className="flex flex-col h-full">
                     <div className="flex items-center justify-between border-b border-gray-700 pb-4">
                        <Link href="/" className="flex items-center space-x-2">
@@ -219,3 +222,5 @@ export function LandingPage() {
     </div>
   );
 }
+
+    
