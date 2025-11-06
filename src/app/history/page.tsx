@@ -28,6 +28,7 @@ import { ArrowDown, ArrowUp, Plus, Minus, Edit, Trash2, Download, Building } fro
 import type { InventoryHistory } from "@/lib/types";
 import { downloadCSV } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Timestamp } from "firebase/firestore";
 
 
 export default function HistoryPage() {
@@ -35,9 +36,16 @@ export default function HistoryPage() {
   const { toast } = useToast();
   const { history, isLoading: isInventoryLoading } = useInventory(activeBranch?.id);
 
+  const getDate = (timestamp: any): Date => {
+    if (timestamp instanceof Timestamp) {
+      return timestamp.toDate();
+    }
+    return new Date(timestamp);
+  };
+
   const sortedHistory = useMemo(() => {
     if (!history) return [];
-    return [...history].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return [...history].sort((a, b) => getDate(b.createdAt).getTime() - getDate(a.createdAt).getTime());
   }, [history]);
 
   const handleExport = () => {
@@ -51,7 +59,7 @@ export default function HistoryPage() {
     }
     
     const dataToExport = sortedHistory.map(log => ({
-      date: format(new Date(log.createdAt), "yyyy-MM-dd HH:mm:ss"),
+      date: format(getDate(log.createdAt), "yyyy-MM-dd HH:mm:ss"),
       item: log.itemName,
       action: getChangeDescription(log),
       change: log.change,
@@ -171,8 +179,8 @@ export default function HistoryPage() {
                                 ) : sortedHistory.length > 0 ? sortedHistory.map((log) => (
                                     <TableRow key={log.id}>
                                         <TableCell>
-                                            <div className="font-medium">{format(new Date(log.createdAt), "PP")}</div>
-                                            <div className="text-sm text-muted-foreground">{format(new Date(log.createdAt), "p")}</div>
+                                            <div className="font-medium">{format(getDate(log.createdAt), "PP")}</div>
+                                            <div className="text-sm text-muted-foreground">{format(getDate(log.createdAt), "p")}</div>
                                         </TableCell>
                                         <TableCell className="font-medium">{log.itemName}</TableCell>
                                         <TableCell className="hidden sm:table-cell">
