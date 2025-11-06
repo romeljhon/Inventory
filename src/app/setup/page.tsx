@@ -19,6 +19,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/icons";
+import { useFirestore } from "@/firebase";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 const setupSchema = z.object({
   businessName: z.string().min(2, { message: "Business name must be at least 2 characters." }),
@@ -31,6 +34,9 @@ export default function SetupPage() {
   const { business, setupBusiness, isLoading } = useBusiness();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   const form = useForm<SetupFormData>({
     resolver: zodResolver(setupSchema),
@@ -49,7 +55,49 @@ export default function SetupPage() {
   const onSubmit = async (data: SetupFormData) => {
     setIsSubmitting(true);
     await setupBusiness(data.businessName, data.branchName);
-    router.push("/");
+    // The redirect will happen automatically via the useEffect above
+  };
+
+  const handleTestConnection = async () => {
+    if (!firestore) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Firestore is not initialized.",
+      });
+      return;
+    }
+    setIsTestingConnection(true);
+    toast({ title: "Testing connection..." });
+
+    try {
+      const testDocRef = doc(firestore, "test_connection", "test-doc");
+      await setDoc(testDocRef, { status: 'ok', timestamp: new Date() });
+      
+      const docSnap = await getDoc(testDocRef);
+
+      if (docSnap.exists()) {
+        toast({
+          title: "Connection Successful!",
+          description: "Successfully wrote and read from the database.",
+        });
+      } else {
+         toast({
+          variant: "destructive",
+          title: "Connection Partially Successful",
+          description: "Wrote to the database, but could not read it back.",
+        });
+      }
+    } catch (error: any) {
+      console.error("Connection test failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Connection Failed",
+        description: error.message || "Could not connect to the database.",
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
   
   if (isLoading || business) {
@@ -109,6 +157,9 @@ export default function SetupPage() {
                         </Button>
                     </form>
                     </Form>
+                    <Button variant="outline" className="w-full mt-4" onClick={handleTestConnection} disabled={isTestingConnection}>
+                      {isTestingConnection ? "Testing..." : "Test Database Connection"}
+                    </Button>
                 </CardContent>
             </Card>
         </div>
