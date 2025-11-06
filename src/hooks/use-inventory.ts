@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   query,
   orderBy,
+  Timestamp,
 } from "firebase/firestore";
 import { startOfDay, parseISO, isAfter } from "date-fns";
 import { useFirestore } from "@/firebase";
@@ -245,9 +246,10 @@ export function useInventory(branchId: string | undefined) {
     const dates = new Set(
       history
         .filter(log => log.createdAt) // Filter out logs without a createdAt timestamp
-        .map(log =>
-          startOfDay(parseISO(log.createdAt as unknown as string)).toISOString()
-        )
+        .map(log => {
+            const date = log.createdAt instanceof Timestamp ? log.createdAt.toDate() : parseISO(log.createdAt as string);
+            return startOfDay(date).toISOString();
+        })
     );
     return Array.from(dates).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
   }, [history]);
@@ -259,8 +261,16 @@ export function useInventory(branchId: string | undefined) {
     if (!history || !items) return [];
 
     const relevantHistory = history
-      .filter(log => log.createdAt && !isAfter(parseISO(log.createdAt as unknown as string), endOfTargetDay))
-      .sort((a, b) => new Date(a.createdAt as unknown as string).getTime() - new Date(b.createdAt as unknown as string).getTime());
+      .filter(log => {
+          if (!log.createdAt) return false;
+          const logDate = log.createdAt instanceof Timestamp ? log.createdAt.toDate() : parseISO(log.createdAt as string);
+          return !isAfter(logDate, endOfTargetDay);
+      })
+      .sort((a, b) => {
+          const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toDate() : parseISO(a.createdAt as string);
+          const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toDate() : parseISO(b.createdAt as string);
+          return dateA.getTime() - dateB.getTime();
+      });
 
     const itemMap = new Map<string, Item>();
     const quantityMap = new Map<string, number>();
