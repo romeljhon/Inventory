@@ -4,9 +4,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Rule for the connection test
+    // Rule for the connection test - allow any authenticated user
     match /test_connection/{docId} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
     
     // Users can only manage their own profile
@@ -14,12 +14,13 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Businesses can be created by any authenticated user
+    // Businesses can be read or created by any authenticated user
     match /businesses/{businessId} {
       allow read, create: if request.auth != null;
+      // The owner of the business can update or delete it
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.ownerId;
 
-      // Rules for all subcollections within a business
+      // The owner of a business can manage all of its subcollections (branches, items, etc.)
       match /{allPaths=**} {
         allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
       }
