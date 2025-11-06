@@ -20,7 +20,7 @@ const tourOptions = {
   useModalOverlay: true,
 };
 
-const steps = [
+const getSteps = (router: any) => [
   {
     id: 'welcome',
     title: 'Welcome to Your Dashboard!',
@@ -60,11 +60,11 @@ const steps = [
       {
         text: 'Go to Inventory',
         action() {
+          router.push('/inventory');
           this.next();
         }
       },
     ],
-    action: (router: any) => router.push('/inventory'),
   },
   {
     id: 'add-item',
@@ -90,11 +90,11 @@ const steps = [
       {
         text: 'Go to Recipes',
         action() {
+          router.push('/recipes');
           this.next();
         }
       },
     ],
-     action: (router: any) => router.push('/recipes'),
   },
   {
     id: 'add-recipe',
@@ -120,11 +120,11 @@ const steps = [
       {
         text: 'Go to Sales',
         action() {
+          router.push('/sales');
           this.next();
         }
       },
     ],
-    action: (router: any) => router.push('/sales'),
   },
   {
     id: 'sales-pos',
@@ -160,15 +160,10 @@ function Tour() {
     const isTouring = searchParams.get('tour') === 'true';
 
     if (isTouring && !hasCompletedTour && tour) {
-        // Monkey-patch actions to pass the router instance
-        steps.forEach(step => {
-            if (step.action) {
-                const originalAction = step.action;
-                // @ts-ignore
-                step.action = () => originalAction(router);
-            }
-        });
-        
+        // Clear existing steps before adding new ones
+        tour.steps = []; 
+        const steps = getSteps(router);
+        tour.addSteps(steps);
         tour.start();
         tour.on('complete', handleTourCompletion);
         tour.on('cancel', handleTourCompletion);
@@ -189,7 +184,7 @@ function Tour() {
 
 export function TourProvider({ children }: { children: React.ReactNode }) {
   return (
-    <ShepherdTour steps={steps} tourOptions={tourOptions}>
+    <ShepherdTour tourOptions={tourOptions} steps={[]}>
         <Tour/>
         {children}
     </ShepherdTour>
