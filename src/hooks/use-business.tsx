@@ -63,27 +63,37 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && !user && window.location.pathname !== '/login' && window.location.pathname !== '/signup' && window.location.pathname !== '/') {
         router.push('/login');
     }
-  }, [isLoading, user, router]);
+     if (!isLoading && user && !business && window.location.pathname !== '/setup') {
+      router.push('/setup');
+    }
+  }, [isLoading, user, business, router]);
 
   useEffect(() => {
     const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
     if (storedActiveBranchId && storedActiveBranchId !== 'null') {
       setActiveBranchId(storedActiveBranchId);
+    } else {
+        setActiveBranchId(null);
     }
   }, []);
 
   // Effect to set the default active branch if none is set
   useEffect(() => {
-    if (!activeBranchId && branches && branches.length > 0) {
-      const branchExists = branches.some(b => b.id === activeBranchId);
-      if (!branchExists) {
-        switchBranch(branches[0].id);
+    if (branches && branches.length > 0) {
+      const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
+      const branchExists = branches.some(b => b.id === storedActiveBranchId);
+      if (!storedActiveBranchId || !branchExists) {
+        // Do not automatically select a branch, let the user choose.
+        // If there's an invalid ID, clear it.
+        if (storedActiveBranchId && !branchExists) {
+            switchBranch(null);
+        }
       }
     }
-  }, [branches, activeBranchId, switchBranch]);
+  }, [branches, switchBranch]);
 
   const activeBranch = useMemo(() => {
     return branches?.find(b => b.id === activeBranchId) || null;
@@ -216,3 +226,5 @@ export const useBusiness = (): BusinessContextType => {
   }
   return context;
 };
+
+    

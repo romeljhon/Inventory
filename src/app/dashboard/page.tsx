@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useInventory, LOW_STOCK_THRESHOLD } from "@/hooks/use-inventory";
@@ -34,11 +34,10 @@ import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, P
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import type { Branch } from "@/lib/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { subDays, startOfDay, startOfWeek, startOfMonth, startOfYear, isBefore } from "date-fns";
+import { startOfDay, startOfWeek, startOfMonth, startOfYear, isBefore } from "date-fns";
 import { AddBranchDialog } from "@/components/branches/add-branch-dialog";
 import { DeleteBranchAlert } from "@/components/branches/delete-branch-alert";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Icons } from "@/components/icons";
+import { Loader2 } from "lucide-react";
 
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
@@ -385,12 +384,6 @@ export default function DashboardPage() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
 
-  useEffect(() => {
-    if (!isBusinessLoading && !business) {
-      router.push("/setup");
-    }
-  }, [business, isBusinessLoading, router]);
-
   const handleSelectBranch = (branch: Branch) => {
     switchBranch(branch.id);
   };
@@ -420,7 +413,11 @@ export default function DashboardPage() {
   const isLoading = isBusinessLoading;
 
   if (isLoading || !business) {
-    return <div className="flex h-screen items-center justify-center">Loading dashboard...</div>;
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+    );
   }
 
   return (
