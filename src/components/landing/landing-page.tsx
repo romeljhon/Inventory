@@ -1,19 +1,30 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
-import { BarChart, Package, Smartphone, Users } from 'lucide-react';
+import {
+  BarChart,
+  Package,
+  Smartphone,
+  Users,
+  Menu,
+  X,
+} from 'lucide-react';
 import Image from 'next/image';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export function LandingPage() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
         <div className="container flex h-14 items-center">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Icons.logo className="h-6 w-6 text-primary" />
-            <span className="font-bold">Stock Sherpa</span>
+            <span className="font-bold sm:inline-block">Stock Sherpa</span>
           </Link>
           <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
             <Link
@@ -23,13 +34,56 @@ export function LandingPage() {
               Features
             </Link>
           </nav>
-          <div className="flex flex-1 items-center justify-end space-x-4">
-            <Button asChild variant="ghost">
+          <div className="flex flex-1 items-center justify-end space-x-2">
+            <Button asChild variant="ghost" className="hidden md:inline-flex">
               <Link href="/login">Login</Link>
             </Button>
-            <Button asChild>
+            <Button asChild className="hidden md:inline-flex">
               <Link href="/signup">Sign Up</Link>
             </Button>
+            <div className="md:hidden">
+              <Sheet
+                open={isMobileMenuOpen}
+                onOpenChange={setIsMobileMenuOpen}
+              >
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Menu className="h-6 w-6" />
+                    <span className="sr-only">Open Menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full">
+                  <div className="flex flex-col h-full">
+                    <div className="flex items-center justify-between border-b pb-4">
+                       <Link href="/" className="flex items-center space-x-2">
+                          <Icons.logo className="h-6 w-6 text-primary" />
+                          <span className="font-bold">Stock Sherpa</span>
+                        </Link>
+                         <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
+                            <X className="h-6 w-6" />
+                         </Button>
+                    </div>
+                    <nav className="flex flex-col items-start gap-6 text-lg font-medium mt-8">
+                      <Link
+                        href="#features"
+                        className="transition-colors hover:text-foreground/80 text-foreground/80"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Features
+                      </Link>
+                    </nav>
+                     <div className="mt-auto flex flex-col gap-4">
+                        <Button asChild variant="outline" size="lg">
+                            <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>Login</Link>
+                        </Button>
+                        <Button asChild size="lg">
+                            <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>Sign Up</Link>
+                        </Button>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
       </header>
@@ -57,9 +111,6 @@ export function LandingPage() {
               <Button asChild size="lg">
                 <Link href="/signup">Get Started for Free</Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/login">Login to Dashboard</Link>
-              </Button>
             </div>
           </div>
         </section>
@@ -77,7 +128,7 @@ export function LandingPage() {
               </p>
             </div>
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md">
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Package className="h-6 w-6" />
                 </div>
@@ -89,7 +140,7 @@ export function LandingPage() {
                   branches.
                 </p>
               </div>
-              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md">
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Users className="h-6 w-6" />
                 </div>
@@ -101,7 +152,7 @@ export function LandingPage() {
                   dashboard.
                 </p>
               </div>
-              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md">
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <BarChart className="h-6 w-6" />
                 </div>
@@ -113,7 +164,7 @@ export function LandingPage() {
                   value.
                 </p>
               </div>
-              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md">
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Smartphone className="h-6 w-6" />
                 </div>
@@ -131,19 +182,20 @@ export function LandingPage() {
 
         {/* CTA Section */}
         <section className="py-16 md:py-24">
-            <div className="container mx-auto px-4 text-center">
-                 <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-                    Ready to Streamline Your Inventory?
-                </h2>
-                <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
-                    Sign up today and get control over your stock in minutes. No credit card required.
-                </p>
-                <div className="mt-8">
-                    <Button asChild size="lg">
-                        <Link href="/signup">Start Managing Your Stock</Link>
-                    </Button>
-                </div>
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Ready to Streamline Your Inventory?
+            </h2>
+            <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
+              Sign up today and get control over your stock in minutes. No credit
+              card required.
+            </p>
+            <div className="mt-8">
+              <Button asChild size="lg">
+                <Link href="/signup">Start Managing Your Stock</Link>
+              </Button>
             </div>
+          </div>
         </section>
       </main>
 
