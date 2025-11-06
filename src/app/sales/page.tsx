@@ -42,19 +42,20 @@ export default function SalesPage() {
   const getProductStock = (productId: string, recipes: Recipe[], items: Item[]): number => {
     const recipe = recipes.find(r => r.productId === productId);
     if (!recipe) {
-      // Not a product with a recipe, so it must be a component/standalone item
+      // If it's a product without a recipe, it can't be sold as it has no stock itself.
+      // Or if it's a component, we use its direct quantity.
       const item = items.find(i => i.id === productId);
-      return item?.quantity ?? 0;
+      return item?.itemType === 'Component' ? item.quantity : 0;
     }
     
-    // If it is a product, calculate how many can be made from components
+    // If it is a product with a recipe, calculate how many can be made from components
     if (!recipe.components || recipe.components.length === 0) {
-      return 0;
+      return 0; // Cannot make a product with no components in recipe
     }
 
     const possibleQuantities = recipe.components.map(component => {
       const componentItem = items.find(i => i.id === component.itemId);
-      if (!componentItem) return 0;
+      if (!componentItem) return 0; // Component not in inventory
       return Math.floor(componentItem.quantity / component.quantity);
     });
 
@@ -68,8 +69,9 @@ export default function SalesPage() {
       .filter(item => item.itemType === 'Product')
       .map(item => ({
         ...item,
+        // The effective quantity is how many we can make based on components
         quantity: getProductStock(item.id, recipes, items),
-      }))
+      }));
   }, [items, recipes]);
 
   const filteredItems = useMemo(() => {
@@ -149,15 +151,8 @@ export default function SalesPage() {
       return;
     }
 
-    const updates: Record<string, number> = {};
-    cart.forEach((cartItem) => {
-      const originalItem = items.find(i => i.id === cartItem.id);
-      if (originalItem) {
-        updates[cartItem.id] = originalItem.quantity - cartItem.saleQuantity;
-      }
-    });
-
-    batchUpdateQuantities(updates);
+    // We only need to pass the cart items. The hook will figure out the deductions.
+    batchUpdateQuantities(cart);
     
     toast({
       title: "Sale Completed!",

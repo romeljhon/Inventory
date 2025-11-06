@@ -31,6 +31,13 @@ const getRandomColor = () => {
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
+// Type for cart items passed to batchUpdateQuantities
+type SaleCartItem = {
+  id: string;
+  saleQuantity: number;
+  name: string;
+};
+
 export function useInventory(branchId: string | undefined) {
   const firestore = useFirestore();
   const { business } = useBusiness();
@@ -129,58 +136,70 @@ export function useInventory(branchId: string | undefined) {
     });
   }, [itemsCollection, addHistory, items]);
   
-  const batchUpdateQuantities = useCallback(async (updates: Record<string, number>) => {
-    if (!firestore || !itemsCollection || !items || !recipes) return;
+  const batchUpdateQuantities = useCallback(async (
+    updates: Record<string, number> | SaleCartItem[]
+  ) => {
+    if (!firestore || !itemsCollection || !items) return;
     const batch = writeBatch(firestore);
 
-    const componentUpdates: Record<string, number> = {};
+    if (Array.isArray(updates)) { // This is a sale
+      const cart = updates;
+      const componentDeductions: Record<string, number> = {};
 
-    for (const itemId in updates) {
-      const soldItem = items.find(i => i.id === itemId);
-      const recipe = recipes.find(r => r.productId === itemId);
-      const newQuantity = Math.max(0, updates[itemId]);
-
-      if (soldItem && recipe) {
-        // This is a product with a recipe, so deduct components
-        const quantitySold = soldItem.quantity - newQuantity;
-        if (quantitySold > 0) {
-            recipe.components.forEach(component => {
-                const totalDeduction = component.quantity * quantitySold;
-                componentUpdates[component.itemId] = (componentUpdates[component.itemId] || 0) + totalDeduction;
-            });
-        }
-      } else if (soldItem) {
-        // This is a standard item or a component being sold directly
-        const itemDoc = doc(itemsCollection, itemId);
-        batch.update(itemDoc, { quantity: newQuantity });
-        if (soldItem.quantity !== newQuantity) {
-            addHistory({
-                itemId: itemId,
-                itemName: soldItem.name,
-                change: newQuantity - soldItem.quantity,
-                newQuantity: newQuantity,
-                type: 'quantity'
-            });
+      for (const cartItem of cart) {
+        const recipe = recipes.find(r => r.productId === cartItem.id);
+        if (recipe) {
+          // This is a product with a recipe, calculate component deductions
+          for (const component of recipe.components) {
+            const totalDeduction = component.quantity * cartItem.saleQuantity;
+            componentDeductions[component.itemId] = (componentDeductions[component.itemId] || 0) + totalDeduction;
+          }
+          // Log sale of the product itself, but with 0 quantity change as it's virtual
+          addHistory({
+            itemId: cartItem.id,
+            itemName: cartItem.name,
+            change: -cartItem.saleQuantity, // Log the sale quantity
+            newQuantity: 0, // Not relevant for product itself
+            type: 'quantity',
+          });
         }
       }
-    }
-    
-    // Apply component deductions
-    for (const componentId in componentUpdates) {
+
+      // Apply component deductions
+      for (const componentId in componentDeductions) {
         const componentItem = items.find(i => i.id === componentId);
         if (componentItem) {
-            const newQuantity = Math.max(0, componentItem.quantity - componentUpdates[componentId]);
-            const itemDoc = doc(itemsCollection, componentId);
-            batch.update(itemDoc, { quantity: newQuantity });
+          const newQuantity = Math.max(0, componentItem.quantity - componentDeductions[componentId]);
+          const itemDoc = doc(itemsCollection, componentId);
+          batch.update(itemDoc, { quantity: newQuantity });
 
-             addHistory({
-                itemId: componentId,
-                itemName: componentItem.name,
-                change: -componentUpdates[componentId],
-                newQuantity: newQuantity,
-                type: 'quantity'
-            });
+          addHistory({
+            itemId: componentId,
+            itemName: componentItem.name,
+            change: -componentDeductions[componentId],
+            newQuantity: newQuantity,
+            type: 'quantity',
+          });
         }
+      }
+    } else { // This is a manual stock count
+      for (const itemId in updates) {
+        const originalItem = items.find(i => i.id === itemId);
+        if (originalItem) {
+          const newQuantity = Math.max(0, updates[itemId]);
+          if (originalItem.quantity !== newQuantity) {
+            const itemDoc = doc(itemsCollection, itemId);
+            batch.update(itemDoc, { quantity: newQuantity });
+            addHistory({
+              itemId: itemId,
+              itemName: originalItem.name,
+              change: newQuantity - originalItem.quantity,
+              newQuantity: newQuantity,
+              type: 'quantity',
+            });
+          }
+        }
+      }
     }
 
     batch.commit().catch(async (serverError) => {
@@ -191,7 +210,7 @@ export function useInventory(branchId: string | undefined) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-}, [firestore, itemsCollection, items, addHistory, recipes]);
+  }, [firestore, itemsCollection, items, recipes, addHistory]);
 
 
   const deleteItem = useCallback(async (id: string) => {
