@@ -3,31 +3,9 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    // Users can only manage their own profile
-    match /users/{userId} {
-      allow read, write: if isOwner(userId);
-    }
-
-    // Businesses can be read by anyone signed in, but only created/modified by the owner
-    match /businesses/{businessId} {
-      allow read: if isSignedIn();
-      allow create, update, delete: if isOwner(get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId);
-
-      // Anyone signed into the app can manage inventory for any business
-      // In a real app, you'd have more granular permissions (e.g., roles)
-      match /{allSubcollections=**} {
-        allow read, write: if isSignedIn();
-      }
+    // Allow all reads and writes for debugging
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
