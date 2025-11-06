@@ -63,10 +63,10 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   useEffect(() => {
-    if (!userLoading && !user) {
-        router.push('/login');
+    if (!isLoading && !user && window.location.pathname !== "/") {
+        router.push('/');
     }
-  }, [userLoading, user, router]);
+  }, [isLoading, user, router]);
 
   useEffect(() => {
     const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);

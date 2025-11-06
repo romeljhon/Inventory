@@ -4,7 +4,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useBusiness } from "@/hooks/use-business";
-import { SidebarLayout } from "@/components/sidebar-layout";
+import { useUser } from "@/firebase";
+import { LandingPage } from "@/components/landing/landing-page";
 import { InventoryView } from "@/components/inventory/inventory-view";
 import {
   Card,
@@ -12,28 +13,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Building, Package } from "lucide-react";
+import { Building } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SidebarLayout } from "@/components/sidebar-layout";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
-  const { business, activeBranch, isLoading } = useBusiness();
+  const { business, activeBranch, isLoading: isBusinessLoading } = useBusiness();
+  const { user, loading: isUserLoading } = useUser();
   const router = useRouter();
 
+  const isLoading = isUserLoading || isBusinessLoading;
+  
   useEffect(() => {
-    if (!isLoading && !business) {
+    if (!isLoading && user && !business) {
       router.push("/setup");
     }
-  }, [business, isLoading, router]);
+  }, [business, user, isLoading, router]);
 
-  if (isLoading || !business) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p>Loading your business...</p>
+        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+        <span>Loading...</span>
       </div>
     );
   }
 
+  // If user is not logged in, show the landing page
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  // If user is logged in, show the main application
   return (
     <SidebarLayout>
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
