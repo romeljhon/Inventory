@@ -74,15 +74,15 @@ export function LandingPage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
             </div>
-            <div className="container relative z-10 flex flex-col items-center justify-center gap-5 text-center px-4">
+            <div className="container relative z-10 flex flex-col items-center text-center px-4">
                 <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
                 Intelligent Inventory Management
                 </h1>
-                <p className="max-w-2xl text-base text-muted-foreground sm:text-xl">
+                <p className="mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
                 Take control of your stock with an AI-powered inventory system.
                 Track items, manage sales, and get smart insights effortlessly.
                 </p>
-                <div className="mt-4 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <div className="mt-8 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                 <Button asChild size="lg" className="w-full sm:w-auto">
                     <Link href="/signup">Get Started for Free</Link>
                 </Button>
