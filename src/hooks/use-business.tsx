@@ -112,7 +112,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
     batch.set(newBranchRef, branchData);
     
-    await batch.commit().catch(async (serverError) => {
+    batch.commit().catch(async (serverError) => {
       console.error("Failed to setup business:", serverError);
       const permissionError = new FirestorePermissionError({
           path: newBusinessRef.path,
@@ -149,19 +149,19 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
     
+    // We can't do this in a batch write as reads cannot be part of a batch.
+    // This is a simplified approach for the prototype. In a real app, you might use a Firebase Function.
     try {
-        const batch = writeBatch(firestore);
-
-        batch.delete(branchDocRef);
-
         const collectionsToDelete = ['items', 'categories', 'history'];
         for (const subcollection of collectionsToDelete) {
             const subcollectionRef = collection(branchDocRef, subcollection);
             const snapshot = await getDocs(subcollectionRef);
-            snapshot.forEach(doc => batch.delete(doc.ref));
+            const deleteBatch = writeBatch(firestore);
+            snapshot.forEach(doc => deleteBatch.delete(doc.ref));
+            await deleteBatch.commit();
         }
 
-        await batch.commit();
+        await deleteDoc(branchDocRef);
 
         if (activeBranch?.id === branchId) {
             switchBranch(null);
