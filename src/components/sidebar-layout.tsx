@@ -25,14 +25,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Icons } from "@/components/icons";
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const { business, isUserLoading } = useBusiness();
+  const { business, activeBranch, switchBranch, isUserLoading } = useBusiness();
   const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -45,6 +45,12 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   };
   
   const user = auth?.currentUser;
+
+  const showBackButton = activeBranch && pathname === '/dashboard';
+
+  const handleBackToBranches = () => {
+    switchBranch(null);
+  };
 
   return (
     <SidebarProvider>
@@ -136,10 +142,18 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       </Sidebar>
       <SidebarInset>
          <header className="flex h-14 items-center justify-between border-b px-4 md:hidden">
-            <Link href="/" className="flex items-center gap-2">
-                <Icons.logo className="w-6 h-6 text-primary" />
-                <span className="font-semibold">{business?.name}</span>
-            </Link>
+            <div className="flex items-center gap-2">
+                {showBackButton ? (
+                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleBackToBranches}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                ) : (
+                    <Link href="/" className="flex items-center gap-2">
+                        <Icons.logo className="w-6 h-6 text-primary" />
+                    </Link>
+                )}
+                <span className="font-semibold">{activeBranch ? activeBranch.name : business?.name}</span>
+            </div>
             <SidebarTrigger />
         </header>
         {children}
@@ -147,3 +161,5 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
+
+    
