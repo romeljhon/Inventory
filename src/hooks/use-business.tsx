@@ -103,7 +103,16 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
             ownerId: user.uid,
             createdAt: serverTimestamp(),
         };
-        await setDoc(newBusinessRef, businessData);
+        await setDoc(newBusinessRef, businessData).catch(async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: newBusinessRef.path,
+            operation: 'create',
+            requestResourceData: businessData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          // throw the original error to stop execution
+          throw serverError;
+        });
 
         // Then create the initial branch sub-collection
         const newBranchRef = doc(collection(newBusinessRef, 'branches'));
@@ -111,16 +120,21 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
             name: initialBranchName,
             createdAt: serverTimestamp(),
         };
-        await setDoc(newBranchRef, branchData);
-
-    } catch (serverError: any) {
-        console.error("Failed to setup business:", serverError);
-        const permissionError = new FirestorePermissionError({
-            path: `businesses/ (and /branches/)`,
+        await setDoc(newBranchRef, branchData).catch(async (serverError) => {
+           const permissionError = new FirestorePermissionError({
+            path: newBranchRef.path,
             operation: 'create',
-            requestResourceData: { businessName, initialBranchName },
+            requestResourceData: branchData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          // throw the original error to stop execution
+          throw serverError;
         });
-        errorEmitter.emit('permission-error', permissionError);
+
+    } catch (error) {
+        // Errors are now emitted and thrown inside the .catch blocks,
+        // so we don't need to do anything here, but we keep the try/catch
+        // to prevent uncaught promise rejections if the first setDoc fails.
     }
     
   }, [firestore, user]);
