@@ -29,10 +29,7 @@ export default function InventoryPage() {
     if (!isLoading && !user) {
       router.push("/login");
     }
-    if (!isLoading && user && !business) {
-      router.push("/businesses");
-    }
-  }, [business, user, isLoading, router]);
+  }, [user, isLoading, router]);
 
   if (isLoading || !user || !business) {
     return (
