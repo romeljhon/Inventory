@@ -27,6 +27,7 @@ import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign, Buildin
 import { CategoryPills } from "@/components/inventory/category-pills";
 import type { Item, Recipe } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { EditableQuantity } from "@/components/inventory/editable-quantity";
 
 type CartItem = Item & { saleQuantity: number };
 
@@ -103,27 +104,37 @@ export default function SalesPage() {
       }
     });
   };
-
+  
   const updateCartQuantity = (itemId: string, change: number) => {
     setCart((currentCart) => {
       const existingItem = currentCart.find((cartItem) => cartItem.id === itemId);
       if (!existingItem) return currentCart;
 
       const newQuantity = existingItem.saleQuantity + change;
-      const stock = getProductStock(itemId, recipes, items);
-
-      if (newQuantity <= 0) {
-        // Remove item if quantity becomes 0 or less
-        return currentCart.filter((cartItem) => cartItem.id !== itemId);
-      }
       
-      // Clamp quantity to available stock
-      const clampedQuantity = Math.min(newQuantity, stock);
-      
-      return currentCart.map((cartItem) =>
-        cartItem.id === itemId ? { ...cartItem, saleQuantity: clampedQuantity } : cartItem
-      );
+      return setCartQuantity(itemId, newQuantity);
     });
+  };
+
+  const setCartQuantity = (itemId: string, newQuantity: number) => {
+      setCart((currentCart) => {
+        const existingItem = currentCart.find((cartItem) => cartItem.id === itemId);
+        if (!existingItem) return currentCart;
+        
+        const stock = getProductStock(itemId, recipes, items);
+
+        if (newQuantity <= 0) {
+            // Remove item if quantity becomes 0 or less
+            return currentCart.filter((cartItem) => cartItem.id !== itemId);
+        }
+        
+        // Clamp quantity to available stock
+        const clampedQuantity = Math.min(newQuantity, stock);
+        
+        return currentCart.map((cartItem) =>
+            cartItem.id === itemId ? { ...cartItem, saleQuantity: clampedQuantity } : cartItem
+        );
+      });
   };
 
   const removeFromCart = (itemId: string) => {
@@ -298,7 +309,12 @@ export default function SalesPage() {
                                 >
                                   <Minus className="h-4 w-4" />
                                 </Button>
-                              <span className="w-6 text-center font-bold">{item.saleQuantity}</span>
+                                <EditableQuantity
+                                    initialValue={item.saleQuantity}
+                                    onSave={(newVal) => setCartQuantity(item.id, newVal)}
+                                    max={item.quantity}
+                                    className="w-12"
+                                />
                               <Button
                                   size="icon"
                                   variant="ghost"

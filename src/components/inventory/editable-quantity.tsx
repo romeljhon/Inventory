@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -8,9 +9,10 @@ interface EditableQuantityProps {
   initialValue: number;
   onSave: (newValue: number) => void;
   className?: string;
+  max?: number;
 }
 
-export function EditableQuantity({ initialValue, onSave, className }: EditableQuantityProps) {
+export function EditableQuantity({ initialValue, onSave, className, max }: EditableQuantityProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,12 +30,25 @@ export function EditableQuantity({ initialValue, onSave, className }: EditableQu
 
   const handleSave = () => {
     setIsEditing(false);
-    const newValue = parseInt(String(value), 10);
-    if (!isNaN(newValue) && newValue !== initialValue) {
-      onSave(newValue);
-    } else {
-        // If the value is invalid or unchanged, revert to the initial value
+    let newValue = parseInt(String(value), 10);
+    
+    if (isNaN(newValue)) {
         setValue(initialValue);
+        return;
+    }
+    
+    if (max !== undefined && newValue > max) {
+        newValue = max;
+    }
+
+    if (newValue !== initialValue) {
+      onSave(newValue);
+    }
+    // Update local state to clamped value even if it didn't change from initial
+    // e.g. user enters value > max
+    setValue(newValue); 
+    if (initialValue !== newValue && newValue === max) {
+        onSave(newValue);
     }
   };
 
@@ -58,6 +73,7 @@ export function EditableQuantity({ initialValue, onSave, className }: EditableQu
         onKeyDown={handleKeyDown}
         className={cn("h-8 w-20 text-center", className)}
         min="0"
+        max={max}
       />
     );
   }
