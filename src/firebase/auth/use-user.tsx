@@ -25,8 +25,6 @@ export function useUser() {
 
   useEffect(() => {
     if (!auth) {
-      // If auth is not ready, we are still loading.
-      // This might happen on initial server render.
       setLoading(true);
       return;
     }
