@@ -146,7 +146,7 @@
     }
   },
   "auth": {
-    "providers": ["email-password"]
+    "providers": ["email-password", "google"]
   },
   "firestore": {
     "/businesses/{businessId}": {
