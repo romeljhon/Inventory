@@ -2,10 +2,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
-import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp, getFirestore } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Business, Branch, Item, Category, InventoryHistory } from '@/lib/types';
 import { useCollection } from '@/firebase/firestore/use-collection';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 const ACTIVE_BRANCH_STORAGE_KEY = 'stock-sherpa-active-branch';
 
@@ -26,13 +29,12 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
   
-  // For this prototype, we'll assume one business per user.
-  // The business ID could be the user's UID in a real multi-tenant app.
-  const businessId = user ? `business-for-${user.uid}` : null;
-  
-  const { data: businesses, loading: businessLoading } = useCollection<Business>(
-    firestore && user?.uid ? query(collection(firestore, 'businesses'), where('ownerId', '==', user.uid)) : null
+  const businessQuery = useMemo(() => 
+    firestore && user?.uid ? query(collection(firestore, 'businesses'), where('ownerId', '==', user.uid)) : null,
+    [firestore, user?.uid]
   );
+
+  const { data: businesses, loading: businessLoading } = useCollection<Business>(businessQuery);
   
   const business = useMemo(() => (businesses && businesses.length > 0 ? businesses[0] : null), [businesses]);
 
@@ -55,50 +57,69 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const activeBranch = useMemo(() => {
+    if (branches && branches.length > 0 && !activeBranchId) {
+      // If no branch is active, default to the first one
+      switchBranch(branches[0].id);
+      return branches[0];
+    }
     return branches?.find(b => b.id === activeBranchId) || null;
   }, [branches, activeBranchId]);
 
   const setupBusiness = useCallback(async (businessName: string, initialBranchName: string) => {
     if (!firestore || !user) return;
     
-    // We can't use the `business` object here because it might not be loaded yet.
-    // The user has no business, so we create one.
-    const businessDocRef = doc(firestore, 'businesses', businessId!);
-    
+    const db = getFirestore();
+    const batch = writeBatch(db);
+
     const businessData: Omit<Business, 'id'> = { 
       name: businessName,
       ownerId: user.uid,
       createdAt: serverTimestamp(),
     };
+    
+    // Create a ref for a new business document
+    const newBusinessRef = doc(collection(db, 'businesses'));
+    batch.set(newBusinessRef, businessData);
 
-    const branchCollectionRef = collection(businessDocRef, 'branches');
     const branchData: Omit<Branch, 'id'> = { 
       name: initialBranchName,
       createdAt: serverTimestamp(),
     };
-    
-    try {
-      const batch = writeBatch(firestore);
-      batch.set(businessDocRef, businessData);
-      
-      const newBranchDoc = doc(branchCollectionRef);
-      batch.set(newBranchDoc, branchData);
-      
-      await batch.commit();
 
-      switchBranch(newBranchDoc.id);
-      
-    } catch(e) {
-      console.error("Failed to setup business", e);
-    }
+    // Create a ref for a new branch document inside the new business
+    const newBranchRef = doc(collection(newBusinessRef, 'branches'));
+    batch.set(newBranchRef, branchData);
     
-  }, [firestore, user, businessId]);
+    batch.commit().then(() => {
+      switchBranch(newBranchRef.id);
+    }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+          path: newBusinessRef.path,
+          operation: 'create',
+          requestResourceData: businessData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      console.error("Failed to setup business", serverError);
+    });
+    
+  }, [firestore, user]);
 
   const addBranch = useCallback(async (branchName: string): Promise<Branch | undefined> => {
     if (!branchesCollectionRef) return undefined;
 
     const branchData: Omit<Branch, 'id'> = { name: branchName, createdAt: serverTimestamp() };
-    const docRef = await addDoc(branchesCollectionRef, branchData);
+    const docRef = await addDoc(branchesCollectionRef, branchData)
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: branchesCollectionRef.path,
+          operation: 'create',
+          requestResourceData: branchData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        return null;
+      });
+
+    if (!docRef) return undefined;
     
     return { ...branchData, id: docRef.id } as Branch;
   }, [branchesCollectionRef]);
@@ -134,12 +155,21 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
     } catch (e) {
       console.error("Failed to delete branch and its data", e);
+       const permissionError = new FirestorePermissionError({
+          path: `/businesses/${business.id}/branches/${branchId}`,
+          operation: 'delete',
+        });
+      errorEmitter.emit('permission-error', permissionError);
     }
   }, [firestore, business?.id, activeBranch?.id]);
 
   const switchBranch = useCallback((branchId: string | null) => {
     setActiveBranchId(branchId);
-    localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, branchId || 'null');
+    if (branchId) {
+      localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, branchId);
+    } else {
+      localStorage.removeItem(ACTIVE_BRANCH_STORAGE_KEY);
+    }
   }, []);
 
   const contextValue = useMemo(() => ({
