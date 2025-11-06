@@ -3,7 +3,7 @@
 // IMPORTANT: Replace this with the actual config from your Firebase project settings.
 export const firebaseConfig = {
   apiKey: "AIzaSyAfxV-LBtzoAUasbRZRTzGhBRw5CW4pnb0",
-  authDomain: "stockwise-plf8a.web.app",
+  authDomain: "stockwise-plf8a.firebaseapp.com",
   projectId: "stockwise-plf8a",
   storageBucket: "stockwise-plf8a.appspot.com",
   messagingSenderId: "434763397253",
