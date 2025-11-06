@@ -44,7 +44,6 @@ export function useUser() {
           };
 
           setDoc(userDocRef, userProfileData, { merge: true }).catch(async (serverError) => {
-            console.error("Error saving user profile:", serverError);
             const permissionError = new FirestorePermissionError({
                 path: userDocRef.path,
                 operation: 'update',
