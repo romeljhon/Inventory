@@ -63,7 +63,9 @@ export default function ForgotPasswordPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
         <div className="flex flex-col space-y-2 text-center">
-          <Icons.logo className="mx-auto h-12 w-12 text-primary" />
+          <Link href="/">
+            <Icons.logo className="mx-auto h-12 w-12 text-primary" />
+          </Link>
           <h1 className="text-2xl font-semibold tracking-tight">
             Forgot Password
           </h1>
