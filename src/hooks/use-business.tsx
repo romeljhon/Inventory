@@ -43,11 +43,21 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     [firestore, business?.id]
   );
   
-  const { data: branches, loading: branchesLoading } = useCollection<Branch>(branchesCollectionRef);
+  const { data: branchesData, loading: branchesLoading } = useCollection<Branch>(branchesCollectionRef);
+  const branches = useMemo(() => branchesData || [], [branchesData]);
 
   const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
   
   const isLoading = userLoading || businessLoading || branchesLoading;
+  
+  const switchBranch = useCallback((branchId: string | null) => {
+    setActiveBranchId(branchId);
+    if (branchId) {
+      localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, branchId);
+    } else {
+      localStorage.removeItem(ACTIVE_BRANCH_STORAGE_KEY);
+    }
+  }, []);
 
   useEffect(() => {
     const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
@@ -56,12 +66,17 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, []);
 
-  const activeBranch = useMemo(() => {
-    if (branches && branches.length > 0 && !activeBranchId) {
-      // If no branch is active, default to the first one
-      switchBranch(branches[0].id);
-      return branches[0];
+  // Effect to set the default active branch if none is set
+  useEffect(() => {
+    if (!activeBranchId && branches && branches.length > 0) {
+      const branchExists = branches.some(b => b.id === activeBranchId);
+      if (!branchExists) {
+        switchBranch(branches[0].id);
+      }
     }
+  }, [branches, activeBranchId, switchBranch]);
+
+  const activeBranch = useMemo(() => {
     return branches?.find(b => b.id === activeBranchId) || null;
   }, [branches, activeBranchId]);
 
@@ -101,7 +116,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       errorEmitter.emit('permission-error', permissionError);
     });
     
-  }, [firestore, user]);
+  }, [firestore, user, switchBranch]);
 
   const addBranch = useCallback(async (branchName: string): Promise<Branch | undefined> => {
     if (!branchesCollectionRef) return undefined;
@@ -153,20 +168,11 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-  }, [firestore, business?.id, activeBranch?.id]);
-
-  const switchBranch = useCallback((branchId: string | null) => {
-    setActiveBranchId(branchId);
-    if (branchId) {
-      localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, branchId);
-    } else {
-      localStorage.removeItem(ACTIVE_BRANCH_STORAGE_KEY);
-    }
-  }, []);
+  }, [firestore, business?.id, activeBranch?.id, switchBranch]);
 
   const contextValue = useMemo(() => ({
     business,
-    branches: branches || [],
+    branches,
     activeBranch,
     isLoading,
     setupBusiness,
