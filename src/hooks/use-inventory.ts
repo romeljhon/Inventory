@@ -243,9 +243,11 @@ export function useInventory(branchId: string | undefined) {
   const availableSnapshotDates = useMemo(() => {
     if (!history || history.length === 0) return [];
     const dates = new Set(
-      history.map(log =>
-        startOfDay(parseISO(log.createdAt as unknown as string)).toISOString()
-      )
+      history
+        .filter(log => log.createdAt) // Filter out logs without a createdAt timestamp
+        .map(log =>
+          startOfDay(parseISO(log.createdAt as unknown as string)).toISOString()
+        )
     );
     return Array.from(dates).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
   }, [history]);
@@ -257,7 +259,7 @@ export function useInventory(branchId: string | undefined) {
     if (!history || !items) return [];
 
     const relevantHistory = history
-      .filter(log => !isAfter(parseISO(log.createdAt as unknown as string), endOfTargetDay))
+      .filter(log => log.createdAt && !isAfter(parseISO(log.createdAt as unknown as string), endOfTargetDay))
       .sort((a, b) => new Date(a.createdAt as unknown as string).getTime() - new Date(b.createdAt as unknown as string).getTime());
 
     const itemMap = new Map<string, Item>();
