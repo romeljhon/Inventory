@@ -43,7 +43,7 @@ export default function SetupPage() {
 
   useEffect(() => {
     if (!isLoading && business) {
-      router.push("/");
+      router.push("/dashboard");
     }
   }, [business, isLoading, router]);
 
