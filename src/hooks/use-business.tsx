@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
-import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp, getFirestore } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Business, Branch, Item, Category, InventoryHistory } from '@/lib/types';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -68,38 +68,38 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const setupBusiness = useCallback(async (businessName: string, initialBranchName: string) => {
     if (!firestore || !user) return;
     
-    const db = getFirestore();
-    const batch = writeBatch(db);
+    const batch = writeBatch(firestore);
 
-    const businessData: Omit<Business, 'id'> = { 
+    // 1. Create a ref for a new business document
+    const newBusinessRef = doc(collection(firestore, 'businesses'));
+    const businessData = { 
       name: businessName,
       ownerId: user.uid,
       createdAt: serverTimestamp(),
     };
-    
-    // Create a ref for a new business document
-    const newBusinessRef = doc(collection(db, 'businesses'));
     batch.set(newBusinessRef, businessData);
 
-    const branchData: Omit<Branch, 'id'> = { 
+    // 2. Create a ref for a new branch document inside the new business
+    const newBranchRef = doc(collection(newBusinessRef, 'branches'));
+    const branchData = { 
       name: initialBranchName,
       createdAt: serverTimestamp(),
     };
-
-    // Create a ref for a new branch document inside the new business
-    const newBranchRef = doc(collection(newBusinessRef, 'branches'));
     batch.set(newBranchRef, branchData);
     
+    // 3. Commit the batch and handle errors
     batch.commit().then(() => {
+      // On success, switch to the new branch
       switchBranch(newBranchRef.id);
     }).catch(async (serverError) => {
+      // On failure, emit a detailed permission error for debugging
       const permissionError = new FirestorePermissionError({
           path: newBusinessRef.path,
           operation: 'create',
-          requestResourceData: businessData,
+          requestResourceData: { businessData, branchData },
       });
       errorEmitter.emit('permission-error', permissionError);
-      console.error("Failed to setup business", serverError);
+      console.error("Failed to setup business with batched write", serverError);
     });
     
   }, [firestore, user]);
