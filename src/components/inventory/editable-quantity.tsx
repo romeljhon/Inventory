@@ -14,7 +14,7 @@ interface EditableQuantityProps {
 
 export function EditableQuantity({ initialValue, onSave, className, max }: EditableQuantityProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [value, setValue] = useState(initialValue);
+  const [value, setValue] = useState<number | string>(initialValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,15 +41,14 @@ export function EditableQuantity({ initialValue, onSave, className, max }: Edita
         newValue = max;
     }
 
+    if (newValue < 0) {
+      newValue = 0;
+    }
+
     if (newValue !== initialValue) {
       onSave(newValue);
     }
-    // Update local state to clamped value even if it didn't change from initial
-    // e.g. user enters value > max
-    setValue(newValue); 
-    if (initialValue !== newValue && newValue === max) {
-        onSave(newValue);
-    }
+    setValue(newValue);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -62,13 +61,25 @@ export function EditableQuantity({ initialValue, onSave, className, max }: Edita
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    if (rawValue === "") {
+      setValue("");
+    } else {
+      const numValue = parseInt(rawValue, 10);
+      if (!isNaN(numValue)) {
+        setValue(numValue);
+      }
+    }
+  };
+
   if (isEditing) {
     return (
       <Input
         ref={inputRef}
         type="number"
         value={value}
-        onChange={(e) => setValue(parseInt(e.target.value, 10))}
+        onChange={handleChange}
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
         className={cn("h-8 w-20 text-center", className)}
