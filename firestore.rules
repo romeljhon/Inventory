@@ -14,15 +14,29 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Businesses can be read or created by any authenticated user
+    // Businesses can be read by their owner.
+    // Businesses can be created if the ownerId matches the user.
     match /businesses/{businessId} {
       allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
       // The owner of the business can update or delete it
       allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
 
-      // The owner of a business can manage all of its subcollections (branches, items, etc.)
-      match /{allPaths=**} {
+      // The owner of a business can read and write to all of its subcollections.
+      // This rule allows creating a branch during initial business setup by checking the incoming business data.
+      match /branches/{branchId} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+        allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      }
+      
+      // All other subcollections can only be accessed if the parent business exists and is owned by the user.
+      match /{path=**}/items/{itemId} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+      }
+       match /{path=**}/categories/{categoryId} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+      }
+       match /{path=**}/history/{historyId} {
         allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
       }
     }
