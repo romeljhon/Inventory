@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider, AuthErrorCodes } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile, AuthErrorCodes } from "firebase/auth";
 import { useAuth } from "@/firebase/provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +37,6 @@ export default function SignUpPage() {
   const auth = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -85,25 +84,6 @@ export default function SignUpPage() {
         description: description,
       });
       setIsSubmitting(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    if (!auth) return;
-    setIsGoogleSubmitting(true);
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithPopup(auth, provider);
-      router.push("/setup");
-    } catch (error: any) {
-      console.error("Google Sign-In failed:", error);
-      toast({
-        variant: "destructive",
-        title: "Google Sign-Up Failed",
-        description: "Could not sign up with Google. Please try again.",
-      });
-      setIsGoogleSubmitting(false);
     }
   };
 
@@ -166,30 +146,12 @@ export default function SignUpPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isSubmitting || isGoogleSubmitting}>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Account
                   </Button>
                 </form>
               </Form>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-              <Button variant="outline" type="button" onClick={handleGoogleSignIn} disabled={isSubmitting || isGoogleSubmitting}>
-                {isGoogleSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Icons.google className="mr-2 h-4 w-4" />
-                )}{" "}
-                Google
-              </Button>
             </div>
           </CardContent>
         </Card>
