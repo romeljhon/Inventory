@@ -94,33 +94,34 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         console.error("Setup cannot proceed: Firestore not initialized or user not authenticated.");
         return;
     }
-    
-    const batch = writeBatch(firestore);
 
-    const newBusinessRef = doc(collection(firestore, 'businesses'));
-    const businessData = { 
-      name: businessName,
-      ownerId: user.uid,
-      createdAt: serverTimestamp(),
-    };
-    batch.set(newBusinessRef, businessData);
+    try {
+        // Create business document first
+        const newBusinessRef = doc(collection(firestore, 'businesses'));
+        const businessData = { 
+            name: businessName,
+            ownerId: user.uid,
+            createdAt: serverTimestamp(),
+        };
+        await setDoc(newBusinessRef, businessData);
 
-    const newBranchRef = doc(collection(newBusinessRef, 'branches'));
-    const branchData = { 
-      name: initialBranchName,
-      createdAt: serverTimestamp(),
-    };
-    batch.set(newBranchRef, branchData);
-    
-    batch.commit().catch(async (serverError) => {
-      console.error("Failed to setup business:", serverError);
-      const permissionError = new FirestorePermissionError({
-          path: newBusinessRef.path,
-          operation: 'create',
-          requestResourceData: { businessData, branchData },
-      });
-      errorEmitter.emit('permission-error', permissionError);
-    });
+        // Then create the initial branch sub-collection
+        const newBranchRef = doc(collection(newBusinessRef, 'branches'));
+        const branchData = { 
+            name: initialBranchName,
+            createdAt: serverTimestamp(),
+        };
+        await setDoc(newBranchRef, branchData);
+
+    } catch (serverError: any) {
+        console.error("Failed to setup business:", serverError);
+        const permissionError = new FirestorePermissionError({
+            path: `businesses/ (and /branches/)`,
+            operation: 'create',
+            requestResourceData: { businessName, initialBranchName },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }
     
   }, [firestore, user]);
 
