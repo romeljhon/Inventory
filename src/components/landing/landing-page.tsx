@@ -60,7 +60,7 @@ export function LandingPage() {
 
         <section
           id="features"
-          className="container space-y-6 bg-slate-50 py-8 dark:bg-transparent md:py-12 lg:py-24 rounded-lg"
+          className="container space-y-8 py-8 md:py-12 lg:py-24"
         >
           <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
             <h2 className="text-3xl font-bold leading-[1.1] sm:text-3xl md:text-5xl">
@@ -70,7 +70,7 @@ export function LandingPage() {
               Everything you need to manage your inventory and grow your business.
             </p>
           </div>
-          <div className="mx-auto grid justify-center gap-4 sm:grid-cols-2 md:max-w-[64rem] md:grid-cols-3">
+          <div className="mx-auto grid max-w-[64rem] grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
             <div className="relative overflow-hidden rounded-lg border bg-background p-2">
               <div className="flex h-[180px] flex-col justify-between rounded-md p-6">
                 <Package className="h-12 w-12 text-primary" />
