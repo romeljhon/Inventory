@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/icons";
-import { BarChart, Boxes, Package, ShoppingCart } from "lucide-react";
+import { BarChart, Boxes, Package, ShoppingCart, Sparkles, SunMoon } from "lucide-react";
 
 export function LandingPage() {
   return (
@@ -30,29 +30,37 @@ export function LandingPage() {
         </div>
       </header>
       <main className="flex-1">
-        <section className="space-y-6 pb-8 pt-6 md:pb-12 md:pt-10 lg:py-32">
-          <div className="container flex max-w-[64rem] flex-col items-center gap-4 text-center">
-            <h1 className="text-3xl font-bold sm:text-5xl md:text-6xl lg:text-7xl">
-              Intelligent Inventory Management
-            </h1>
-            <p className="max-w-[42rem] leading-normal text-muted-foreground sm:text-xl sm:leading-8">
-              Take control of your stock with an AI-powered inventory system.
-              Track items, manage sales, and get smart insights effortlessly.
-            </p>
-            <div className="space-x-4">
-              <Button asChild size="lg">
-                <Link href="/signup">Get Started for Free</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/login">Login</Link>
-              </Button>
+        <section className="relative h-[60vh] min-h-[500px] w-full">
+            <Image
+                src="https://picsum.photos/seed/1/1800/1200"
+                alt="Inventory background"
+                fill
+                className="object-cover"
+                data-ai-hint="warehouse inventory"
+            />
+            <div className="absolute inset-0 bg-black/60" />
+            <div className="relative z-10 container flex h-full max-w-[64rem] flex-col items-center justify-center gap-4 text-center text-white">
+                <h1 className="text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl">
+                Intelligent Inventory Management
+                </h1>
+                <p className="max-w-[42rem] leading-normal sm:text-xl sm:leading-8">
+                Take control of your stock with an AI-powered inventory system.
+                Track items, manage sales, and get smart insights effortlessly.
+                </p>
+                <div className="space-x-4">
+                <Button asChild size="lg">
+                    <Link href="/signup">Get Started for Free</Link>
+                </Button>
+                <Button asChild size="lg" variant="secondary">
+                    <Link href="/login">Login</Link>
+                </Button>
+                </div>
             </div>
-          </div>
         </section>
 
         <section
           id="features"
-          className="container space-y-6 bg-slate-50/50 py-8 dark:bg-transparent md:py-12 lg:py-24 rounded-lg"
+          className="container space-y-6 bg-slate-50 py-8 dark:bg-transparent md:py-12 lg:py-24 rounded-lg"
         >
           <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
             <h2 className="text-3xl font-bold leading-[1.1] sm:text-3xl md:text-5xl">
@@ -109,7 +117,7 @@ export function LandingPage() {
             </div>
              <div className="relative overflow-hidden rounded-lg border bg-background p-2">
               <div className="flex h-[180px] flex-col justify-between rounded-md p-6">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-12 w-12 text-primary"><path d="m12 3-1.9 1.9a2 2 0 0 0 0 2.8L12 9.6l1.9-1.9a2 2 0 0 0 0-2.8Z"/><path d="M9.6 12 7.7 13.9a2 2 0 0 0 0 2.8L9.6 18.6l1.9-1.9a2 2 0 0 0 0-2.8Z"/><path d="M12 21.6 10.1 19.7a2 2 0 0 0-2.8 0L5.4 21.6"/><path d="m3 12 1.9-1.9a2 2 0 0 0 2.8 0L9.6 12l-1.9 1.9a2 2 0 0 0-2.8 0Z"/><path d="M21.6 12 19.7 10.1a2 2 0 0 0-2.8 0L15.1 12l1.9 1.9a2 2 0 0 0 2.8 0Z"/><path d="M14.4 9.6 12.5 7.7a2 2 0 0 0-2.8 0L7.8 9.6l1.9 1.9a2 2 0 0 0 2.8 0Z"/><path d="m18.6 15-1.9-1.9a2 2 0 0 0-2.8 0l-1.9 1.9 1.9 1.9a2 2 0 0 0 2.8 0Z"/></svg>
+                <Sparkles className="h-12 w-12 text-primary" />
                 <div className="space-y-2">
                   <h3 className="font-bold">AI Category Suggestions</h3>
                   <p className="text-sm text-muted-foreground">
@@ -120,7 +128,7 @@ export function LandingPage() {
             </div>
              <div className="relative overflow-hidden rounded-lg border bg-background p-2">
               <div className="flex h-[180px] flex-col justify-between rounded-md p-6">
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-12 w-12 text-primary"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m7.8 16.2-2.9 2.9"/><path d="M6 12H2"/><path d="m7.8 7.8-2.9-2.9"/><circle cx="12" cy="12" r="4"/></svg>
+                <SunMoon className="h-12 w-12 text-primary" />
                 <div className="space-y-2">
                   <h3 className="font-bold">Light & Dark Mode</h3>
                   <p className="text-sm text-muted-foreground">
