@@ -21,25 +21,25 @@ export function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm">
-        <div className="container flex h-14 items-center">
+      <header className="fixed top-0 z-50 w-full p-4">
+        <div className="container mx-auto flex h-14 items-center rounded-full bg-gray-900/80 px-6 text-white backdrop-blur-sm">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Icons.logo className="h-6 w-6 text-primary" />
+            <Icons.logo className="h-6 w-6 text-white" />
             <span className="font-bold sm:inline-block">Stock Sherpa</span>
           </Link>
           <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
             <Link
               href="#features"
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
+              className="transition-colors hover:text-white/80 text-white/60"
             >
               Features
             </Link>
           </nav>
           <div className="flex flex-1 items-center justify-end space-x-2">
-            <Button asChild variant="ghost" className="hidden md:inline-flex">
+            <Button asChild variant="ghost" className="hidden text-white hover:bg-white/10 hover:text-white md:inline-flex">
               <Link href="/login">Login</Link>
             </Button>
-            <Button asChild className="hidden md:inline-flex">
+            <Button asChild className="hidden bg-white text-black hover:bg-gray-200 md:inline-flex">
               <Link href="/signup">Sign Up</Link>
             </Button>
             <div className="md:hidden">
@@ -48,36 +48,36 @@ export function LandingPage() {
                 onOpenChange={setIsMobileMenuOpen}
               >
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 hover:text-white">
                     <Menu className="h-6 w-6" />
                     <span className="sr-only">Open Menu</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-full">
+                <SheetContent side="right" className="w-full bg-gray-900 text-white border-l-0">
                   <div className="flex flex-col h-full">
-                    <div className="flex items-center justify-between border-b pb-4">
+                    <div className="flex items-center justify-between border-b border-gray-700 pb-4">
                        <Link href="/" className="flex items-center space-x-2">
-                          <Icons.logo className="h-6 w-6 text-primary" />
+                          <Icons.logo className="h-6 w-6 text-white" />
                           <span className="font-bold">Stock Sherpa</span>
                         </Link>
-                         <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)}>
+                         <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} className="text-white hover:bg-white/10 hover:text-white">
                             <X className="h-6 w-6" />
                          </Button>
                     </div>
                     <nav className="flex flex-col items-start gap-6 text-lg font-medium mt-8">
                       <Link
                         href="#features"
-                        className="transition-colors hover:text-foreground/80 text-foreground/80"
+                        className="transition-colors hover:text-white/80 text-white/80"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         Features
                       </Link>
                     </nav>
                      <div className="mt-auto flex flex-col gap-4">
-                        <Button asChild variant="outline" size="lg">
+                        <Button asChild variant="outline" size="lg" className="border-gray-700 text-white hover:bg-gray-800 hover:text-white">
                             <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>Login</Link>
                         </Button>
-                        <Button asChild size="lg">
+                        <Button asChild size="lg" className="bg-white text-black hover:bg-gray-200">
                             <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>Sign Up</Link>
                         </Button>
                     </div>
@@ -100,7 +100,7 @@ export function LandingPage() {
             <div className="h-32 bg-gradient-to-r from-cyan-400 to-sky-300 blur-[106px] dark:to-indigo-600"></div>
           </div>
           <div className="container relative z-10 mx-auto flex flex-col items-center justify-center px-4 text-center">
-            <h1 className="text-4xl font-extrabold tracking-tight md:text-6xl lg:text-7xl">
+            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
               Intelligent Inventory Management
             </h1>
             <p className="mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
