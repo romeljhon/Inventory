@@ -11,17 +11,20 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
 
+const ACTIVE_BUSINESS_STORAGE_KEY = 'stock-sherpa-active-business';
 const ACTIVE_BRANCH_STORAGE_KEY = 'stock-sherpa-active-branch';
 
 interface BusinessContextType {
-  business: Business | null;
+  business: Business | null; // The active business
+  businesses: Business[]; // All businesses for the user
   branches: Branch[];
   activeBranch: Branch | null;
   isLoading: boolean;
   isUserLoading: boolean;
-  setupBusiness: (businessName: string, initialBranchName: string) => Promise<void>;
+  setupBusiness: (businessName: string, initialBranchName: string) => Promise<Business | undefined>;
   addBranch: (branchName: string) => Promise<Branch | undefined>;
   deleteBranch: (branchId: string) => Promise<void>;
+  switchBusiness: (businessId: string | null) => void;
   switchBranch: (branchId: string | null) => void;
 }
 
@@ -32,18 +35,21 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
   
+  const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
+
   const businessQuery = useMemo(() => 
     firestore && user?.uid ? query(collection(firestore, 'businesses'), where('ownerId', '==', user.uid)) : null,
     [firestore, user?.uid]
   );
 
-  const { data: businesses, loading: businessLoading } = useCollection<Business>(businessQuery);
+  const { data: businessesData, loading: businessesLoading } = useCollection<Business>(businessQuery);
+  const businesses = useMemo(() => businessesData || [], [businessesData]);
   
-  const business = useMemo(() => (businesses && businesses.length > 0 ? businesses[0] : null), [businesses]);
+  const business = useMemo(() => businesses.find(b => b.id === activeBusinessId) || null, [businesses, activeBusinessId]);
 
   const branchesCollectionRef = useMemo(() => 
-    firestore && business?.id ? collection(firestore, 'businesses', business.id, 'branches') : null,
-    [firestore, business?.id]
+    firestore && activeBusinessId ? collection(firestore, 'businesses', activeBusinessId, 'branches') : null,
+    [firestore, activeBusinessId]
   );
   
   const { data: branchesData, loading: branchesLoading } = useCollection<Branch>(branchesCollectionRef);
@@ -51,8 +57,18 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
   
-  const isLoading = userLoading || businessLoading || branchesLoading;
+  const isLoading = userLoading || businessesLoading || branchesLoading;
   
+  const switchBusiness = useCallback((businessId: string | null) => {
+    setActiveBusinessId(businessId);
+    switchBranch(null); // Reset active branch when switching business
+    if (businessId) {
+      localStorage.setItem(ACTIVE_BUSINESS_STORAGE_KEY, businessId);
+    } else {
+      localStorage.removeItem(ACTIVE_BUSINESS_STORAGE_KEY);
+    }
+  }, []);
+
   const switchBranch = useCallback((branchId: string | null) => {
     setActiveBranchId(branchId);
     if (branchId) {
@@ -66,12 +82,16 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (!isLoading && !user && window.location.pathname !== '/login' && window.location.pathname !== '/signup' && window.location.pathname !== '/') {
         router.push('/login');
     }
-     if (!isLoading && user && !business && window.location.pathname !== '/setup') {
+     if (!isLoading && user && businesses.length === 0 && window.location.pathname !== '/setup') {
       router.push('/setup');
     }
-  }, [isLoading, user, business, router]);
+  }, [isLoading, user, businesses, router]);
 
   useEffect(() => {
+    const storedActiveBusinessId = localStorage.getItem(ACTIVE_BUSINESS_STORAGE_KEY);
+    if (storedActiveBusinessId) {
+        setActiveBusinessId(storedActiveBusinessId);
+    }
     const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
     if (storedActiveBranchId && storedActiveBranchId !== 'null') {
       setActiveBranchId(storedActiveBranchId);
@@ -80,18 +100,26 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, []);
 
-  // Effect to set the default active branch if none is set
+  // Auto-select business if only one exists
+  useEffect(() => {
+    if (!isLoading && businesses.length === 1 && !activeBusinessId) {
+        switchBusiness(businesses[0].id);
+    }
+  }, [isLoading, businesses, activeBusinessId, switchBusiness]);
+
+
+  // Effect to validate stored active branch
   useEffect(() => {
     if (branches && branches.length > 0) {
       const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
       const branchExists = branches.some(b => b.id === storedActiveBranchId);
       if (!storedActiveBranchId || !branchExists) {
-        // Do not automatically select a branch, let the user choose.
-        // If there's an invalid ID, clear it.
         if (storedActiveBranchId && !branchExists) {
             switchBranch(null);
         }
       }
+    } else if (branches.length === 0) {
+        switchBranch(null);
     }
   }, [branches, switchBranch]);
 
@@ -99,14 +127,13 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     return branches?.find(b => b.id === activeBranchId) || null;
   }, [branches, activeBranchId]);
 
-  const setupBusiness = useCallback(async (businessName: string, initialBranchName: string) => {
+  const setupBusiness = useCallback(async (businessName: string, initialBranchName: string): Promise<Business | undefined> => {
     if (!firestore || !user?.uid) {
         console.error("Setup cannot proceed: Firestore not initialized or user not authenticated.");
         return;
     }
 
     try {
-        // Create business document first
         const newBusinessRef = doc(collection(firestore, 'businesses'));
         const businessData = { 
             name: businessName,
@@ -120,11 +147,9 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
             requestResourceData: businessData,
           });
           errorEmitter.emit('permission-error', permissionError);
-          // throw the original error to stop execution
           throw serverError;
         });
 
-        // Then create the initial branch sub-collection
         const newBranchRef = doc(collection(newBusinessRef, 'branches'));
         const branchData = { 
             name: initialBranchName,
@@ -137,14 +162,13 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
             requestResourceData: branchData,
           });
           errorEmitter.emit('permission-error', permissionError);
-          // throw the original error to stop execution
           throw serverError;
         });
 
+        return { id: newBusinessRef.id, ...businessData } as Business;
+
     } catch (error) {
-        // Errors are now emitted and thrown inside the .catch blocks,
-        // so we don't need to do anything here, but we keep the try/catch
-        // to prevent uncaught promise rejections if the first setDoc fails.
+        // Errors are handled in .catch blocks
     }
     
   }, [firestore, user]);
@@ -174,8 +198,6 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
     
-    // We can't do this in a batch write as reads cannot be part of a batch.
-    // This is a simplified approach for the prototype. In a real app, you might use a Firebase Function.
     try {
         const collectionsToDelete = ['items', 'categories', 'history'];
         for (const subcollection of collectionsToDelete) {
@@ -202,6 +224,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const contextValue = useMemo(() => ({
     business,
+    businesses,
     branches,
     activeBranch,
     isLoading,
@@ -209,8 +232,9 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     setupBusiness,
     addBranch,
     deleteBranch,
+    switchBusiness,
     switchBranch
-  }), [business, branches, activeBranch, isLoading, userLoading, setupBusiness, addBranch, deleteBranch, switchBranch]);
+  }), [business, businesses, branches, activeBranch, isLoading, userLoading, setupBusiness, addBranch, deleteBranch, switchBusiness, switchBranch]);
 
   return (
     <BusinessContext.Provider value={contextValue}>
@@ -226,5 +250,3 @@ export const useBusiness = (): BusinessContextType => {
   }
   return context;
 };
-
-    

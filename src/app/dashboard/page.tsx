@@ -79,7 +79,7 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
         return history;
     }
     
-    return history.filter(log => new Date(log.createdAt) >= startDate);
+    return history.filter(log => new Date(log.createdAt as string) >= startDate);
   }, [history, timeRange]);
 
   const stats = useMemo(() => {
@@ -427,7 +427,7 @@ export default function DashboardPage() {
           <BranchDashboard branch={activeBranch} onBack={() => switchBranch(null)} />
         ) : (
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Select a Branch</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Select a Branch for {business.name}</h1>
             <p className="text-muted-foreground mb-6">Click on a branch to view its dashboard, or add/delete a branch.</p>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {branches.map(branch => (
@@ -492,5 +492,3 @@ export default function DashboardPage() {
     </SidebarLayout>
   );
 }
-
-    

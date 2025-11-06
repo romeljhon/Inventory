@@ -30,11 +30,11 @@ export default function InventoryPage() {
       router.push("/login");
     }
     if (!isLoading && user && !business) {
-      router.push("/setup");
+      router.push("/businesses");
     }
   }, [business, user, isLoading, router]);
 
-  if (isLoading || !user) {
+  if (isLoading || !user || !business) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="mr-2 h-8 w-8 animate-spin" />

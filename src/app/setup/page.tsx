@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/icons";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const setupSchema = z.object({
   businessName: z.string().min(2, { message: "Business name must be at least 2 characters." }),
@@ -29,9 +30,10 @@ const setupSchema = z.object({
 type SetupFormData = z.infer<typeof setupSchema>;
 
 export default function SetupPage() {
-  const { business, setupBusiness, isLoading, isUserLoading } = useBusiness();
+  const { businesses, setupBusiness, isLoading, isUserLoading, switchBusiness } = useBusiness();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
   const form = useForm<SetupFormData>({
     resolver: zodResolver(setupSchema),
@@ -42,20 +44,34 @@ export default function SetupPage() {
   });
 
   useEffect(() => {
-    if (!isLoading && business) {
+    if (!isLoading && businesses.length > 0) {
       router.push("/dashboard");
     }
-  }, [business, isLoading, router]);
+  }, [businesses, isLoading, router]);
 
   const onSubmit = async (data: SetupFormData) => {
     setIsSubmitting(true);
-    await setupBusiness(data.businessName, data.branchName);
-    // The redirect will happen automatically via the useEffect above after business is loaded
+    const newBusiness = await setupBusiness(data.businessName, data.branchName);
+    if (newBusiness) {
+        switchBusiness(newBusiness.id);
+        toast({
+            title: "Welcome!",
+            description: "Your business has been created successfully."
+        });
+        router.push('/dashboard');
+    } else {
+        setIsSubmitting(false);
+        toast({
+            variant: "destructive",
+            title: "Setup Failed",
+            description: "Could not create your business. Please try again."
+        })
+    }
   };
   
   const pageIsLoading = isLoading || isUserLoading;
 
-  if (pageIsLoading) {
+  if (pageIsLoading || businesses.length > 0) {
       return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="mr-2 h-8 w-8 animate-spin" />
@@ -63,17 +79,6 @@ export default function SetupPage() {
         </div>
       )
   }
-
-  // If user is loaded and they already have a business, redirect.
-  if (!isUserLoading && business) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-            <span>Redirecting...</span>
-        </div>
-      )
-  }
-
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -84,7 +89,7 @@ export default function SetupPage() {
                     Welcome to Stock Sherpa
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                    Let's get your business set up.
+                    Let's get your first business set up.
                 </p>
             </div>
             <Card>

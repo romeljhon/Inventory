@@ -3,21 +3,28 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useBusiness } from '@/hooks/use-business';
 
 /**
  * The root page of the application.
- * This component redirects the user to the main dashboard.
+ * This component redirects the user based on their authentication and business setup status.
  */
 export default function Home() {
   const router = useRouter();
+  const { businesses, isLoading, isUserLoading } = useBusiness();
 
   useEffect(() => {
-    // Redirect to the dashboard immediately. 
-    // The dashboard page will handle auth checks and further redirects.
-    router.replace('/dashboard');
-  }, [router]);
+    const isReady = !isLoading && !isUserLoading;
+    if (isReady) {
+      if (businesses.length > 1) {
+        router.replace('/businesses');
+      } else {
+        router.replace('/dashboard');
+      }
+    }
+  }, [router, businesses, isLoading, isUserLoading]);
 
-  // Display a loading spinner while the redirect is happening.
+  // Display a loading spinner while checking auth and business status.
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex items-center gap-4">

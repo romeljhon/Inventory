@@ -22,20 +22,33 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Icons } from "@/components/icons";
+import { useState } from "react";
+import { AddBusinessDialog } from "./businesses/add-business-dialog";
+import { useToast } from "@/hooks/use-toast";
+
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const { business, activeBranch, switchBranch, isUserLoading } = useBusiness();
+  const { business, businesses, activeBranch, switchBranch, switchBusiness, isUserLoading, setupBusiness } = useBusiness();
   const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
+
+  const [isAddBusinessOpen, setIsAddBusinessOpen] = useState(false);
+
 
   const handleLogout = async () => {
     if (auth) {
@@ -49,15 +62,51 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const handleBackToBranches = () => {
     switchBranch(null);
   };
+  
+  const handleSaveNewBusiness = async (businessName: string, branchName: string) => {
+    const newBusiness = await setupBusiness(businessName, branchName);
+    if (newBusiness) {
+      switchBusiness(newBusiness.id);
+      toast({
+        title: "Business Created",
+        description: `${businessName} has been successfully created.`,
+      });
+      router.push('/dashboard');
+    }
+  };
+
 
   return (
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-3">
-            <Icons.logo className="w-7 h-7 text-primary" />
-            <span className="text-lg font-semibold text-foreground">{business?.name}</span>
-          </div>
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between items-center px-3">
+                 <div className="flex items-center gap-3 overflow-hidden">
+                    <Icons.logo className="w-7 h-7 text-primary shrink-0" />
+                    <span className="text-lg font-semibold text-foreground truncate">{business?.name || "Select Business"}</span>
+                 </div>
+                 <ChevronsUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-64" align="start">
+              <DropdownMenuLabel>Switch Business</DropdownMenuLabel>
+              <DropdownMenuGroup>
+                {businesses.map((b) => (
+                  <DropdownMenuItem key={b.id} onSelect={() => switchBusiness(b.id)}>
+                    <Check className={`mr-2 h-4 w-4 ${business?.id === b.id ? 'opacity-100' : 'opacity-0'}`} />
+                    <span>{b.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+               <DropdownMenuItem onSelect={() => setIsAddBusinessOpen(true)}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                <span>Create New Business</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
@@ -150,8 +199,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </header>
         {children}
       </SidebarInset>
+       <AddBusinessDialog 
+        isOpen={isAddBusinessOpen}
+        onOpenChange={setIsAddBusinessOpen}
+        onSave={handleSaveNewBusiness}
+      />
     </SidebarProvider>
   );
 }
-
-    
