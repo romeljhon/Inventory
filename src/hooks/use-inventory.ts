@@ -14,7 +14,7 @@ import {
   orderBy,
   Timestamp,
 } from "firebase/firestore";
-import { startOfDay, parseISO, isAfter } from "date-fns";
+import { startOfDay, parseISO, isAfter, endOfDay } from "date-fns";
 import { useFirestore } from "@/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import type { Item, Category, InventoryHistory, Recipe } from "@/lib/types";
@@ -116,7 +116,10 @@ export function useInventory(branchId: string | undefined) {
     const itemDoc = doc(itemsCollection, id);
     const oldItem = items.find(i => i.id === id);
     
-    updateDoc(itemDoc, updatedData).then(() => {
+    // Create a mutable copy of the updatedData to potentially add a server timestamp.
+    const dataToUpdate = { ...updatedData };
+    
+    updateDoc(itemDoc, dataToUpdate).then(() => {
         if (oldItem && updatedData.quantity !== undefined && oldItem.quantity !== updatedData.quantity) {
             addHistory({
                 itemId: id,
@@ -130,7 +133,7 @@ export function useInventory(branchId: string | undefined) {
         const permissionError = new FirestorePermissionError({
             path: itemDoc.path,
             operation: 'update',
-            requestResourceData: updatedData,
+            requestResourceData: dataToUpdate,
         });
         errorEmitter.emit('permission-error', permissionError);
     });
@@ -354,50 +357,73 @@ export function useInventory(branchId: string | undefined) {
   }, [history]);
 
  const getInventorySnapshot = useCallback((date: string): Item[] => {
-    const targetDate = new Date(date);
-    const endOfTargetDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
+    const endOfTargetDay = endOfDay(new Date(date));
 
-    if (!history || !items) return [];
+    if (!history) return [];
 
+    // 1. Filter history to only include records up to the end of the selected day.
     const relevantHistory = history
       .filter(log => {
           if (!log.createdAt) return false;
           const logDate = log.createdAt instanceof Timestamp ? log.createdAt.toDate() : parseISO(log.createdAt as string);
           return !isAfter(logDate, endOfTargetDay);
-      })
-      .sort((a, b) => {
-          const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toDate() : parseISO(a.createdAt as string);
-          const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toDate() : parseISO(b.createdAt as string);
-          return dateA.getTime() - dateB.getTime();
       });
-
-    const itemMap = new Map<string, Item>();
+    
+    // 2. Create a map of the LATEST known state for each item from the live `items` collection.
+    // This gives us the non-quantity details like name, value, etc.
+    const latestItemDetails = new Map<string, Omit<Item, 'quantity'>>();
+    for (const item of items) {
+      latestItemDetails.set(item.id, item);
+    }
+    
+    // 3. Process the entire history (chronologically) to find the final quantity of each item.
     const quantityMap = new Map<string, number>();
+    const itemCreationMap = new Map<string, boolean>();
 
-    for (const log of relevantHistory) {
-      const baseItem = items.find(i => i.id === log.itemId);
+    // Sort history oldest to newest to replay events correctly.
+    const sortedHistory = [...history].sort((a, b) => {
+        const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toDate() : new Date(a.createdAt as string);
+        const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toDate() : new Date(b.createdAt as string);
+        return dateA.getTime() - dateB.getTime();
+    });
+
+    for (const log of sortedHistory) {
+      const logDate = log.createdAt instanceof Timestamp ? log.createdAt.toDate() : new Date(log.createdAt as string);
       
-      const itemDetails = baseItem || itemMap.get(log.itemId) || {
-        id: log.itemId,
-        name: log.itemName,
-        description: "",
-        quantity: 0,
-        categoryId: "",
-        createdAt: log.createdAt,
-        value: 0,
-        itemType: 'Component',
-      };
-
-      if (log.type === 'delete') {
-         quantityMap.set(log.itemId, 0);
-      } else {
-         quantityMap.set(log.itemId, log.newQuantity);
+      // If the log is after our target snapshot date, skip it.
+      if (isAfter(logDate, endOfTargetDay)) {
+        continue;
       }
       
-      itemMap.set(log.itemId, { ...itemDetails, quantity: quantityMap.get(log.itemId) || 0 });
+      // Track when an item is created
+      if (log.type === 'add') {
+        itemCreationMap.set(log.itemId, true);
+      }
+      
+      // Update quantity based on the log
+      quantityMap.set(log.itemId, log.newQuantity);
+
+      // If an item was deleted, we remove it from the creation map
+      if (log.type === 'delete') {
+         itemCreationMap.delete(log.itemId);
+      }
+    }
+    
+    const snapshotItems: Item[] = [];
+    for (const [itemId, quantity] of quantityMap.entries()) {
+      // An item exists in the snapshot if it was created and not deleted by the snapshot date.
+      if (itemCreationMap.has(itemId)) {
+        const details = latestItemDetails.get(itemId);
+        if (details) {
+          snapshotItems.push({
+            ...details,
+            quantity: quantity,
+          });
+        }
+      }
     }
 
-    return Array.from(itemMap.values()).filter(item => item.quantity > 0 || quantityMap.has(item.id));
+    return snapshotItems;
 }, [history, items]);
 
 
@@ -421,3 +447,5 @@ export function useInventory(branchId: string | undefined) {
     getInventorySnapshot,
   };
 }
+
+    
