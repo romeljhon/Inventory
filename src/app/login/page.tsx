@@ -56,6 +56,7 @@ export default function LoginPage() {
       if (error.code === AuthErrorCodes.INVALID_CREDENTIAL) {
         description = "Invalid email or password. Please try again.";
       } else {
+        // Only log unexpected errors
         console.error("Login failed:", error);
       }
       
