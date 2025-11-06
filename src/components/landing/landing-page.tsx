@@ -25,7 +25,7 @@ export function LandingPage() {
         <div className="container mx-auto flex h-14 items-center rounded-full bg-gray-900/80 px-6 text-white backdrop-blur-sm">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <Icons.logo className="h-6 w-6 text-white" />
-            <span className="font-bold sm:inline-block">Stock Sherpa</span>
+            <span className="font-bold sm:inline-block">Inventory</span>
           </Link>
           <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
             <Link
@@ -58,7 +58,7 @@ export function LandingPage() {
                     <div className="flex items-center justify-between border-b border-gray-700 pb-4">
                        <Link href="/" className="flex items-center space-x-2">
                           <Icons.logo className="h-6 w-6 text-white" />
-                          <span className="font-bold">Stock Sherpa</span>
+                          <span className="font-bold">Inventory</span>
                         </Link>
                          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} className="text-white hover:bg-white/10 hover:text-white">
                             <X className="h-6 w-6" />
@@ -105,7 +105,7 @@ export function LandingPage() {
             </h1>
             <p className="mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
               Take control of your stock with an intuitive, powerful, and smart
-              inventory system. Stock Sherpa helps you track, manage, and analyze
+              inventory system. Inventory helps you track, manage, and analyze
               your inventory with ease.
             </p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row">
@@ -204,7 +204,7 @@ export function LandingPage() {
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 py-6 sm:flex-row">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Icons.logo className="h-5 w-5" />
-            <span>© {new Date().getFullYear()} Stock Sherpa. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} Inventory. All rights reserved.</span>
           </div>
           <nav className="flex items-center gap-4 text-sm text-muted-foreground">
             <Link href="#" className="transition-colors hover:text-foreground">

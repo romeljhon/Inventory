@@ -86,7 +86,7 @@ export default function SetupPage() {
             <div className="flex flex-col space-y-2 text-center">
                  <Icons.logo className="mx-auto h-12 w-12 text-primary" />
                 <h1 className="text-2xl font-semibold tracking-tight">
-                    Welcome to Stock Sherpa
+                    Welcome to Inventory
                 </h1>
                 <p className="text-sm text-muted-foreground">
                     Let's get your first business set up.

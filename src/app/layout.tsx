@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -5,7 +6,7 @@ import { BusinessProvider } from "@/hooks/use-business";
 import { FirebaseProvider } from '@/firebase/provider';
 
 export const metadata: Metadata = {
-  title: 'Stock Sherpa',
+  title: 'Inventory',
   description: 'An intelligent inventory management system.',
 };
 
