@@ -2,18 +2,25 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  writeBatch,
+  serverTimestamp,
+  query,
+  orderBy,
+  startOfDay,
+  parseISO,
+  isAfter,
+} from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { useCollection } from "@/firebase/firestore/use-collection";
 import type { Item, Category, InventoryHistory } from "@/lib/types";
-import { subDays, subWeeks, subMonths, addDays, subSeconds, startOfDay, isAfter, parseISO } from 'date-fns';
 
-
-const LOW_STOCK_THRESHOLD = 10;
-export { LOW_STOCK_THRESHOLD };
-
-type InventoryData = {
-  items: Item[];
-  categories: Category[];
-  history: InventoryHistory[];
-};
+export const LOW_STOCK_THRESHOLD = 10;
 
 const getRandomColor = () => {
     const hue = Math.floor(Math.random() * 360);
@@ -22,410 +29,188 @@ const getRandomColor = () => {
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-// Global counter for history IDs to ensure uniqueness across sessions
-let historyIdCounter = Date.now();
-
-const getInitialInventory = (branchId: string): InventoryData => {
-    const now = new Date();
-    
-    // Define initial stock levels
-    const initialStock: Omit<Item, 'id' | 'createdAt'>[] = [
-        {
-          name: "Laptop Pro 15",
-          description: "A high-performance laptop for professionals.",
-          quantity: 27,
-          categoryId: "cat-1",
-          value: 75000,
-          unitType: 'pcs',
-        },
-         {
-          name: "Wireless Mouse",
-          description: "Ergonomic wireless mouse with long battery life.",
-          quantity: 10,
-          categoryId: "cat-1",
-          value: 2500,
-          unitType: 'pcs',
-        },
-        {
-          name: "Smartwatch",
-          description: "Fitness and notification tracking on your wrist.",
-          quantity: 22,
-          categoryId: "cat-1",
-          value: 12000,
-          unitType: 'pcs',
-        },
-        {
-          name: "USB-C Hub",
-          description: "Expand your laptop's connectivity with more ports.",
-          quantity: 35,
-          categoryId: "cat-1",
-          value: 3500,
-          unitType: 'pcs',
-        },
-        {
-          name: "Mechanical Keyboard",
-          description: "Clicky and satisfying typing experience for coders.",
-          quantity: 14,
-          categoryId: "cat-1",
-          value: 8000,
-          unitType: 'pcs',
-        },
-        {
-          name: "4K Monitor",
-          description: "Ultra-high-definition display for crisp visuals.",
-          quantity: 19,
-          categoryId: "cat-1",
-          value: 25000,
-          unitType: 'pcs',
-        },
-         {
-          name: "Printer Paper (Ream)",
-          description: "500 sheets of high-quality A4 paper.",
-          quantity: 55,
-          categoryId: "cat-2",
-          value: 250,
-          unitType: 'pack',
-        },
-        {
-          name: "Stapler",
-          description: "Standard office stapler.",
-          quantity: 22,
-          categoryId: "cat-2",
-          value: 150,
-          unitType: 'pcs',
-        },
-        {
-          name: "Fresh Milk (1L)",
-          description: "Full cream milk, pasteurized.",
-          quantity: 16,
-          categoryId: "cat-3",
-          value: 120,
-          unitType: 'box',
-          expirationDate: addDays(now, 10).toISOString(),
-        },
-        {
-          name: "Cheddar Cheese (250g)",
-          description: "Block of sharp cheddar cheese.",
-          quantity: 7,
-          categoryId: "cat-3",
-          value: 250,
-          unitType: 'pack',
-          expirationDate: addDays(now, 30).toISOString(),
-        },
-        {
-          name: "Expired Yogurt",
-          description: "This yogurt is past its prime.",
-          quantity: 3,
-          categoryId: "cat-3",
-          value: 80,
-          unitType: 'pcs',
-          expirationDate: subDays(now, 2).toISOString(),
-        }
-    ];
-
-    const creationDates: Record<string, Date> = {
-        "Laptop Pro 15": subMonths(now, 2),
-        "Wireless Mouse": subDays(now, 5),
-        "Smartwatch": subWeeks(now, 2),
-        "USB-C Hub": subMonths(now, 1),
-        "Mechanical Keyboard": subMonths(now, 3),
-        "4K Monitor": subMonths(now, 6),
-        "Printer Paper (Ream)": subDays(now, 10),
-        "Stapler": subMonths(now, 4),
-        "Fresh Milk (1L)": subDays(now, 2),
-        "Cheddar Cheese (250g)": subDays(now, 5),
-        "Expired Yogurt": subDays(now, 15),
-    };
-    
-    // Assign unique IDs and creation dates
-    const initialItemsWithIds: Item[] = initialStock.map((item, index) => ({
-        ...item,
-        id: `item-${index + 1}`,
-        createdAt: (creationDates[item.name] || now).toISOString()
-    }));
-
-    const mockSales: Omit<InventoryHistory, 'id' | 'branchId' | 'newQuantity'>[] = [
-        { itemId: 'item-2', itemName: 'Wireless Mouse', change: -2, type: 'quantity', createdAt: subSeconds(now, 10).toISOString() },
-        { itemId: 'item-7', itemName: 'Printer Paper (Ream)', change: -5, type: 'quantity', createdAt: subSeconds(now, 20).toISOString() },
-        { itemId: 'item-9', itemName: 'Fresh Milk (1L)', change: -1, type: 'quantity', createdAt: subSeconds(now, 30).toISOString() },
-        { itemId: 'item-1', itemName: 'Laptop Pro 15', change: -1, type: 'quantity', createdAt: subDays(now, 2).toISOString() },
-        { itemId: 'item-3', itemName: 'Smartwatch', change: -3, type: 'quantity', createdAt: subDays(now, 3).toISOString() },
-        { itemId: 'item-10', itemName: 'Cheddar Cheese (250g)', change: -2, type: 'quantity', createdAt: subDays(now, 4).toISOString() },
-        { itemId: 'item-5', itemName: 'Mechanical Keyboard', change: -2, type: 'quantity', createdAt: subWeeks(now, 2).toISOString() },
-        { itemId: 'item-4', itemName: 'USB-C Hub', change: -5, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
-        { itemId: 'item-8', itemName: 'Stapler', change: -2, type: 'quantity', createdAt: subWeeks(now, 3).toISOString() },
-        { itemId: 'item-6', itemName: '4K Monitor', change: -1, type: 'quantity', createdAt: subMonths(now, 2).toISOString() },
-        { itemId_xyz: 'item-1', itemName: 'Laptop Pro 15', change: -1, type: 'quantity', createdAt: subMonths(now, 4).toISOString() },
-        { itemId_xyz: 'item-3', itemName: 'Smartwatch', change: -4, type: 'quantity', createdAt: subMonths(now, 5).toISOString() },
-    ];
-    
-    
-    const allEvents = [
-        ...initialItemsWithIds.map(item => ({
-            type: 'add' as const,
-            itemId: item.id,
-            itemName: item.name,
-            change: item.quantity,
-            createdAt: item.createdAt,
-            fullItem: item, // Keep the full item data for reconstruction
-        })),
-        ...mockSales,
-    ].sort((a,b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-    const itemStateTracker: Record<string, number> = {};
-    const finalHistory: InventoryHistory[] = [];
-
-    allEvents.forEach((event, index) => {
-        const currentQty = itemStateTracker[event.itemId] || 0;
-        const newQuantity = currentQty + event.change;
-        itemStateTracker[event.itemId] = newQuantity;
-
-        finalHistory.push({
-            id: `hist-${index}`,
-            branchId,
-            itemId: event.itemId,
-            itemName: event.itemName,
-            change: event.change,
-            newQuantity: newQuantity,
-            type: event.type,
-            createdAt: event.createdAt
-        });
-    });
-
-    const finalItems = initialItemsWithIds.map(item => ({
-        ...item,
-        quantity: itemStateTracker[item.id] ?? item.quantity,
-    }));
-
-
-    return {
-        items: finalItems,
-        categories: [
-            { id: "cat-1", name: "Electronics", color: "hsl(220, 80%, 50%)" },
-            { id: "cat-2", name: "Office Supplies", color: "hsl(140, 60%, 45%)" },
-            { id: "cat-3", name: "Food", color: "hsl(40, 90%, 50%)" },
-        ],
-        history: finalHistory.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-    }
-};
-
-
 export function useInventory(branchId: string | undefined) {
-  const [inventory, setInventory] = useState<InventoryData>({ items: [], categories: [], history: [] });
-  const [isLoading, setIsLoading] = useState(true);
+  const firestore = useFirestore();
 
-  const storageKey = useMemo(() => `stock-sherpa-inventory-${branchId}`, [branchId]);
+  const businessId = "business-for-user"; // In a real app this would come from the user session/business context
 
-  useEffect(() => {
-    if (!branchId) {
-      setIsLoading(false);
-      return;
-    };
-    setIsLoading(true);
-    try {
-      const storedData = localStorage.getItem(storageKey);
-      if (storedData) {
-        setInventory(JSON.parse(storedData));
-      } else {
-        const initialData = getInitialInventory(branchId);
-        setInventory(initialData);
-        localStorage.setItem(storageKey, JSON.stringify(initialData));
-      }
-    } catch (error) {
-      console.error("Failed to load inventory from localStorage.", error);
-       if (branchId) {
-        setInventory(getInitialInventory(branchId));
-       }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [branchId, storageKey]);
+  const branchRef = useMemo(() =>
+    firestore && businessId && branchId ? doc(firestore, 'businesses', businessId, 'branches', branchId) : null,
+    [firestore, businessId, branchId]
+  );
+  
+  const itemsCollection = useMemo(() => branchRef ? collection(branchRef, 'items') : null, [branchRef]);
+  const categoriesCollection = useMemo(() => branchRef ? collection(branchRef, 'categories') : null, [branchRef]);
+  const historyCollection = useMemo(() => branchRef ? collection(branchRef, 'history') : null, [branchRef]);
+  
+  const { data: items, loading: itemsLoading } = useCollection<Item>(
+    itemsCollection ? query(itemsCollection, orderBy('createdAt', 'desc')) : null
+  );
+  const { data: categories, loading: categoriesLoading } = useCollection<Category>(categoriesCollection);
+  const { data: history, loading: historyLoading } = useCollection<InventoryHistory>(
+     historyCollection ? query(historyCollection, orderBy('createdAt', 'desc')) : null
+  );
 
-  useEffect(() => {
-    if (!isLoading && branchId) {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(inventory));
-      } catch (error) {
-        console.error("Failed to save inventory to localStorage.", error);
-      }
-    }
-  }, [inventory, isLoading, branchId, storageKey]);
+  const isLoading = itemsLoading || categoriesLoading || historyLoading;
 
-  const addHistory = useCallback((log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId'>) => {
-    if (!branchId) return;
-    historyIdCounter++;
-    const newHistory: InventoryHistory = {
+  const addHistory = useCallback(async (log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId'>) => {
+    if (!historyCollection) return;
+    const newHistory: Omit<InventoryHistory, 'id'> = {
         ...log,
-        id: `hist-${historyIdCounter}`,
-        createdAt: new Date().toISOString(),
-        branchId,
+        createdAt: serverTimestamp(),
+        branchId: branchId!,
     };
-    setInventory(prev => ({ ...prev, history: [newHistory, ...(Array.isArray(prev.history) ? prev.history : [])] }));
-  }, [branchId]);
+    await addDoc(historyCollection, newHistory);
+  }, [historyCollection, branchId]);
 
-  const addItem = useCallback((itemData: Omit<Item, "id" | "createdAt">) => {
-    const newItem: Item = {
+  const addItem = useCallback(async (itemData: Omit<Item, "id" | "createdAt">) => {
+    if (!itemsCollection) return;
+    const newItemData = {
         ...itemData,
-        id: `item-${Date.now()}`,
-        createdAt: new Date().toISOString(),
+        createdAt: serverTimestamp(),
       };
-    setInventory((prev) => ({ ...prev, items: [newItem, ...prev.items] }));
-    addHistory({
-        itemId: newItem.id,
-        itemName: newItem.name,
-        change: newItem.quantity,
-        newQuantity: newItem.quantity,
+    const docRef = await addDoc(itemsCollection, newItemData);
+    
+    await addHistory({
+        itemId: docRef.id,
+        itemName: itemData.name,
+        change: itemData.quantity,
+        newQuantity: itemData.quantity,
         type: 'add'
     });
-  }, [addHistory]);
+  }, [itemsCollection, addHistory]);
 
-  const updateItem = useCallback((id: string, updatedData: Partial<Omit<Item, "id" | "createdAt">>) => {
-    let oldItem: Item | undefined;
-    setInventory((prev) => {
-        oldItem = prev.items.find(item => item.id === id);
-        return {
-            ...prev,
-            items: prev.items.map((item) =>
-                item.id === id ? { ...item, ...updatedData } : item
-            ),
-        }
-    });
-
-    if (oldItem) {
-        const newItem = { ...oldItem, ...updatedData};
-        const newQuantity = newItem.quantity ?? oldItem.quantity;
-        addHistory({
+  const updateItem = useCallback(async (id: string, updatedData: Partial<Omit<Item, "id" | "createdAt">>) => {
+    if (!itemsCollection || !items) return;
+    const itemDoc = doc(itemsCollection, id);
+    const oldItem = items.find(i => i.id === id);
+    
+    await updateDoc(itemDoc, updatedData);
+    
+    if (oldItem && updatedData.quantity !== undefined && oldItem.quantity !== updatedData.quantity) {
+        await addHistory({
             itemId: id,
-            itemName: newItem.name,
-            change: newQuantity - oldItem.quantity,
-            newQuantity: newQuantity,
+            itemName: updatedData.name || oldItem.name,
+            change: updatedData.quantity - oldItem.quantity,
+            newQuantity: updatedData.quantity,
             type: 'update'
         });
     }
-  }, [addHistory]);
+
+  }, [itemsCollection, addHistory, items]);
   
-  const batchUpdateQuantities = useCallback((updates: Record<string, number>) => {
-    setInventory(prev => {
-        const updatedItems = prev.items.map(item => {
-            if (updates[item.id] !== undefined) {
-                const oldQuantity = item.quantity;
-                const newQuantity = Math.max(0, updates[item.id]);
-                if (oldQuantity !== newQuantity) {
-                    addHistory({
-                        itemId: item.id,
-                        itemName: item.name,
-                        change: newQuantity - oldQuantity,
-                        newQuantity: newQuantity,
-                        type: 'quantity'
-                    });
-                }
-                return { ...item, quantity: newQuantity };
-            }
-            return item;
-        });
-        return { ...prev, items: updatedItems };
-    });
-}, [addHistory]);
+  const batchUpdateQuantities = useCallback(async (updates: Record<string, number>) => {
+    if (!firestore || !itemsCollection || !items) return;
+    const batch = writeBatch(firestore);
 
-
-  const deleteItem = useCallback((id: string) => {
-    let deletedItem : Item | undefined;
-    setInventory((prev) => {
-        deletedItem = prev.items.find(item => item.id === id);
-        return {
-            ...prev,
-            items: prev.items.filter((item) => item.id !== id),
-        }
-    });
-
-    if (deletedItem) {
-        addHistory({
-            itemId: id,
-            itemName: deletedItem.name,
-            change: -deletedItem.quantity,
-            newQuantity: 0,
-            type: 'delete'
-        });
+    for (const itemId in updates) {
+      const itemDoc = doc(itemsCollection, itemId);
+      const newQuantity = Math.max(0, updates[itemId]);
+      batch.update(itemDoc, { quantity: newQuantity });
+      
+      const oldItem = items.find(i => i.id === itemId);
+      if (oldItem && oldItem.quantity !== newQuantity) {
+          // This should ideally be batched too, but Firestore batching doesn't allow reads.
+          // For a high-throughput system, this history logging would be done via a Cloud Function.
+          await addHistory({
+              itemId: itemId,
+              itemName: oldItem.name,
+              change: newQuantity - oldItem.quantity,
+              newQuantity: newQuantity,
+              type: 'quantity'
+          });
+      }
     }
-  }, [addHistory]);
+    await batch.commit();
+}, [firestore, itemsCollection, items, addHistory]);
 
-  const addCategory = useCallback((name: string): Category => {
-    const existingCategory = inventory.categories.find(c => c.name.toLowerCase() === name.toLowerCase());
+
+  const deleteItem = useCallback(async (id: string) => {
+    if (!itemsCollection || !items) return;
+    const deletedItem = items.find(item => item.id === id);
+    if (!deletedItem) return;
+    
+    const itemDoc = doc(itemsCollection, id);
+    await deleteDoc(itemDoc);
+
+    await addHistory({
+        itemId: id,
+        itemName: deletedItem.name,
+        change: -deletedItem.quantity,
+        newQuantity: 0,
+        type: 'delete'
+    });
+  }, [itemsCollection, items, addHistory]);
+
+  const addCategory = useCallback(async (name: string): Promise<Category> => {
+    if (!categoriesCollection || !categories) {
+        // This is a fallback if the collection isn't ready, but it won't be saved to DB.
+        return { id: `local-${Date.now()}`, name, color: getRandomColor() };
+    }
+    const existingCategory = categories.find(c => c.name.toLowerCase() === name.toLowerCase());
     if (existingCategory) {
         return existingCategory;
     }
     
-    const newCategory: Category = {
-      id: `cat-${Date.now()}`,
+    const newCategoryData = {
       name,
       color: getRandomColor(),
     };
-    setInventory((prev) => ({
-        ...prev,
-        categories: [...prev.categories, newCategory]
-    }));
-    return newCategory;
-  }, [inventory.categories]);
+    const docRef = await addDoc(categoriesCollection, newCategoryData);
+    return { ...newCategoryData, id: docRef.id };
+  }, [categoriesCollection, categories]);
 
-  const updateCategory = useCallback((id: string, name: string, color: string) => {
-    setInventory(prev => ({
-        ...prev,
-        categories: prev.categories.map(c => c.id === id ? { ...c, name, color } : c)
-    }));
-  }, []);
+  const updateCategory = useCallback(async (id: string, name: string, color: string) => {
+    if (!categoriesCollection) return;
+    const categoryDoc = doc(categoriesCollection, id);
+    await updateDoc(categoryDoc, { name, color });
+  }, [categoriesCollection]);
 
-  const deleteCategory = useCallback((id: string) => {
-    setInventory(prev => ({
-      ...prev,
-      // Also un-categorize items that belonged to this category
-      items: prev.items.map(item => item.categoryId === id ? { ...item, categoryId: '' } : item),
-      categories: prev.categories.filter(c => c.id !== id)
-    }));
-  }, []);
+  const deleteCategory = useCallback(async (id: string) => {
+     if (!firestore || !itemsCollection || !categoriesCollection) return;
+     
+     const batch = writeBatch(firestore);
+     
+     const categoryDoc = doc(categoriesCollection, id);
+     batch.delete(categoryDoc);
+     
+     // Un-categorize items that belonged to this category
+     const itemsToUpdate = items?.filter(item => item.categoryId === id) || [];
+     itemsToUpdate.forEach(item => {
+         const itemDoc = doc(itemsCollection, item.id);
+         batch.update(itemDoc, { categoryId: '' });
+     });
+     
+     await batch.commit();
 
-  const resetInventory = useCallback(() => {
-    if (!branchId) return;
-    setIsLoading(true);
-    try {
-      localStorage.removeItem(storageKey);
-      const initialData = getInitialInventory(branchId);
-      setInventory(initialData);
-      localStorage.setItem(storageKey, JSON.stringify(initialData));
-    } catch (error) {
-      console.error("Failed to reset inventory.", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [branchId, storageKey]);
+  }, [firestore, items, itemsCollection, categoriesCollection]);
 
   const availableSnapshotDates = useMemo(() => {
-    if (!inventory.history || inventory.history.length === 0) return [];
+    if (!history || history.length === 0) return [];
     const dates = new Set(
-      inventory.history.map(log =>
-        startOfDay(parseISO(log.createdAt)).toISOString()
+      history.map(log =>
+        startOfDay(parseISO(log.createdAt as unknown as string)).toISOString()
       )
     );
     return Array.from(dates).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  }, [inventory.history]);
+  }, [history]);
 
-  const getInventorySnapshot = useCallback((date: string): Item[] => {
+ const getInventorySnapshot = useCallback((date: string): Item[] => {
     const targetDate = new Date(date);
     const endOfTargetDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
 
-    const relevantHistory = inventory.history
-      .filter(log => !isAfter(parseISO(log.createdAt), endOfTargetDay))
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    if (!history || !items) return [];
+
+    const relevantHistory = history
+      .filter(log => !isAfter(parseISO(log.createdAt as unknown as string), endOfTargetDay))
+      .sort((a, b) => new Date(a.createdAt as unknown as string).getTime() - new Date(b.createdAt as unknown as string).getTime());
 
     const itemMap = new Map<string, Item>();
     const quantityMap = new Map<string, number>();
 
-    // This is a simplified reconstruction. A more robust solution
-    // would also reconstruct item details (value, category) at that point in time.
     for (const log of relevantHistory) {
-      // Find the original item details from the current state
-      const baseItem = inventory.items.find(i => i.id === log.itemId);
+      const baseItem = items.find(i => i.id === log.itemId);
       
-      // If the item was deleted, we might not find it, so we create a placeholder
       const itemDetails = baseItem || itemMap.get(log.itemId) || {
         id: log.itemId,
         name: log.itemName,
@@ -446,22 +231,20 @@ export function useInventory(branchId: string | undefined) {
     }
 
     return Array.from(itemMap.values()).filter(item => item.quantity > 0 || quantityMap.has(item.id));
-}, [inventory.history, inventory.items]);
-
+}, [history, items]);
 
 
   return {
-    items: inventory.items,
-    categories: inventory.categories,
-    history: inventory.history,
+    items: items || [],
+    categories: categories || [],
+    history: history || [],
     addItem,
     updateItem,
     batchUpdateQuantities,
     deleteItem,
-addCategory,
+    addCategory,
     updateCategory,
     deleteCategory,
-    resetInventory,
     isLoading,
     availableSnapshotDates,
     getInventorySnapshot,

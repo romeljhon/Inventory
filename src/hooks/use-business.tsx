@@ -2,7 +2,12 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
-import type { Business, Branch } from '@/lib/types';
+import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+import type { Business, Branch, Item, Category, InventoryHistory } from '@/lib/types';
+import { useCollection } from '@/firebase/firestore/use-collection';
+
+const ACTIVE_BRANCH_STORAGE_KEY = 'stock-sherpa-active-branch';
 
 interface BusinessContextType {
   business: Business | null;
@@ -11,118 +16,132 @@ interface BusinessContextType {
   isLoading: boolean;
   setupBusiness: (businessName: string, initialBranchName: string) => Promise<void>;
   addBranch: (branchName: string) => Promise<Branch | undefined>;
-  deleteBranch: (branchId: string) => void;
+  deleteBranch: (branchId: string) => Promise<void>;
   switchBranch: (branchId: string | null) => void;
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
-const BUSINESS_STORAGE_KEY = 'stock-sherpa-business-data';
-const ACTIVE_BRANCH_STORAGE_KEY = 'stock-sherpa-active-branch';
-
 export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [activeBranch, setActiveBranch] = useState<Branch | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const firestore = useFirestore();
+  const { user, loading: userLoading } = useUser();
+  
+  // For this prototype, we'll assume one business per user.
+  // The business ID could be the user's UID in a real multi-tenant app.
+  const businessId = user ? `business-for-${user.uid}` : null;
+  
+  const { data: businesses, loading: businessLoading } = useCollection<Business>(
+    firestore && businessId ? collection(firestore, 'businesses') : null,
+    businessId ? where('ownerId', '==', user?.uid) : undefined
+  );
+  
+  const business = useMemo(() => (businesses && businesses.length > 0 ? businesses[0] : null), [businesses]);
+
+  const branchesCollectionRef = useMemo(() => 
+    firestore && business?.id ? collection(firestore, 'businesses', business.id, 'branches') : null,
+    [firestore, business?.id]
+  );
+  
+  const { data: branches, loading: branchesLoading } = useCollection<Branch>(branchesCollectionRef);
+
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
+  
+  const isLoading = userLoading || businessLoading || branchesLoading;
 
   useEffect(() => {
-    try {
-      const storedBusinessData = localStorage.getItem(BUSINESS_STORAGE_KEY);
-      const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
-
-      if (storedBusinessData) {
-        const parsedBusiness = JSON.parse(storedBusinessData) as Business;
-        const parsedBranches = parsedBusiness.branches || [];
-        
-        setBusiness(parsedBusiness);
-        setBranches(parsedBranches);
-
-        if (storedActiveBranchId && storedActiveBranchId !== 'null') {
-          const foundActiveBranch = parsedBranches.find((b: Branch) => b.id === storedActiveBranchId);
-          setActiveBranch(foundActiveBranch || null);
-        } else {
-            setActiveBranch(null);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load business data from localStorage", error);
-    } finally {
-      setIsLoading(false);
+    const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
+    if (storedActiveBranchId && storedActiveBranchId !== 'null') {
+      setActiveBranchId(storedActiveBranchId);
     }
   }, []);
+
+  const activeBranch = useMemo(() => {
+    return branches.find(b => b.id === activeBranchId) || null;
+  }, [branches, activeBranchId]);
 
   const setupBusiness = useCallback(async (businessName: string, initialBranchName: string) => {
-    const newBranch: Branch = { id: `branch-${Date.now()}`, name: initialBranchName };
-    const newBusiness: Business = { 
-      id: `biz-${Date.now()}`, 
+    if (!firestore || !user) return;
+    
+    const businessIdForSetup = `business-for-${user.uid}`;
+    const businessDocRef = doc(firestore, 'businesses', businessIdForSetup);
+    
+    const businessData: Omit<Business, 'id'> = { 
       name: businessName,
-      branches: [newBranch]
+      ownerId: user.uid,
+      createdAt: serverTimestamp(),
+    };
+
+    const branchCollectionRef = collection(businessDocRef, 'branches');
+    const branchData: Omit<Branch, 'id'> = { 
+      name: initialBranchName,
+      createdAt: serverTimestamp(),
     };
     
-    setBusiness(newBusiness);
-    setBranches([newBranch]);
-    setActiveBranch(newBranch);
+    try {
+      const batch = writeBatch(firestore);
+      batch.set(businessDocRef, businessData);
+      
+      // We need to add the branch and then get its ID to set it as active.
+      const branchDocRef = await addDoc(branchCollectionRef, branchData);
+      
+      switchBranch(branchDocRef.id);
+      
+    } catch(e) {
+      console.error("Failed to setup business", e);
+    }
     
-    localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(newBusiness));
-    localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, newBranch.id);
-  }, []);
+  }, [firestore, user]);
 
   const addBranch = useCallback(async (branchName: string): Promise<Branch | undefined> => {
-    if (!business) return undefined;
+    if (!branchesCollectionRef) return undefined;
 
-    const newBranch: Branch = { id: `branch-${Date.now()}`, name: branchName };
-    const updatedBranches = [...branches, newBranch];
+    const branchData: Omit<Branch, 'id'> = { name: branchName, createdAt: serverTimestamp() };
+    const docRef = await addDoc(branchesCollectionRef, branchData);
     
-    const updatedBusiness: Business = {
-      ...business,
-      branches: updatedBranches,
-    };
+    return { ...branchData, id: docRef.id } as Branch;
+  }, [branchesCollectionRef]);
 
-    setBranches(updatedBranches);
-    setBusiness(updatedBusiness);
-    localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
+  const deleteBranch = useCallback(async (branchId: string) => {
+    if (!firestore || !business?.id) return;
     
-    return newBranch;
-  }, [business, branches]);
+    try {
+      const batch = writeBatch(firestore);
+      
+      const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
+      batch.delete(branchDocRef);
 
-  const deleteBranch = useCallback((branchId: string) => {
-    if (!business) return;
+      // Recursively delete subcollections (items, categories, history)
+      const itemsRef = collection(branchDocRef, 'items');
+      const categoriesRef = collection(branchDocRef, 'categories');
+      const historyRef = collection(branchDocRef, 'history');
+      
+      const [itemsSnapshot, categoriesSnapshot, historySnapshot] = await Promise.all([
+        getDocs(itemsRef),
+        getDocs(categoriesRef),
+        getDocs(historyRef)
+      ]);
+      
+      itemsSnapshot.forEach(doc => batch.delete(doc.ref));
+      categoriesSnapshot.forEach(doc => batch.delete(doc.ref));
+      historySnapshot.forEach(doc => batch.delete(doc.ref));
 
-    const updatedBranches = branches.filter(b => b.id !== branchId);
-    const updatedBusiness: Business = {
-        ...business,
-        branches: updatedBranches,
-    };
+      await batch.commit();
 
-    setBranches(updatedBranches);
-    setBusiness(updatedBusiness);
-    localStorage.setItem(BUSINESS_STORAGE_KEY, JSON.stringify(updatedBusiness));
-
-    // Also remove the inventory data for that branch
-    localStorage.removeItem(`stock-sherpa-inventory-${branchId}`);
-
-    if (activeBranch?.id === branchId) {
-        setActiveBranch(null);
-        localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, 'null');
+      if (activeBranch?.id === branchId) {
+        switchBranch(null);
+      }
+    } catch (e) {
+      console.error("Failed to delete branch and its data", e);
     }
-  }, [business, branches, activeBranch?.id]);
+  }, [firestore, business?.id, activeBranch?.id]);
 
   const switchBranch = useCallback((branchId: string | null) => {
-    if (branchId === null) {
-      setActiveBranch(null);
-      localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, 'null');
-      return;
-    }
-    const branchToActivate = branches.find(b => b.id === branchId);
-    if (branchToActivate) {
-      setActiveBranch(branchToActivate);
-      localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, branchId);
-    }
-  }, [branches]);
+    setActiveBranchId(branchId);
+    localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, branchId || 'null');
+  }, []);
 
   const contextValue = useMemo(() => ({
-    business,
+    business: business ? { ...business, id: businessId! } : null,
     branches,
     activeBranch,
     isLoading,
@@ -130,7 +149,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     addBranch,
     deleteBranch,
     switchBranch
-  }), [business, branches, activeBranch, isLoading, setupBusiness, addBranch, deleteBranch, switchBranch]);
+  }), [business, businessId, branches, activeBranch, isLoading, setupBusiness, addBranch, deleteBranch, switchBranch]);
 
   return (
     <BusinessContext.Provider value={contextValue}>

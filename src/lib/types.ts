@@ -1,10 +1,12 @@
+import { FieldValue } from 'firebase/firestore';
+
 export interface Item {
   id: string;
   name: string;
   description: string;
   quantity: number;
   categoryId: string;
-  createdAt: string;
+  createdAt: FieldValue | string;
   value: number;
   unitType?: 'pcs' | 'box' | 'pack';
   expirationDate?: string;
@@ -19,12 +21,14 @@ export interface Category {
 export interface Branch {
   id: string;
   name: string;
+  createdAt?: FieldValue;
 }
 
 export interface Business {
   id: string;
   name: string;
-  branches: Branch[];
+  ownerId: string;
+  createdAt: FieldValue;
 }
 
 export interface InventoryHistory {
@@ -35,7 +39,12 @@ export interface InventoryHistory {
     change: number;
     newQuantity: number;
     type: 'initial' | 'add' | 'update' | 'delete' | 'quantity';
-    createdAt: string;
+    createdAt: FieldValue | string;
 }
 
-    
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}

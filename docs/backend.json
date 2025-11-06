@@ -1,0 +1,189 @@
+{
+  "entities": {
+    "business": {
+      "title": "Business",
+      "description": "Represents a single business entity or organization.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the business."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who owns this business."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the business was created."
+        }
+      },
+      "required": ["name", "ownerId", "createdAt"]
+    },
+    "branch": {
+      "title": "Branch",
+      "description": "Represents a physical or logical location within a business.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the branch."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the branch was created."
+        }
+      },
+      "required": ["name", "createdAt"]
+    },
+    "item": {
+      "title": "Inventory Item",
+      "description": "Represents an item in the inventory.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the item."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the item."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The current stock quantity."
+        },
+        "value": {
+          "type": "number",
+          "description": "The monetary value of a single unit of the item."
+        },
+        "unitType": {
+          "type": "string",
+          "enum": ["pcs", "box", "pack"],
+          "description": "The unit of measurement for the quantity."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "The ID of the category this item belongs to."
+        },
+        "expirationDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The expiration date of the item, if applicable."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the item was added."
+        }
+      },
+      "required": ["name", "quantity", "value", "createdAt"]
+    },
+    "category": {
+      "title": "Item Category",
+      "description": "A category for organizing inventory items.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the category."
+        },
+        "color": {
+          "type": "string",
+          "description": "A hex or HSL color code for the category."
+        }
+      },
+      "required": ["name", "color"]
+    },
+    "inventoryHistory": {
+      "title": "Inventory History Log",
+      "description": "A log entry for a change in inventory.",
+      "type": "object",
+      "properties": {
+        "itemId": {
+          "type": "string"
+        },
+        "itemName": {
+          "type": "string"
+        },
+        "change": {
+          "type": "number"
+        },
+        "newQuantity": {
+          "type": "number"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["initial", "add", "update", "delete", "quantity"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["itemId", "itemName", "change", "newQuantity", "type", "createdAt"]
+    },
+     "userProfile": {
+      "title": "User Profile",
+      "description": "Represents a user's public profile information.",
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string"
+        },
+        "photoURL": {
+          "type": "string",
+          "format": "uri"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      },
+       "required": ["displayName", "email"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous"]
+  },
+  "firestore": {
+    "/businesses/{businessId}": {
+      "schema": {
+        "$ref": "#/entities/business"
+      },
+      "description": "Top-level collection for business entities."
+    },
+    "/businesses/{businessId}/branches/{branchId}": {
+      "schema": {
+        "$ref": "#/entities/branch"
+      },
+      "description": "Sub-collection for branches within a business."
+    },
+    "/businesses/{businessId}/branches/{branchId}/items/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/item"
+      },
+      "description": "Sub-collection for inventory items within a branch."
+    },
+    "/businesses/{businessId}/branches/{branchId}/categories/{categoryId}": {
+      "schema": {
+        "$ref": "#/entities/category"
+      },
+      "description": "Sub-collection for categories within a branch."
+    },
+    "/businesses/{businessId}/branches/{branchId}/history/{historyId}": {
+      "schema": {
+        "$ref": "#/entities/inventoryHistory"
+      },
+      "description": "Sub-collection for inventory history logs within a branch."
+    },
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/userProfile"
+      },
+      "description": "Collection to store user profile information."
+    }
+  }
+}
