@@ -358,27 +358,7 @@ export function useInventory(branchId: string | undefined) {
 
  const getInventorySnapshot = useCallback((date: string): Item[] => {
     const endOfTargetDay = endOfDay(new Date(date));
-
     if (!history) return [];
-
-    // 1. Filter history to only include records up to the end of the selected day.
-    const relevantHistory = history
-      .filter(log => {
-          if (!log.createdAt) return false;
-          const logDate = log.createdAt instanceof Timestamp ? log.createdAt.toDate() : parseISO(log.createdAt as string);
-          return !isAfter(logDate, endOfTargetDay);
-      });
-    
-    // 2. Create a map of the LATEST known state for each item from the live `items` collection.
-    // This gives us the non-quantity details like name, value, etc.
-    const latestItemDetails = new Map<string, Omit<Item, 'quantity'>>();
-    for (const item of items) {
-      latestItemDetails.set(item.id, item);
-    }
-    
-    // 3. Process the entire history (chronologically) to find the final quantity of each item.
-    const quantityMap = new Map<string, number>();
-    const itemCreationMap = new Map<string, boolean>();
 
     // Sort history oldest to newest to replay events correctly.
     const sortedHistory = [...history].sort((a, b) => {
@@ -387,43 +367,41 @@ export function useInventory(branchId: string | undefined) {
         return dateA.getTime() - dateB.getTime();
     });
 
+    const itemStates = new Map<string, Partial<Item>>();
+
     for (const log of sortedHistory) {
       const logDate = log.createdAt instanceof Timestamp ? log.createdAt.toDate() : new Date(log.createdAt as string);
-      
-      // If the log is after our target snapshot date, skip it.
-      if (isAfter(logDate, endOfTargetDay)) {
-        continue;
-      }
-      
-      // Track when an item is created
-      if (log.type === 'add') {
-        itemCreationMap.set(log.itemId, true);
-      }
-      
-      // Update quantity based on the log
-      quantityMap.set(log.itemId, log.newQuantity);
 
-      // If an item was deleted, we remove it from the creation map
+      // If the log is after our target snapshot date, we can stop processing.
+      if (isAfter(logDate, endOfTargetDay)) {
+        break;
+      }
+      
+      let currentItemState = itemStates.get(log.itemId) || { id: log.itemId };
+
+      if (log.type === 'add') {
+          const addedItem = items.find(i => i.id === log.itemId);
+          if(addedItem) {
+              currentItemState = { ...addedItem, quantity: log.newQuantity };
+          }
+      } else if (log.type === 'update') {
+          const updatedItem = items.find(i => i.id === log.itemId);
+           if(updatedItem) {
+              currentItemState = { ...updatedItem, quantity: log.newQuantity };
+          }
+      } else {
+         currentItemState.quantity = log.newQuantity;
+      }
+      
       if (log.type === 'delete') {
-         itemCreationMap.delete(log.itemId);
+        itemStates.delete(log.itemId);
+      } else {
+        itemStates.set(log.itemId, currentItemState);
       }
     }
     
-    const snapshotItems: Item[] = [];
-    for (const [itemId, quantity] of quantityMap.entries()) {
-      // An item exists in the snapshot if it was created and not deleted by the snapshot date.
-      if (itemCreationMap.has(itemId)) {
-        const details = latestItemDetails.get(itemId);
-        if (details) {
-          snapshotItems.push({
-            ...details,
-            quantity: quantity,
-          });
-        }
-      }
-    }
-
-    return snapshotItems;
+    // We filter out items that don't have a creation date (or other core properties) as they are incomplete.
+    return Array.from(itemStates.values()).filter(item => item.createdAt).map(item => item as Item);
 }, [history, items]);
 
 
