@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged, signInAnonymously, User } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { useAuth } from '@/firebase/provider';
 import type { UserProfile } from '@/lib/types';
 import { doc, setDoc, getFirestore, serverTimestamp } from 'firebase/firestore';
@@ -31,12 +31,14 @@ export function useUser() {
           };
           setUserProfile(profile);
 
-          // Save user profile to Firestore
+          // Save/update user profile to Firestore
           const db = getFirestore(auth.app);
           const userDocRef = doc(db, 'users', user.uid);
           try {
-            await setDoc(userDocRef, {
-                ...profile,
+             await setDoc(userDocRef, {
+                displayName: user.displayName,
+                email: user.email,
+                photoURL: user.photoURL,
                 lastLogin: serverTimestamp()
             }, { merge: true });
           } catch (e) {
@@ -44,14 +46,8 @@ export function useUser() {
           }
 
         } else {
-          // If no user, sign in anonymously for this prototype
-          try {
-            const userCredential = await signInAnonymously(auth);
-             setUser(userCredential.user);
-          } catch (e) {
-            console.error("Anonymous sign-in failed", e);
-            setError(e as Error);
-          }
+          setUser(null);
+          setUserProfile(null);
         }
         setLoading(false);
       },

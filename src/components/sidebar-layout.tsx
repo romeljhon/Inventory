@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   SidebarProvider,
   Sidebar,
@@ -25,13 +25,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
+import { useAuth } from "@/firebase";
+import { signOut } from "firebase/auth";
 import { Icons } from "@/components/icons";
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const { business } = useBusiness();
+  const { business, isUserLoading } = useBusiness();
+  const auth = useAuth();
+  const router = useRouter();
   const pathname = usePathname();
+
+  const handleLogout = async () => {
+    if (auth) {
+        await signOut(auth);
+        router.push('/login');
+    }
+  };
+  
+  const user = auth?.currentUser;
 
   return (
     <SidebarProvider>
@@ -97,21 +110,26 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start gap-3 px-3 text-foreground/80 hover:text-foreground">
+              <Button variant="ghost" className="w-full justify-start gap-3 px-3 text-foreground/80 hover:text-foreground" disabled={isUserLoading}>
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="https://picsum.photos/100" />
-                  <AvatarFallback>U</AvatarFallback>
+                  <AvatarImage src={user?.photoURL || undefined} />
+                  <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
-                <span className="truncate">User Name</span>
+                <span className="truncate">{user?.displayName || "User"}</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user?.displayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarFooter>

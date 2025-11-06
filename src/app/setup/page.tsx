@@ -55,14 +55,25 @@ export default function SetupPage() {
   
   const pageIsLoading = isLoading || isUserLoading;
 
-  if (pageIsLoading || business) {
+  if (pageIsLoading) {
       return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-            <span>Loading your business...</span>
+            <span>Loading...</span>
         </div>
       )
   }
+
+  // If user is loaded and they already have a business, redirect.
+  if (!isUserLoading && business) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+            <span>Redirecting...</span>
+        </div>
+      )
+  }
+
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
