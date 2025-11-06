@@ -133,43 +133,42 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         return;
     }
 
-    try {
-        const newBusinessRef = doc(collection(firestore, 'businesses'));
-        const businessData = { 
-            name: businessName,
-            ownerId: user.uid,
-            createdAt: serverTimestamp(),
-        };
-        await setDoc(newBusinessRef, businessData).catch(async (serverError) => {
-          const permissionError = new FirestorePermissionError({
-            path: newBusinessRef.path,
-            operation: 'create',
-            requestResourceData: businessData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          throw serverError;
-        });
+    const newBusinessRef = doc(collection(firestore, 'businesses'));
+    const businessData = { 
+        name: businessName,
+        ownerId: user.uid,
+        createdAt: serverTimestamp(),
+    };
+    
+    // Create business
+    await setDoc(newBusinessRef, businessData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: newBusinessRef.path,
+        operation: 'create',
+        requestResourceData: businessData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      throw serverError; // rethrow to stop execution
+    });
 
-        const newBranchRef = doc(collection(newBusinessRef, 'branches'));
-        const branchData = { 
-            name: initialBranchName,
-            createdAt: serverTimestamp(),
-        };
-        await setDoc(newBranchRef, branchData).catch(async (serverError) => {
-           const permissionError = new FirestorePermissionError({
-            path: newBranchRef.path,
-            operation: 'create',
-            requestResourceData: branchData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-          throw serverError;
-        });
+    const newBranchRef = doc(collection(newBusinessRef, 'branches'));
+    const branchData = { 
+        name: initialBranchName,
+        createdAt: serverTimestamp(),
+    };
+    
+    // Create initial branch
+    await setDoc(newBranchRef, branchData).catch(async (serverError) => {
+       const permissionError = new FirestorePermissionError({
+        path: newBranchRef.path,
+        operation: 'create',
+        requestResourceData: branchData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      throw serverError; // rethrow to stop execution
+    });
 
-        return { id: newBusinessRef.id, ...businessData } as Business;
-
-    } catch (error) {
-        // Errors are handled in .catch blocks
-    }
+    return { id: newBusinessRef.id, ...businessData } as Business;
     
   }, [firestore, user]);
 
@@ -198,14 +197,17 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
     
+    // Using a try/catch here because batch writes don't have individual catch blocks
     try {
         const collectionsToDelete = ['items', 'categories', 'history'];
         for (const subcollection of collectionsToDelete) {
             const subcollectionRef = collection(branchDocRef, subcollection);
             const snapshot = await getDocs(subcollectionRef);
-            const deleteBatch = writeBatch(firestore);
-            snapshot.forEach(doc => deleteBatch.delete(doc.ref));
-            await deleteBatch.commit();
+            if (!snapshot.empty) {
+              const deleteBatch = writeBatch(firestore);
+              snapshot.forEach(doc => deleteBatch.delete(doc.ref));
+              await deleteBatch.commit();
+            }
         }
 
         await deleteDoc(branchDocRef);
