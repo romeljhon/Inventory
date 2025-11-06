@@ -26,6 +26,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,11 +48,12 @@ import { format } from "date-fns";
 const formSchema = z.object({
   name: z.string().min(2, { message: "Item name must be at least 2 characters." }),
   description: z.string().optional(),
-  quantity: z.coerce.number().int().min(0, { message: "Quantity cannot be negative." }),
+  quantity: z.coerce.number().int().min(0, { message: "Quantity cannot be negative." }).optional(),
   value: z.coerce.number().min(0, { message: "Value cannot be negative." }),
   categoryId: z.string().optional(),
   unitType: z.enum(['pcs', 'box', 'pack']).optional(),
   expirationDate: z.date().optional(),
+  itemType: z.enum(['Product', 'Component']),
 });
 
 export type ItemFormData = z.infer<typeof formSchema>;
@@ -85,6 +87,7 @@ export function ItemFormDialog({
       value: 0,
       categoryId: "",
       unitType: 'pcs',
+      itemType: 'Component',
     },
   });
 
@@ -93,6 +96,7 @@ export function ItemFormDialog({
   const itemDescription = watch("description");
   const categoryId = watch("categoryId");
   const selectedCategory = categories.find(c => c.id === categoryId);
+  const itemType = watch("itemType");
 
   useEffect(() => {
     if (isOpen) {
@@ -103,13 +107,20 @@ export function ItemFormDialog({
           value: item.value || 0,
           categoryId: item.categoryId || "",
           unitType: item.unitType || 'pcs',
+          itemType: item.itemType || 'Component',
           expirationDate: item.expirationDate ? new Date(item.expirationDate) : undefined,
         });
       } else {
-        form.reset({ name: "", description: "", quantity: 0, value: 0, categoryId: "", unitType: 'pcs', expirationDate: undefined });
+        form.reset({ name: "", description: "", quantity: 0, value: 0, categoryId: "", unitType: 'pcs', itemType: 'Component', expirationDate: undefined });
       }
     }
   }, [item, isOpen, form]);
+
+  useEffect(() => {
+    if (itemType === 'Product') {
+      setValue('quantity', 0);
+    }
+  }, [itemType, setValue]);
 
   const handleSuggestCategories = async () => {
     if (!itemName) {
@@ -169,10 +180,11 @@ export function ItemFormDialog({
     const finalData: Omit<Item, 'id' | 'createdAt'> = {
         name: data.name,
         description: data.description || "",
-        quantity: data.quantity,
+        quantity: data.quantity || 0,
         value: data.value,
         categoryId: data.categoryId || "",
         unitType: data.unitType || 'pcs',
+        itemType: data.itemType,
     };
 
     if (data.expirationDate) {
@@ -193,6 +205,44 @@ export function ItemFormDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+             <FormField
+              control={control}
+              name="itemType"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Item Type</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Component" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Component
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Product" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Product
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <p className="text-xs text-muted-foreground -mt-2">
+                <strong>Components</strong> are raw materials. <strong>Products</strong> are finished goods made from components (via recipes) that you sell.
+            </p>
+
             <FormField
               control={form.control}
               name="name"
@@ -227,7 +277,7 @@ export function ItemFormDialog({
                     <FormItem>
                         <FormLabel>Quantity</FormLabel>
                         <FormControl>
-                        <Input type="number" {...field} />
+                        <Input type="number" {...field} disabled={itemType === 'Product'} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -256,6 +306,7 @@ export function ItemFormDialog({
                     )}
                 />
             </div>
+             {itemType === 'Product' && <p className="text-xs text-muted-foreground -mt-2">Product quantity is calculated based on component stock via recipes and cannot be set manually.</p>}
              <FormField
                 control={form.control}
                 name="value"

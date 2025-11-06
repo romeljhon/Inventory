@@ -17,7 +17,7 @@ import {
 import { startOfDay, parseISO, isAfter } from "date-fns";
 import { useFirestore } from "@/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import type { Item, Category, InventoryHistory } from "@/lib/types";
+import type { Item, Category, InventoryHistory, Recipe } from "@/lib/types";
 import { useBusiness } from "./use-business";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -43,6 +43,7 @@ export function useInventory(branchId: string | undefined) {
   const itemsCollection = useMemo(() => branchRef ? collection(branchRef, 'items') : null, [branchRef]);
   const categoriesCollection = useMemo(() => branchRef ? collection(branchRef, 'categories') : null, [branchRef]);
   const historyCollection = useMemo(() => branchRef ? collection(branchRef, 'history') : null, [branchRef]);
+  const recipesCollection = useMemo(() => branchRef ? collection(branchRef, 'recipes') : null, [branchRef]);
   
   const { data: itemsData, loading: itemsLoading } = useCollection<Item>(
     itemsCollection ? query(itemsCollection, orderBy('createdAt', 'desc')) : null
@@ -51,13 +52,17 @@ export function useInventory(branchId: string | undefined) {
   const { data: historyData, loading: historyLoading } = useCollection<InventoryHistory>(
      historyCollection ? query(historyCollection, orderBy('createdAt', 'desc')) : null
   );
+  const { data: recipesData, loading: recipesLoading } = useCollection<Recipe>(
+    recipesCollection ? query(recipesCollection, orderBy('createdAt', 'desc')) : null
+  );
 
   // Memoize data to prevent unnecessary re-renders
   const items = useMemo(() => itemsData || [], [itemsData]);
   const categories = useMemo(() => categoriesData || [], [categoriesData]);
   const history = useMemo(() => historyData || [], [historyData]);
+  const recipes = useMemo(() => recipesData || [], [recipesData]);
 
-  const isLoading = itemsLoading || categoriesLoading || historyLoading;
+  const isLoading = itemsLoading || categoriesLoading || historyLoading || recipesLoading;
 
   const addHistory = useCallback(async (log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId'>) => {
     if (!historyCollection) return;
@@ -125,25 +130,59 @@ export function useInventory(branchId: string | undefined) {
   }, [itemsCollection, addHistory, items]);
   
   const batchUpdateQuantities = useCallback(async (updates: Record<string, number>) => {
-    if (!firestore || !itemsCollection || !items) return;
+    if (!firestore || !itemsCollection || !items || !recipes) return;
     const batch = writeBatch(firestore);
 
+    const componentUpdates: Record<string, number> = {};
+
     for (const itemId in updates) {
-      const itemDoc = doc(itemsCollection, itemId);
+      const soldItem = items.find(i => i.id === itemId);
+      const recipe = recipes.find(r => r.productId === itemId);
       const newQuantity = Math.max(0, updates[itemId]);
-      batch.update(itemDoc, { quantity: newQuantity });
-      
-      const oldItem = items.find(i => i.id === itemId);
-      if (oldItem && oldItem.quantity !== newQuantity) {
-          addHistory({
-              itemId: itemId,
-              itemName: oldItem.name,
-              change: newQuantity - oldItem.quantity,
-              newQuantity: newQuantity,
-              type: 'quantity'
-          });
+
+      if (soldItem && recipe) {
+        // This is a product with a recipe, so deduct components
+        const quantitySold = soldItem.quantity - newQuantity;
+        if (quantitySold > 0) {
+            recipe.components.forEach(component => {
+                const totalDeduction = component.quantity * quantitySold;
+                componentUpdates[component.itemId] = (componentUpdates[component.itemId] || 0) + totalDeduction;
+            });
+        }
+      } else if (soldItem) {
+        // This is a standard item or a component being sold directly
+        const itemDoc = doc(itemsCollection, itemId);
+        batch.update(itemDoc, { quantity: newQuantity });
+        if (soldItem.quantity !== newQuantity) {
+            addHistory({
+                itemId: itemId,
+                itemName: soldItem.name,
+                change: newQuantity - soldItem.quantity,
+                newQuantity: newQuantity,
+                type: 'quantity'
+            });
+        }
       }
     }
+    
+    // Apply component deductions
+    for (const componentId in componentUpdates) {
+        const componentItem = items.find(i => i.id === componentId);
+        if (componentItem) {
+            const newQuantity = Math.max(0, componentItem.quantity - componentUpdates[componentId]);
+            const itemDoc = doc(itemsCollection, componentId);
+            batch.update(itemDoc, { quantity: newQuantity });
+
+             addHistory({
+                itemId: componentId,
+                itemName: componentItem.name,
+                change: -componentUpdates[componentId],
+                newQuantity: newQuantity,
+                type: 'quantity'
+            });
+        }
+    }
+
     batch.commit().catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
             path: itemsCollection.path,
@@ -152,7 +191,7 @@ export function useInventory(branchId: string | undefined) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-}, [firestore, itemsCollection, items, addHistory]);
+}, [firestore, itemsCollection, items, addHistory, recipes]);
 
 
   const deleteItem = useCallback(async (id: string) => {
@@ -241,6 +280,47 @@ export function useInventory(branchId: string | undefined) {
 
   }, [firestore, items, itemsCollection, categoriesCollection]);
 
+   const addRecipe = useCallback(async (recipeData: Omit<Recipe, 'id' | 'createdAt'>) => {
+    if (!recipesCollection) return;
+    const newRecipeData = {
+      ...recipeData,
+      createdAt: serverTimestamp(),
+    };
+    addDoc(recipesCollection, newRecipeData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: recipesCollection.path,
+        operation: 'create',
+        requestResourceData: newRecipeData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  }, [recipesCollection]);
+
+  const updateRecipe = useCallback(async (id: string, updatedData: Partial<Omit<Recipe, 'id' | 'createdAt'>>) => {
+    if (!recipesCollection) return;
+    const recipeDoc = doc(recipesCollection, id);
+    updateDoc(recipeDoc, updatedData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: recipeDoc.path,
+        operation: 'update',
+        requestResourceData: updatedData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  }, [recipesCollection]);
+
+  const deleteRecipe = useCallback(async (id: string) => {
+    if (!recipesCollection) return;
+    const recipeDoc = doc(recipesCollection, id);
+    deleteDoc(recipeDoc).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: recipeDoc.path,
+        operation: 'delete',
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  }, [recipesCollection]);
+
   const availableSnapshotDates = useMemo(() => {
     if (!history || history.length === 0) return [];
     const dates = new Set(
@@ -285,7 +365,8 @@ export function useInventory(branchId: string | undefined) {
         quantity: 0,
         categoryId: "",
         createdAt: log.createdAt,
-        value: 0
+        value: 0,
+        itemType: 'Component',
       };
 
       if (log.type === 'delete') {
@@ -304,6 +385,7 @@ export function useInventory(branchId: string | undefined) {
   return {
     items,
     categories,
+    recipes,
     history,
     addItem,
     updateItem,
@@ -312,6 +394,9 @@ export function useInventory(branchId: string | undefined) {
     addCategory,
     updateCategory,
     deleteCategory,
+    addRecipe,
+    updateRecipe,
+    deleteRecipe,
     isLoading,
     availableSnapshotDates,
     getInventorySnapshot,

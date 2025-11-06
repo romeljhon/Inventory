@@ -25,22 +25,55 @@ import {
 } from "@/components/ui/table";
 import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign, Building } from "lucide-react";
 import { CategoryPills } from "@/components/inventory/category-pills";
-import type { Item } from "@/lib/types";
+import type { Item, Recipe } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
 type CartItem = Item & { saleQuantity: number };
 
 export default function SalesPage() {
   const { activeBranch } = useBusiness();
-  const { items, categories, batchUpdateQuantities, isLoading } = useInventory(activeBranch?.id);
+  const { items, categories, recipes, batchUpdateQuantities, isLoading } = useInventory(activeBranch?.id);
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
 
+  const getProductStock = (productId: string, recipes: Recipe[], items: Item[]): number => {
+    const recipe = recipes.find(r => r.productId === productId);
+    if (!recipe) {
+      // Not a product with a recipe, so it must be a component/standalone item
+      const item = items.find(i => i.id === productId);
+      return item?.quantity ?? 0;
+    }
+    
+    // If it is a product, calculate how many can be made from components
+    if (!recipe.components || recipe.components.length === 0) {
+      return 0;
+    }
+
+    const possibleQuantities = recipe.components.map(component => {
+      const componentItem = items.find(i => i.id === component.itemId);
+      if (!componentItem) return 0;
+      return Math.floor(componentItem.quantity / component.quantity);
+    });
+
+    return Math.min(...possibleQuantities);
+  };
+  
+  const sellableItems = useMemo(() => {
+    if (!items || !recipes) return [];
+    
+    return items
+      .filter(item => item.itemType === 'Product')
+      .map(item => ({
+        ...item,
+        quantity: getProductStock(item.id, recipes, items),
+      }))
+  }, [items, recipes]);
+
   const filteredItems = useMemo(() => {
-    return (items || [])
+    return (sellableItems || [])
       .filter((item) => {
         if (activeCategory && item.categoryId !== activeCategory) {
           return false;
@@ -51,7 +84,7 @@ export default function SalesPage() {
         return true;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [items, searchTerm, activeCategory]);
+  }, [sellableItems, searchTerm, activeCategory]);
 
   const addToCart = (item: Item) => {
     setCart((currentCart) => {
@@ -75,7 +108,7 @@ export default function SalesPage() {
       if (!existingItem) return currentCart;
 
       const newQuantity = existingItem.saleQuantity + change;
-      const stock = items.find(i => i.id === itemId)?.quantity || 0;
+      const stock = getProductStock(itemId, recipes, items);
 
       if (newQuantity <= 0) {
         // Remove item if quantity becomes 0 or less
@@ -156,7 +189,7 @@ export default function SalesPage() {
           <>
             <header>
               <h1 className="text-3xl font-bold tracking-tight">Sales for {activeBranch.name}</h1>
-              <p className="text-muted-foreground">Select items from inventory to complete a sale.</p>
+              <p className="text-muted-foreground">Select products from inventory to complete a sale.</p>
             </header>
 
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -164,12 +197,12 @@ export default function SalesPage() {
               <div className="lg:col-span-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Available Items</CardTitle>
+                    <CardTitle>Available Products</CardTitle>
                     <div className="flex flex-col gap-4 pt-4 md:flex-row">
                       <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                          placeholder="Search items..."
+                          placeholder="Search products..."
                           className="pl-9"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
@@ -190,8 +223,8 @@ export default function SalesPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Item</TableHead>
-                              <TableHead className="text-right">In Stock</TableHead>
+                              <TableHead>Product</TableHead>
+                              <TableHead className="text-right">Can Make</TableHead>
                               <TableHead className="text-right hidden sm:table-cell">Price</TableHead>
                               <TableHead className="w-[100px]"></TableHead>
                             </TableRow>
@@ -224,9 +257,9 @@ export default function SalesPage() {
                     {filteredItems.length === 0 && !isLoading && (
                         <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
                             <Package className="h-12 w-12 text-muted-foreground/80" />
-                            <h3 className="text-xl font-semibold">No Items Found</h3>
+                            <h3 className="text-xl font-semibold">No Products Found</h3>
                             <p className="text-muted-foreground">
-                            There are no items to display for the current selection.
+                            There are no products to display for the current selection.
                             </p>
                         </div>
                     )}
@@ -243,7 +276,7 @@ export default function SalesPage() {
                       Current Sale
                     </CardTitle>
                     <CardDescription>
-                      Items added to the current sale. Quantities will be deducted upon completion.
+                      Items added to the current sale. Component quantities will be deducted upon completion.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
