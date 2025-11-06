@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icons } from "@/components/icons";
+import { Loader2 } from "lucide-react";
 
 const setupSchema = z.object({
   businessName: z.string().min(2, { message: "Business name must be at least 2 characters." }),
@@ -28,7 +29,7 @@ const setupSchema = z.object({
 type SetupFormData = z.infer<typeof setupSchema>;
 
 export default function SetupPage() {
-  const { business, setupBusiness, isLoading } = useBusiness();
+  const { business, setupBusiness, isLoading, isUserLoading } = useBusiness();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -49,11 +50,18 @@ export default function SetupPage() {
   const onSubmit = async (data: SetupFormData) => {
     setIsSubmitting(true);
     await setupBusiness(data.businessName, data.branchName);
-    // The redirect will happen automatically via the useEffect above
+    // The redirect will happen automatically via the useEffect above after business is loaded
   };
+  
+  const pageIsLoading = isLoading || isUserLoading;
 
-  if (isLoading || business) {
-      return <div className="flex h-screen items-center justify-center">Loading...</div>
+  if (pageIsLoading || business) {
+      return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+            <span>Loading your business...</span>
+        </div>
+      )
   }
 
   return (
@@ -104,8 +112,13 @@ export default function SetupPage() {
                             </FormItem>
                         )}
                         />
-                        <Button type="submit" className="w-full" disabled={isSubmitting}>
-                            {isSubmitting ? "Saving..." : "Complete Setup"}
+                        <Button type="submit" className="w-full" disabled={isSubmitting || pageIsLoading}>
+                            {isSubmitting ? (
+                                <>
+                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                 Saving...
+                                </>
+                            ) : "Complete Setup"}
                         </Button>
                     </form>
                     </Form>

@@ -17,6 +17,7 @@ interface BusinessContextType {
   branches: Branch[];
   activeBranch: Branch | null;
   isLoading: boolean;
+  isUserLoading: boolean;
   setupBusiness: (businessName: string, initialBranchName: string) => Promise<void>;
   addBranch: (branchName: string) => Promise<Branch | undefined>;
   deleteBranch: (branchId: string) => Promise<void>;
@@ -81,7 +82,10 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [branches, activeBranchId]);
 
   const setupBusiness = useCallback(async (businessName: string, initialBranchName: string) => {
-    if (!firestore || !user) return;
+    if (!firestore || !user?.uid) {
+        console.error("Setup cannot proceed: Firestore not initialized or user not authenticated.");
+        return;
+    }
     
     const batch = writeBatch(firestore);
 
@@ -175,11 +179,12 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     branches,
     activeBranch,
     isLoading,
+    isUserLoading: userLoading,
     setupBusiness,
     addBranch,
     deleteBranch,
     switchBranch
-  }), [business, branches, activeBranch, isLoading, setupBusiness, addBranch, deleteBranch, switchBranch]);
+  }), [business, branches, activeBranch, isLoading, userLoading, setupBusiness, addBranch, deleteBranch, switchBranch]);
 
   return (
     <BusinessContext.Provider value={contextValue}>
