@@ -12,6 +12,10 @@ import {
   Users,
   Menu,
   X,
+  Building,
+  PlusCircle,
+  BookCopy,
+  ShoppingCart,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -33,6 +37,12 @@ export function LandingPage() {
               className="transition-colors hover:text-white/80 text-white/60"
             >
               Features
+            </Link>
+             <Link
+              href="#how-it-works"
+              className="transition-colors hover:text-white/80 text-white/60"
+            >
+              How It Works
             </Link>
           </nav>
           <div className="flex flex-1 items-center justify-end space-x-2">
@@ -74,6 +84,13 @@ export function LandingPage() {
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         Features
+                      </Link>
+                      <Link
+                        href="#how-it-works"
+                        className="transition-colors hover:text-white/80 text-white/80"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        How It Works
                       </Link>
                     </nav>
                      <div className="mt-auto flex flex-col gap-4">
@@ -184,8 +201,73 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* How It Works Section */}
+        <section id="how-it-works" className="py-16 md:py-24">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <h2 className="text-3xl font-bold md:text-4xl">How It Works</h2>
+              <p className="mt-4 text-muted-foreground">
+                Get up and running in just a few simple steps.
+              </p>
+            </div>
+            <div className="relative">
+              <div className="absolute left-1/2 top-12 hidden h-full w-[2px] -translate-x-1/2 bg-border md:block"></div>
+              <div className="grid gap-12 md:grid-cols-1">
+                {/* Step 1 */}
+                <div className="relative flex flex-col items-center text-center md:flex-row md:text-left">
+                  <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:mr-8">
+                    <Building className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-xl font-semibold">1. Set Up Your Business</h3>
+                    <p className="text-muted-foreground">
+                      Create your business profile and add your first branch or location. You can manage multiple branches under one business.
+                    </p>
+                  </div>
+                </div>
+                {/* Step 2 */}
+                <div className="relative flex flex-col items-center text-center md:flex-row-reverse md:text-right">
+                  <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:ml-8">
+                    <PlusCircle className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-xl font-semibold">2. Add Your Inventory</h3>
+                    <p className="text-muted-foreground">
+                      Start adding your items. Distinguish between 'Components' (raw materials) and 'Products' (finished goods you sell).
+                    </p>
+                  </div>
+                </div>
+                {/* Step 3 */}
+                <div className="relative flex flex-col items-center text-center md:flex-row md:text-left">
+                  <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:mr-8">
+                    <BookCopy className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-xl font-semibold">3. Define Recipes</h3>
+                    <p className="text-muted-foreground">
+                      For your 'Products', create recipes that specify which 'Components' and what quantities are needed to produce them.
+                    </p>
+                  </div>
+                </div>
+                {/* Step 4 */}
+                <div className="relative flex flex-col items-center text-center md:flex-row-reverse md:text-right">
+                   <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:ml-8">
+                    <ShoppingCart className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-xl font-semibold">4. Make Sales & Track Stock</h3>
+                    <p className="text-muted-foreground">
+                      Use the sales terminal to sell your products. The system automatically deducts the required components from your inventory based on the recipe.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
-        <section className="py-16 md:py-24">
+        <section className="py-16 md:py-24 bg-muted/40">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
               Ready to Streamline Your Inventory?
@@ -222,5 +304,3 @@ export function LandingPage() {
     </div>
   );
 }
-
-    
