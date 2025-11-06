@@ -11,7 +11,8 @@ service cloud.firestore {
     
     // Users can only manage their own profile
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Businesses can be read by their owner.
@@ -25,11 +26,16 @@ service cloud.firestore {
       // The owner of a business can create, read, update, and delete branches.
       match /branches/{branchId} {
         allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
-      }
-      
-      // All other subcollections can only be accessed if the parent business exists and is owned by the user.
-      match /branches/{branchId}/{path=**} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+        
+        // The owner of the business can manage items in a branch
+        match /items/{itemId} {
+            allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+        }
+
+        // All other subcollections can only be accessed if the parent business exists and is owned by the user.
+        match /{path=**} {
+          allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+        }
       }
     }
   }
