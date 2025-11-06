@@ -39,7 +39,7 @@ export function LandingPage() {
                 data-ai-hint="warehouse inventory"
             />
             <div className="absolute inset-0 bg-black/60" />
-            <div className="relative z-10 container flex h-full max-w-[64rem] flex-col items-center justify-center gap-4 text-center text-white">
+            <div className="relative z-10 container flex h-full flex-col items-center justify-center gap-4 text-center text-white">
                 <h1 className="text-4xl font-bold sm:text-5xl md:text-6xl lg:text-7xl">
                 Intelligent Inventory Management
                 </h1>
