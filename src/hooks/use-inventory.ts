@@ -367,41 +367,48 @@ export function useInventory(branchId: string | undefined) {
         return dateA.getTime() - dateB.getTime();
     });
 
-    const itemStates = new Map<string, Partial<Item>>();
+    const itemStates = new Map<string, Item>();
+    const originalItemsMap = new Map(items.map(item => [item.id, item]));
 
     for (const log of sortedHistory) {
       const logDate = log.createdAt instanceof Timestamp ? log.createdAt.toDate() : new Date(log.createdAt as string);
-
-      // If the log is after our target snapshot date, we can stop processing.
+      
       if (isAfter(logDate, endOfTargetDay)) {
-        break;
+        break; // Stop processing logs after the target day
       }
-      
-      let currentItemState = itemStates.get(log.itemId) || { id: log.itemId };
 
-      if (log.type === 'add') {
-          const addedItem = items.find(i => i.id === log.itemId);
-          if(addedItem) {
-              currentItemState = { ...addedItem, quantity: log.newQuantity };
-          }
-      } else if (log.type === 'update') {
-          const updatedItem = items.find(i => i.id === log.itemId);
-           if(updatedItem) {
-              currentItemState = { ...updatedItem, quantity: log.newQuantity };
-          }
-      } else {
-         currentItemState.quantity = log.newQuantity;
-      }
+      let currentItemState: Item;
       
-      if (log.type === 'delete') {
+      const originalItem = originalItemsMap.get(log.itemId);
+
+      if (log.type === 'add' || log.type === 'initial') {
+        if (originalItem) {
+          // Find the item details as they were when added
+          // This is a simplification; a true audit log would store the item's state in the log itself.
+          // For now, we use the current item details and set the historical quantity.
+           currentItemState = { ...originalItem, quantity: log.newQuantity };
+           itemStates.set(log.itemId, currentItemState);
+        }
+      } else if (log.type === 'update') {
+        if (originalItem) {
+          // Similar to 'add', we're taking a shortcut by using current item data.
+          // A more robust system would store the changed fields in the history log.
+          currentItemState = { ...originalItem, quantity: log.newQuantity };
+          itemStates.set(log.itemId, currentItemState);
+        }
+      } else if (log.type === 'quantity') {
+        const item = itemStates.get(log.itemId);
+        if (item) {
+          item.quantity = log.newQuantity;
+          itemStates.set(log.itemId, item);
+        }
+      } else if (log.type === 'delete') {
         itemStates.delete(log.itemId);
-      } else {
-        itemStates.set(log.itemId, currentItemState);
       }
     }
     
-    // We filter out items that don't have a creation date (or other core properties) as they are incomplete.
-    return Array.from(itemStates.values()).filter(item => item.createdAt).map(item => item as Item);
+    // Convert map to array and ensure all items have full properties
+    return Array.from(itemStates.values());
 }, [history, items]);
 
 
