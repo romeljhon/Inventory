@@ -82,7 +82,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader>
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-between items-center px-3">
+              <Button variant="ghost" className="w-full justify-between items-center px-3 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                  <div className="flex items-center gap-3 overflow-hidden">
                     <Icons.logo className="w-7 h-7 text-primary shrink-0" />
                     <span className="text-lg font-semibold text-foreground truncate">{business?.name || "Select Business"}</span>
@@ -171,7 +171,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         <SidebarFooter>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start gap-3 px-3 text-foreground/80 hover:text-foreground" disabled={isUserLoading}>
+              <Button variant="ghost" className="w-full justify-start gap-3 px-3 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" disabled={isUserLoading}>
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.photoURL || undefined} />
                   <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
