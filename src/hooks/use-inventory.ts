@@ -358,57 +358,41 @@ export function useInventory(branchId: string | undefined) {
 
  const getInventorySnapshot = useCallback((date: string): Item[] => {
     const endOfTargetDay = endOfDay(new Date(date));
-    if (!history) return [];
+    if (!history || !items) return [];
 
-    // Sort history oldest to newest to replay events correctly.
-    const sortedHistory = [...history].sort((a, b) => {
-        const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toDate() : new Date(a.createdAt as string);
-        const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toDate() : new Date(b.createdAt as string);
-        return dateA.getTime() - dateB.getTime();
-    });
+    // Create a deep copy of current items to start with
+    const snapshotItems = new Map<string, Item>(
+        items.map(item => [item.id, { ...item }])
+    );
 
-    const itemStates = new Map<string, Item>();
-    const originalItemsMap = new Map(items.map(item => [item.id, item]));
+    // Get logs that happened AFTER the snapshot date, and sort them newest to oldest
+    const logsToRewind = history
+        .map(log => ({
+            ...log,
+            createdAtDate: log.createdAt instanceof Timestamp ? log.createdAt.toDate() : new Date(log.createdAt as string)
+        }))
+        .filter(log => isAfter(log.createdAtDate, endOfTargetDay))
+        .sort((a, b) => b.createdAtDate.getTime() - a.createdAtDate.getTime());
 
-    for (const log of sortedHistory) {
-      const logDate = log.createdAt instanceof Timestamp ? log.createdAt.toDate() : new Date(log.createdAt as string);
-      
-      if (isAfter(logDate, endOfTargetDay)) {
-        break; // Stop processing logs after the target day
-      }
-
-      let currentItemState: Item;
-      
-      const originalItem = originalItemsMap.get(log.itemId);
-
-      if (log.type === 'add' || log.type === 'initial') {
-        if (originalItem) {
-          // Find the item details as they were when added
-          // This is a simplification; a true audit log would store the item's state in the log itself.
-          // For now, we use the current item details and set the historical quantity.
-           currentItemState = { ...originalItem, quantity: log.newQuantity };
-           itemStates.set(log.itemId, currentItemState);
-        }
-      } else if (log.type === 'update') {
-        if (originalItem) {
-          // Similar to 'add', we're taking a shortcut by using current item data.
-          // A more robust system would store the changed fields in the history log.
-          currentItemState = { ...originalItem, quantity: log.newQuantity };
-          itemStates.set(log.itemId, currentItemState);
-        }
-      } else if (log.type === 'quantity') {
-        const item = itemStates.get(log.itemId);
+    // "Rewind" the changes
+    for (const log of logsToRewind) {
+        const item = snapshotItems.get(log.itemId);
         if (item) {
-          item.quantity = log.newQuantity;
-          itemStates.set(log.itemId, item);
+            // To reverse a change, we subtract it.
+            // newQuantity = oldQuantity + change  =>  oldQuantity = newQuantity - change
+            const reversedChange = -log.change;
+            item.quantity += reversedChange;
+            snapshotItems.set(log.itemId, item);
+        } else if (log.type === 'add' || log.type === 'initial') {
+            // If the item was added after the snapshot date, it didn't exist then.
+            snapshotItems.delete(log.itemId);
         }
-      } else if (log.type === 'delete') {
-        itemStates.delete(log.itemId);
-      }
+        // We don't need to handle 'delete' because we started with all items.
+        // If an item was deleted after the snapshot date, it must have existed on that date.
+        // We also don't rewind name/value changes in this simplified model.
     }
     
-    // Convert map to array and ensure all items have full properties
-    return Array.from(itemStates.values());
+    return Array.from(snapshotItems.values());
 }, [history, items]);
 
 
