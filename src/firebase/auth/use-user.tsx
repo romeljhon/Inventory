@@ -57,7 +57,6 @@ export function useUser() {
         setLoading(false);
       },
       (error) => {
-        console.error("Auth state change error:", error);
         setError(error);
         setLoading(false);
       }
