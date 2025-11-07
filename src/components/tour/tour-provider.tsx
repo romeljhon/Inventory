@@ -3,7 +3,7 @@
 
 import { ShepherdTour, ShepherdTourContext } from 'react-shepherd';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useContext, useEffect, useCallback } from 'react';
+import { useContext, useEffect, useCallback, Suspense } from 'react';
 import 'shepherd.js/dist/css/shepherd.css';
 import './tour-styles.css';
 
@@ -185,8 +185,10 @@ function Tour() {
 export function TourProvider({ children }: { children: React.ReactNode }) {
   return (
     <ShepherdTour tourOptions={tourOptions} steps={[]}>
+      <Suspense fallback={null}>
         <Tour/>
-        {children}
+      </Suspense>
+      {children}
     </ShepherdTour>
   );
 }
