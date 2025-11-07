@@ -58,8 +58,8 @@ export default function SetupPage() {
             title: "Welcome!",
             description: "Your business has been created successfully."
         });
-        // Redirect to dashboard with a query param to start the tour
-        router.push('/dashboard?tour=true');
+        // Redirect to dashboard
+        router.push('/dashboard');
     } else {
         setIsSubmitting(false);
         toast({
