@@ -47,10 +47,10 @@ export interface Business {
 }
 
 export interface Employee {
-  id: string; // Corresponds to the user's UID
-  email: string;
+  id: string;
   name: string;
-  role: 'admin' | 'staff'; // Or other roles you might have
+  email: string;
+  role: 'Admin' | 'Staff';
   branchId: string;
   createdAt: FieldValue | string;
 }

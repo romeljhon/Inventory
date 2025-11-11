@@ -38,6 +38,37 @@
       },
       "required": ["name", "createdAt"]
     },
+    "employee": {
+      "title": "Employee",
+      "description": "Represents an employee of a business, linked to a user account.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The full name of the employee."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The employee's email address, used for inviting them."
+        },
+        "branchId": {
+          "type": "string",
+          "description": "The ID of the branch the employee is assigned to."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["Admin", "Staff"],
+          "description": "The role of the employee within the business."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the employee was added."
+        }
+      },
+      "required": ["name", "email", "branchId", "role", "createdAt"]
+    },
     "item": {
       "title": "Inventory Item",
       "description": "Represents an item in the inventory. It can be a finished product or a raw component.",
@@ -173,7 +204,7 @@
       },
       "required": ["itemId", "itemName", "change", "newQuantity", "type", "createdAt"]
     },
-     "userProfile": {
+    "userProfile": {
       "title": "User Profile",
       "description": "Represents a user's public profile information.",
       "type": "object",
@@ -190,7 +221,7 @@
           "format": "email"
         }
       },
-       "required": ["displayName", "email"]
+      "required": ["displayName", "email"]
     }
   },
   "auth": {
@@ -208,6 +239,12 @@
         "$ref": "#/entities/branch"
       },
       "description": "Sub-collection for branches within a business."
+    },
+    "/businesses/{businessId}/employees/{employeeId}": {
+      "schema": {
+        "$ref": "#/entities/employee"
+      },
+      "description": "Sub-collection for employees within a business."
     },
     "/businesses/{businessId}/branches/{branchId}/items/{itemId}": {
       "schema": {

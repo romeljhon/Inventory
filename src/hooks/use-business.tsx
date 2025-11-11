@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useRouter } from 'next/navigation';
 import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
-import type { Business, Branch, Item, Category, InventoryHistory } from '@/lib/types';
+import type { Business, Branch, Item, Category, InventoryHistory, Employee } from '@/lib/types';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -17,6 +17,7 @@ interface BusinessContextType {
   business: Business | null; // The active business
   businesses: Business[]; // All businesses for the user
   branches: Branch[];
+  employees: Employee[];
   activeBranch: Branch | null;
   isLoading: boolean;
   isNewUser: boolean;
@@ -25,6 +26,9 @@ interface BusinessContextType {
   deleteBranch: (branchId: string) => Promise<void>;
   updateBusiness: (businessId: string, newName: string) => Promise<void>;
   updateBranch: (branchId: string, newName: string) => Promise<void>;
+  addEmployee: (employeeData: Omit<Employee, "id" | "createdAt">) => Promise<Employee | undefined>;
+  updateEmployee: (employeeId: string, employeeData: Partial<Omit<Employee, "id" | "createdAt">>) => Promise<void>;
+  deleteEmployee: (employeeId: string) => Promise<void>;
   switchBusiness: (businessId: string | null) => void;
   switchBranch: (branchId: string | null) => void;
 }
@@ -63,12 +67,20 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { data: branchesData, loading: branchesLoading } = useCollection<Branch>(branchesCollectionRef);
   const branches = useMemo(() => branchesData || [], [branchesData]);
   
+  // 3. Fetch employees for the currently active business
+  const employeesCollectionRef = useMemo(() =>
+    firestore && activeBusinessId ? collection(firestore, 'businesses', activeBusinessId, 'employees') : null,
+    [firestore, activeBusinessId]
+  );
+  const { data: employeesData, loading: employeesLoading } = useCollection<Employee>(employeesCollectionRef);
+  const employees = useMemo(() => employeesData || [], [employeesData]);
+
   // --- Derived State ---
   
   const business = useMemo(() => businesses.find(b => b.id === activeBusinessId) || null, [businesses, activeBusinessId]);
   const activeBranch = useMemo(() => branches?.find(b => b.id === activeBranchId) || null, [branches, activeBranchId]);
 
-  const isLoading = userLoading || isBusinessLogicLoading;
+  const isLoading = userLoading || isBusinessLogicLoading || employeesLoading;
 
   // --- Business Logic Effects ---
   
@@ -271,10 +283,59 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [firestore, business?.id, activeBranch?.id, switchBranch]);
 
+  const addEmployee = useCallback(async (employeeData: Omit<Employee, "id" | "createdAt">): Promise<Employee | undefined> => {
+    if (!employeesCollectionRef) return;
+    const newEmployeeData = {
+      ...employeeData,
+      createdAt: serverTimestamp(),
+    };
+    const docRef = await addDoc(employeesCollectionRef, newEmployeeData)
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: employeesCollectionRef.path,
+          operation: 'create',
+          requestResourceData: newEmployeeData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        return null;
+      });
+    
+    if (!docRef) return undefined;
+    
+    return { id: docRef.id, ...newEmployeeData } as Employee;
+
+  }, [employeesCollectionRef]);
+
+  const updateEmployee = useCallback(async (employeeId: string, employeeData: Partial<Omit<Employee, "id" | "createdAt">>) => {
+    if (!employeesCollectionRef) return;
+    const employeeDocRef = doc(employeesCollectionRef, employeeId);
+    await updateDoc(employeeDocRef, employeeData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: employeeDocRef.path,
+        operation: 'update',
+        requestResourceData: employeeData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  }, [employeesCollectionRef]);
+  
+  const deleteEmployee = useCallback(async (employeeId: string) => {
+    if (!employeesCollectionRef) return;
+    const employeeDocRef = doc(employeesCollectionRef, employeeId);
+    await deleteDoc(employeeDocRef).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: employeeDocRef.path,
+        operation: 'delete',
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  }, [employeesCollectionRef]);
+
   const contextValue = useMemo(() => ({
     business,
     businesses,
     branches,
+    employees,
     activeBranch,
     isLoading,
     isNewUser,
@@ -283,9 +344,30 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     deleteBranch,
     updateBusiness,
     updateBranch,
+    addEmployee,
+    updateEmployee,
+    deleteEmployee,
     switchBusiness,
     switchBranch
-  }), [business, businesses, branches, activeBranch, isLoading, isNewUser, setupBusiness, addBranch, deleteBranch, updateBusiness, updateBranch, switchBusiness, switchBranch]);
+  }), [
+    business, 
+    businesses, 
+    branches, 
+    employees,
+    activeBranch, 
+    isLoading, 
+    isNewUser, 
+    setupBusiness, 
+    addBranch, 
+    deleteBranch, 
+    updateBusiness, 
+    updateBranch,
+    addEmployee,
+    updateEmployee,
+    deleteEmployee,
+    switchBusiness, 
+    switchBranch
+  ]);
 
   return (
     <BusinessContext.Provider value={contextValue}>
