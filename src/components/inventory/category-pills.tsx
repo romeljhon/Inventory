@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,13 +17,6 @@ export function CategoryPills({
 }: CategoryPillsProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Badge
-        variant={activeCategory === null ? "default" : "secondary"}
-        onClick={() => onSelectCategory(null)}
-        className="cursor-pointer transition-transform hover:scale-105"
-      >
-        All Items
-      </Badge>
       {categories.map((category) => (
         <Badge
           key={category.id}

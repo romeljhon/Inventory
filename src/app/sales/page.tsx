@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign, Building } from "lucide-react";
+import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign, Building, Pointer } from "lucide-react";
 import { CategoryPills } from "@/components/inventory/category-pills";
 import type { Item, Recipe } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -93,11 +93,18 @@ export default function SalesPage() {
   }, [items, recipes, cart]);
 
   const filteredItems = useMemo(() => {
+    // If no category is selected, show no items.
+    if (!activeCategory) {
+      return [];
+    }
+
     return (sellableItems || [])
       .filter((item) => {
-        if (activeCategory && item.categoryId !== activeCategory) {
+        // Filter by the active category.
+        if (item.categoryId !== activeCategory) {
           return false;
         }
+        // Further filter by search term if it exists.
         if (searchTerm) {
           return item.name.toLowerCase().includes(searchTerm.toLowerCase());
         }
@@ -237,6 +244,7 @@ export default function SalesPage() {
                           className="pl-9"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
+                          disabled={!activeCategory}
                         />
                       </div>
                       <CategoryPills
@@ -285,7 +293,16 @@ export default function SalesPage() {
                         </Table>
                       </div>
                     )}
-                    {filteredItems.length === 0 && !isLoading && (
+                    {!activeCategory && !isLoading && (
+                        <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+                            <Pointer className="h-12 w-12 text-muted-foreground/80" />
+                            <h3 className="text-xl font-semibold">Select a Category</h3>
+                            <p className="text-muted-foreground">
+                            Please select a category above to view available products.
+                            </p>
+                        </div>
+                    )}
+                    {activeCategory && filteredItems.length === 0 && !isLoading && (
                         <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
                             <Package className="h-12 w-12 text-muted-foreground/80" />
                             <h3 className="text-xl font-semibold">No Products Found</h3>
@@ -386,5 +403,3 @@ export default function SalesPage() {
     </SidebarLayout>
   );
 }
-
-    
