@@ -8,14 +8,13 @@ import { Icons } from '@/components/icons';
 import {
   BarChart,
   Package,
-  Smartphone,
-  Users,
+  Camera,
   Menu,
-  X,
   Building,
   PlusCircle,
   BookCopy,
   ShoppingCart,
+  Receipt,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -151,23 +150,32 @@ export function LandingPage() {
                   <Package className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  Inventory Tracking
+                  Component & Product Tracking
                 </h3>
                 <p className="text-muted-foreground">
-                  Keep a real-time record of all your items across multiple
-                  branches.
+                  Manage raw materials (components) and finished goods (products) in one place.
                 </p>
               </div>
               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Users className="h-6 w-6" />
+                  <BookCopy className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  Multi-Branch Support
+                  Recipe Management
                 </h3>
                 <p className="text-muted-foreground">
-                  Manage inventory for all your locations from a single, unified
-                  dashboard.
+                  Define recipes to automatically calculate product stock from available components.
+                </p>
+              </div>
+               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <ShoppingCart className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Sales Terminal (POS)
+                </h3>
+                <p className="text-muted-foreground">
+                  Process sales with automatic component deduction based on your product recipes.
                 </p>
               </div>
               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
@@ -175,23 +183,43 @@ export function LandingPage() {
                   <BarChart className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  Insightful Analytics
+                  Dashboard & Reports
                 </h3>
                 <p className="text-muted-foreground">
-                  Get valuable insights into sales, stock levels, and inventory
-                  value.
+                  Get valuable insights into sales, stock levels, and inventory value in real-time.
                 </p>
               </div>
               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Smartphone className="h-6 w-6" />
+                  <Building className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  Sales Terminal (POS)
+                  Multi-Branch Support
                 </h3>
                 <p className="text-muted-foreground">
-                  Process sales directly from your inventory, with automatic stock
-                  deductions.
+                  Manage inventory for all your locations from a single, unified dashboard.
+                </p>
+              </div>
+               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Camera className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Historical Snapshots
+                </h3>
+                <p className="text-muted-foreground">
+                  View a snapshot of your complete inventory from any date in the past.
+                </p>
+              </div>
+               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Receipt className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Sales & History Logs
+                </h3>
+                <p className="text-muted-foreground">
+                  Track every sale and inventory change with a detailed, exportable history log.
                 </p>
               </div>
             </div>
@@ -301,5 +329,3 @@ export function LandingPage() {
     </div>
   );
 }
-
-    
