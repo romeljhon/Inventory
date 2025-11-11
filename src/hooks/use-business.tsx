@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Business, Branch, Item, Category, InventoryHistory } from '@/lib/types';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -23,6 +23,7 @@ interface BusinessContextType {
   setupBusiness: (businessName: string, initialBranchName: string) => Promise<Business | undefined>;
   addBranch: (branchName: string) => Promise<Branch | undefined>;
   deleteBranch: (branchId: string) => Promise<void>;
+  updateBusiness: (businessId: string, newName: string) => Promise<void>;
   switchBusiness: (businessId: string | null) => void;
   switchBranch: (branchId: string | null) => void;
 }
@@ -182,6 +183,21 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     
   }, [firestore, user]);
 
+  const updateBusiness = useCallback(async (businessId: string, newName: string): Promise<void> => {
+    if (!firestore) return;
+    const businessDocRef = doc(firestore, 'businesses', businessId);
+    await updateDoc(businessDocRef, { name: newName }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: businessDocRef.path,
+        operation: 'update',
+        requestResourceData: { name: newName },
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      throw serverError;
+    });
+  }, [firestore]);
+
+
   const addBranch = useCallback(async (branchName: string): Promise<Branch | undefined> => {
     if (!branchesCollectionRef) return undefined;
 
@@ -250,9 +266,10 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     setupBusiness,
     addBranch,
     deleteBranch,
+    updateBusiness,
     switchBusiness,
     switchBranch
-  }), [business, businesses, branches, activeBranch, isLoading, isNewUser, setupBusiness, addBranch, deleteBranch, switchBusiness, switchBranch]);
+  }), [business, businesses, branches, activeBranch, isLoading, isNewUser, setupBusiness, addBranch, deleteBranch, updateBusiness, switchBusiness, switchBranch]);
 
   return (
     <BusinessContext.Provider value={contextValue}>

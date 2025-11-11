@@ -30,24 +30,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy, Edit } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Icons } from "@/components/icons";
 import { useState } from "react";
 import { AddBusinessDialog } from "./businesses/add-business-dialog";
+import { EditBusinessDialog } from "./businesses/edit-business-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const { business, businesses, activeBranch, switchBranch, switchBusiness, isUserLoading, setupBusiness } = useBusiness();
+  const { business, businesses, activeBranch, switchBranch, switchBusiness, isUserLoading, setupBusiness, updateBusiness } = useBusiness();
   const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
 
   const [isAddBusinessOpen, setIsAddBusinessOpen] = useState(false);
+  const [isEditBusinessOpen, setIsEditBusinessOpen] = useState(false);
 
 
   const handleLogout = async () => {
@@ -74,6 +76,16 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
       router.push('/dashboard');
     }
   };
+  
+  const handleSaveBusiness = async (newName: string) => {
+    if (business) {
+      await updateBusiness(business.id, newName);
+      toast({
+        title: "Business Updated",
+        description: `Your business has been renamed to ${newName}.`
+      });
+    }
+  }
 
 
   return (
@@ -104,6 +116,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                <DropdownMenuItem onSelect={() => setIsAddBusinessOpen(true)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 <span>Create New Business</span>
+              </DropdownMenuItem>
+               <DropdownMenuItem onSelect={() => setIsEditBusinessOpen(true)} disabled={!business}>
+                <Edit className="mr-2 h-4 w-4" />
+                <span>Edit Business Name</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -211,6 +227,12 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         isOpen={isAddBusinessOpen}
         onOpenChange={setIsAddBusinessOpen}
         onSave={handleSaveNewBusiness}
+      />
+       <EditBusinessDialog 
+        isOpen={isEditBusinessOpen}
+        onOpenChange={setIsEditBusinessOpen}
+        onSave={handleSaveBusiness}
+        currentName={business?.name || ''}
       />
     </SidebarProvider>
   );
