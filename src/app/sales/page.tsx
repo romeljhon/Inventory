@@ -90,7 +90,7 @@ export default function SalesPage() {
   }, [sellableItems, searchTerm, activeCategory]);
 
   const addToCart = (item: Item) => {
-    setCart((currentCart) => {
+    setCart((currentCart = []) => {
       const existingItem = currentCart.find((cartItem) => cartItem.id === item.id);
       if (existingItem) {
         // If item is already in cart, increase its quantity by 1, if stock allows
@@ -106,7 +106,7 @@ export default function SalesPage() {
   };
   
   const updateCartQuantity = (itemId: string, change: number) => {
-    setCart((currentCart) => {
+    setCart((currentCart = []) => {
       const existingItem = currentCart.find((cartItem) => cartItem.id === itemId);
       if (!existingItem) return currentCart;
 
@@ -117,7 +117,7 @@ export default function SalesPage() {
   };
 
   const setCartQuantity = (itemId: string, newQuantity: number) => {
-      setCart((currentCart) => {
+      setCart((currentCart = []) => {
         const existingItem = currentCart.find((cartItem) => cartItem.id === itemId);
         if (!existingItem) return currentCart;
         
@@ -138,7 +138,7 @@ export default function SalesPage() {
   };
 
   const removeFromCart = (itemId: string) => {
-    setCart((currentCart) => currentCart.filter((item) => item.id !== itemId));
+    setCart((currentCart = []) => currentCart.filter((item) => item.id !== itemId));
   };
   
   const formatCurrency = (amount: number) => {
@@ -149,7 +149,7 @@ export default function SalesPage() {
   };
 
   const cartTotal = useMemo(() => {
-    return cart.reduce((total, item) => total + item.value * item.saleQuantity, 0);
+    return (cart || []).reduce((total, item) => total + item.value * item.saleQuantity, 0);
   }, [cart]);
 
   const completeSale = () => {
