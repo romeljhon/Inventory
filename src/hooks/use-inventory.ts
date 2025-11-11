@@ -217,12 +217,26 @@ export function useInventory(branchId: string | undefined) {
 
 
   const deleteItem = useCallback(async (id: string) => {
-    if (!itemsCollection || !items) return;
+    if (!firestore || !itemsCollection || !items || !recipesCollection) return;
+    
     const deletedItem = items.find(item => item.id === id);
     if (!deletedItem) return;
+
+    const batch = writeBatch(firestore);
     
     const itemDoc = doc(itemsCollection, id);
-    deleteDoc(itemDoc).then(() => {
+    batch.delete(itemDoc);
+    
+    // If the deleted item is a product, also delete its recipe
+    if (deletedItem.itemType === 'Product') {
+        const recipeToDelete = recipes.find(r => r.productId === id);
+        if (recipeToDelete) {
+            const recipeDoc = doc(recipesCollection, recipeToDelete.id);
+            batch.delete(recipeDoc);
+        }
+    }
+
+    batch.commit().then(() => {
         addHistory({
             itemId: id,
             itemName: deletedItem.name,
@@ -237,7 +251,7 @@ export function useInventory(branchId: string | undefined) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-  }, [itemsCollection, items, addHistory]);
+  }, [firestore, itemsCollection, items, recipes, recipesCollection, addHistory]);
 
   const addCategory = useCallback(async (name: string): Promise<Category> => {
     if (!categoriesCollection || !categories) {
