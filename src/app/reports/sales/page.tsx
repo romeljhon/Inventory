@@ -28,6 +28,7 @@ import { startOfDay, startOfWeek, startOfMonth, startOfYear, format } from "date
 import type { InventoryHistory, Item } from "@/lib/types";
 import { downloadCSV } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Timestamp } from "firebase/firestore";
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
 type SaleData = {
@@ -52,6 +53,13 @@ export default function SalesReportPage() {
     }).format(amount);
   };
   
+  const getDate = (timestamp: any): Date => {
+    if (timestamp instanceof Timestamp) {
+      return timestamp.toDate();
+    }
+    return new Date(timestamp);
+  };
+
   const salesData = useMemo(() => {
     if (!history || !items) return [];
 
@@ -68,7 +76,7 @@ export default function SalesReportPage() {
           itemName: log.itemName,
           quantitySold: quantitySold,
           totalRevenue: totalRevenue,
-          timestamp: new Date(log.createdAt as string),
+          timestamp: getDate(log.createdAt),
         };
       })
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
