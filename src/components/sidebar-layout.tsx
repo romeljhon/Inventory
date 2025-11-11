@@ -139,12 +139,12 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/sales"}>
-                    <Link href="/sales">
-                        <ShoppingCart />
-                        Sales
-                    </Link>
-                </SidebarMenuButton>
+              <SidebarMenuButton asChild isActive={pathname === "/categories"}>
+                <Link href="/categories">
+                  <Shapes />
+                  Categories
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === "/inventory"}>
@@ -159,14 +159,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/recipes">
                   <BookCopy />
                   Recipes
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/categories"}>
-                <Link href="/categories">
-                  <Shapes />
-                  Categories
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -191,6 +183,14 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     <Link href="/snapshots">
                         <Camera />
                         Snapshots
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/sales"}>
+                    <Link href="/sales">
+                        <ShoppingCart />
+                        Sales
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
