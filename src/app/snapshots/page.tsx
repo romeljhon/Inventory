@@ -23,7 +23,7 @@ import {
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import { format } from "date-fns";
 import type { Item } from "@/lib/types";
-import { Camera, Building, Download } from "lucide-react";
+import { Camera, Building, Download, Component, PackagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { downloadCSV } from "@/lib/utils";
@@ -43,6 +43,10 @@ export default function SnapshotsPage() {
     return getInventorySnapshot(selectedDate);
   }, [selectedDate, getInventorySnapshot]);
 
+  const productItems = useMemo(() => snapshotData.filter(item => item.itemType === 'Product'), [snapshotData]);
+  const componentItems = useMemo(() => snapshotData.filter(item => item.itemType === 'Component'), [snapshotData]);
+
+
   const handleDateChange = (dateString: string) => {
     setSelectedDate(dateString);
   };
@@ -61,6 +65,7 @@ export default function SnapshotsPage() {
       id: item.id,
       name: item.name,
       description: item.description,
+      type: item.itemType,
       category: categories.find(c => c.id === item.categoryId)?.name || "Uncategorized",
       quantity: item.quantity,
       unitType: item.unitType,
@@ -152,16 +157,48 @@ export default function SnapshotsPage() {
                 {isLoading ? (
                     <div className="text-center py-8">Loading snapshot...</div>
                 ) : selectedDate && snapshotData.length > 0 ? (
-                  <InventoryTable
-                    items={snapshotData}
-                    categories={categories}
-                    pendingChanges={{}}
-                    onEditItem={() => {}}
-                    onDeleteItem={() => {}}
-                    onUpdateQuantity={() => {}}
-                    isLoading={isLoading}
-                    isCompact={false}
-                  />
+                  <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <PackagePlus />
+                                Products
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <InventoryTable
+                                items={productItems}
+                                categories={categories}
+                                pendingChanges={{}}
+                                onEditItem={() => {}}
+                                onDeleteItem={() => {}}
+                                onUpdateQuantity={() => {}}
+                                isLoading={isLoading}
+                                itemType="Product"
+                            />
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Component />
+                                Components
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                           <InventoryTable
+                                items={componentItems}
+                                categories={categories}
+                                pendingChanges={{}}
+                                onEditItem={() => {}}
+                                onDeleteItem={() => {}}
+                                onUpdateQuantity={() => {}}
+                                isLoading={isLoading}
+                                itemType="Component"
+                            />
+                        </CardContent>
+                    </Card>
+                  </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-muted-foreground/30 py-16 text-center">
                         <Camera className="h-12 w-12 text-muted-foreground/80" />
@@ -179,3 +216,5 @@ export default function SnapshotsPage() {
     </SidebarLayout>
   );
 }
+
+    

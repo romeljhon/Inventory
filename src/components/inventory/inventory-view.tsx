@@ -18,7 +18,7 @@ import { ItemFormDialog } from "@/components/inventory/item-form-dialog";
 import { DeleteItemAlert } from "@/components/inventory/delete-item-alert";
 import { StartNewCountAlert } from "@/components/inventory/start-new-count-alert";
 import { useToast } from "@/hooks/use-toast";
-import { History, ArrowLeft } from "lucide-react";
+import { History, ArrowLeft, PackagePlus, Component } from "lucide-react";
 import { downloadCSV } from "@/lib/utils";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,7 @@ export function InventoryView({ branch }: InventoryViewProps) {
     const possibleQuantities = recipe.components.map(component => {
       const componentItem = allItems.find(i => i.id === component.itemId);
       if (!componentItem) return 0;
+      if (component.quantity === 0) return Infinity; // Avoid division by zero
       return Math.floor(componentItem.quantity / component.quantity);
     });
 
@@ -173,6 +174,9 @@ export function InventoryView({ branch }: InventoryViewProps) {
       .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
   }, [itemsWithPendingChanges, searchTerm, activeCategory]);
 
+  const productItems = useMemo(() => filteredItems.filter(item => item.itemType === 'Product'), [filteredItems]);
+  const componentItems = useMemo(() => filteredItems.filter(item => item.itemType === 'Component'), [filteredItems]);
+
   const pendingChangesSummary = useMemo(() => {
     if (!hasPendingChanges || !items) return null;
 
@@ -250,6 +254,7 @@ export function InventoryView({ branch }: InventoryViewProps) {
       id: item.id,
       name: item.name,
       description: item.description,
+      type: item.itemType,
       category: categories.find(c => c.id === item.categoryId)?.name || "Uncategorized",
       quantity: item.quantity,
       unitType: item.unitType,
@@ -283,31 +288,63 @@ export function InventoryView({ branch }: InventoryViewProps) {
           onCancel={handleCancel}
           pendingChangesSummary={pendingChangesSummary}
         />
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventory List</CardTitle>
-            <CardDescription>
-              A list of all items in your inventory for this branch. Product quantities are calculated from component stock.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="space-y-4">
             <CategoryPills
               categories={categories}
               activeCategory={activeCategory}
               onSelectCategory={setActiveCategory}
             />
-            <InventoryTable
-              items={filteredItems}
-              originalItems={items}
-              categories={categories}
-              pendingChanges={pendingChanges}
-              onEditItem={handleOpenForm}
-              onDeleteItem={handleOpenDeleteAlert}
-              onUpdateQuantity={handleQuantityChange}
-              isLoading={isLoading}
-            />
-          </CardContent>
-        </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <PackagePlus />
+                        Products
+                    </CardTitle>
+                    <CardDescription>
+                    Finished goods available to sell. Quantities are calculated automatically from component stock based on recipes.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <InventoryTable
+                        items={productItems}
+                        originalItems={items}
+                        categories={categories}
+                        pendingChanges={pendingChanges}
+                        onEditItem={handleOpenForm}
+                        onDeleteItem={handleOpenDeleteAlert}
+                        onUpdateQuantity={handleQuantityChange}
+                        isLoading={isLoading}
+                        itemType="Product"
+                    />
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Component />
+                        Components
+                    </CardTitle>
+                    <CardDescription>
+                    Raw materials and ingredients used to create products. You can edit quantities here.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <InventoryTable
+                        items={componentItems}
+                        originalItems={items}
+                        categories={categories}
+                        pendingChanges={pendingChanges}
+                        onEditItem={handleOpenForm}
+                        onDeleteItem={handleOpenDeleteAlert}
+                        onUpdateQuantity={handleQuantityChange}
+                        isLoading={isLoading}
+                        itemType="Component"
+                    />
+                </CardContent>
+            </Card>
+        </div>
 
         {hasPendingChanges && (
            <Accordion type="single" collapsible className="w-full">
@@ -335,7 +372,6 @@ export function InventoryView({ branch }: InventoryViewProps) {
                       onDeleteItem={() => {}}
                       onUpdateQuantity={() => {}}
                       isLoading={isLoading}
-                      isCompact={false}
                     />
                   </CardContent>
                 </Card>
@@ -367,3 +403,5 @@ export function InventoryView({ branch }: InventoryViewProps) {
     </div>
   );
 }
+
+    

@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Edit, Minus, Plus, Trash2, Package, ArrowRight, CalendarClock, CalendarX2 } from "lucide-react";
+import { Edit, Minus, Plus, Trash2, Package, ArrowRight, CalendarClock, CalendarX2, Component, PackagePlus } from "lucide-react";
 import type { Item, Category } from "@/lib/types";
 import { LOW_STOCK_THRESHOLD } from "@/hooks/use-inventory";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ interface InventoryTableProps {
   onUpdateQuantity: (id: string, newQuantity: number) => void;
   isLoading: boolean;
   isCompact?: boolean;
+  itemType?: 'Product' | 'Component';
 }
 
 export function InventoryTable({
@@ -42,6 +43,7 @@ export function InventoryTable({
   onUpdateQuantity,
   isLoading,
   isCompact = false,
+  itemType,
 }: InventoryTableProps) {
   const getCategory = (id: string) => {
     return categories.find((c) => c.id === id);
@@ -83,13 +85,25 @@ export function InventoryTable({
   }
   
   if (!items || items.length === 0) {
+    let emptyStateIcon = <Package className="h-12 w-12 text-muted-foreground/80" />;
+    let emptyStateTitle = "No Items Found";
+    let emptyStateDescription = "There are no items to display for the current selection.";
+
+    if (itemType === 'Product') {
+        emptyStateIcon = <PackagePlus className="h-12 w-12 text-muted-foreground/80" />;
+        emptyStateTitle = "No Products Found";
+        emptyStateDescription = "Products are finished goods made from components via recipes.";
+    } else if (itemType === 'Component') {
+        emptyStateIcon = <Component className="h-12 w-12 text-muted-foreground/80" />;
+        emptyStateTitle = "No Components Found";
+        emptyStateDescription = "Components are the raw materials used to create products.";
+    }
+
     return (
       <div className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-muted-foreground/30 py-16 text-center">
-        <Package className="h-12 w-12 text-muted-foreground/80" />
-        <h3 className="text-xl font-semibold">No Items Found</h3>
-        <p className="text-muted-foreground">
-          There are no items to display for the current selection.
-        </p>
+        {emptyStateIcon}
+        <h3 className="text-xl font-semibold">{emptyStateTitle}</h3>
+        <p className="text-muted-foreground">{emptyStateDescription}</p>
       </div>
     );
   }
@@ -224,3 +238,5 @@ export function InventoryTable({
     </TooltipProvider>
   );
 }
+
+    
