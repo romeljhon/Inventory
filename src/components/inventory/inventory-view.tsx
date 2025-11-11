@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Item, Branch } from "@/lib/types";
+import type { Item, Branch, Recipe } from "@/lib/types";
 import { useInventory } from "@/hooks/use-inventory";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -31,6 +31,7 @@ interface InventoryViewProps {
 export function InventoryView({ branch }: InventoryViewProps) {
   const {
     items,
+    recipes,
     categories,
     addItem,
     updateItem,
@@ -55,9 +56,50 @@ export function InventoryView({ branch }: InventoryViewProps) {
   const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({});
   const hasPendingChanges = Object.keys(pendingChanges).length > 0;
 
+  const getProductStock = (productId: string, allRecipes: Recipe[], allItems: Item[]): number => {
+    const recipe = allRecipes.find(r => r.productId === productId);
+    if (!recipe) {
+      const item = allItems.find(i => i.id === productId);
+      return item?.quantity ?? 0;
+    }
+    
+    if (!recipe.components || recipe.components.length === 0) {
+      return 0;
+    }
+
+    const possibleQuantities = recipe.components.map(component => {
+      const componentItem = allItems.find(i => i.id === component.itemId);
+      if (!componentItem) return 0;
+      return Math.floor(componentItem.quantity / component.quantity);
+    });
+
+    return Math.min(...possibleQuantities);
+  };
+  
+  const displayedItems = useMemo(() => {
+    if (!items || !recipes) return [];
+    
+    return items.map(item => {
+      if (item.itemType === 'Product') {
+        const stock = getProductStock(item.id, recipes, items);
+        return { ...item, quantity: stock };
+      }
+      return item;
+    });
+  }, [items, recipes]);
+
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     const originalItem = items.find(i => i.id === itemId);
     if (!originalItem) return;
+
+    if (originalItem.itemType === 'Product') {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Change Product Quantity',
+        description: 'Quantity of products is determined by component stock and recipes. Please update component quantities instead.',
+      });
+      return;
+    }
 
     const clampedNewQuantity = Math.max(0, newQuantity);
 
@@ -74,7 +116,23 @@ export function InventoryView({ branch }: InventoryViewProps) {
   };
 
   const handleSave = () => {
-    batchUpdateQuantities(pendingChanges);
+    const componentChanges = Object.fromEntries(
+        Object.entries(pendingChanges).filter(([itemId, _]) => {
+            const item = items.find(i => i.id === itemId);
+            return item && item.itemType === 'Component';
+        })
+    );
+
+    if (Object.keys(componentChanges).length === 0) {
+        toast({
+            title: "No component changes to save",
+            description: "You can only manually change quantities for components.",
+        });
+        setPendingChanges({}); // Clear product changes
+        return;
+    }
+
+    batchUpdateQuantities(componentChanges);
     setPendingChanges({});
     toast({
       title: "Changes Saved",
@@ -87,14 +145,15 @@ export function InventoryView({ branch }: InventoryViewProps) {
   };
 
   const itemsWithPendingChanges = useMemo(() => {
-    if (!items) return [];
-    if (!hasPendingChanges) return items;
-    return items.map(item => 
+    if (!displayedItems) return [];
+    if (!hasPendingChanges) return displayedItems;
+    
+    return displayedItems.map(item => 
       pendingChanges[item.id] !== undefined
         ? { ...item, quantity: pendingChanges[item.id] }
         : item
     );
-  }, [items, pendingChanges, hasPendingChanges]);
+  }, [displayedItems, pendingChanges, hasPendingChanges]);
 
   const filteredItems = useMemo(() => {
     return itemsWithPendingChanges
@@ -111,7 +170,7 @@ export function InventoryView({ branch }: InventoryViewProps) {
         }
         return true;
       })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
   }, [itemsWithPendingChanges, searchTerm, activeCategory]);
 
   const pendingChangesSummary = useMemo(() => {
@@ -163,15 +222,17 @@ export function InventoryView({ branch }: InventoryViewProps) {
   const handleConfirmStartNewCount = () => {
     const newPendingChanges: Record<string, number> = {};
     if (!items) return;
-    // Also include items that are already 0 if you want them to be part of the count
-     for (const item of items) {
-      newPendingChanges[item.id] = 0;
+
+    for (const item of items) {
+      if (item.itemType === 'Component') {
+        newPendingChanges[item.id] = 0;
+      }
     }
     setPendingChanges(newPendingChanges);
     setIsNewCountAlertOpen(false);
     toast({
       title: "New Count Started",
-      description: "All item quantities set to 0. Update with new counts and save.",
+      description: "All component quantities set to 0. Update with new counts and save.",
     });
   }
 
@@ -195,7 +256,7 @@ export function InventoryView({ branch }: InventoryViewProps) {
       value: item.value,
       totalValue: item.quantity * item.value,
       expirationDate: item.expirationDate ? format(new Date(item.expirationDate), "yyyy-MM-dd") : "",
-      createdAt: format(new Date(item.createdAt), "yyyy-MM-dd HH:mm:ss"),
+      createdAt: format(new Date(item.createdAt as string), "yyyy-MM-dd HH:mm:ss"),
     }));
     
     const branchName = branch.name.replace(/ /g, "_") || "inventory";
@@ -226,7 +287,7 @@ export function InventoryView({ branch }: InventoryViewProps) {
           <CardHeader>
             <CardTitle>Inventory List</CardTitle>
             <CardDescription>
-              A list of all items in your inventory for this branch.
+              A list of all items in your inventory for this branch. Product quantities are calculated from component stock.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -306,5 +367,3 @@ export function InventoryView({ branch }: InventoryViewProps) {
     </div>
   );
 }
-
-    

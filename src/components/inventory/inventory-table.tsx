@@ -137,48 +137,50 @@ export function InventoryTable({
                   {formatCurrency(item.value)}
                 </TableCell>}
                 <TableCell>
-                  <div className={cn("flex items-center gap-1 sm:gap-2", isCompact ? "justify-center" : "justify-center")}>
-                    {!isCompact && <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                      disabled={isCompact || !originalItems || originalItems.length === 0}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>}
-                    <div className="flex flex-col items-center gap-1 font-semibold">
-                       {hasPendingChange && originalItem ? (
-                        <div className="flex items-center gap-1 text-xs">
-                          <span className="text-muted-foreground line-through">{originalItem.quantity}</span>
-                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <div className={cn("flex flex-col items-center gap-1", isCompact ? "justify-center" : "justify-center")}>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        {!isCompact && <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                          disabled={isCompact || item.itemType === 'Product' || !originalItems}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>}
+                        <div className="flex flex-col items-center gap-1 font-semibold">
+                           {hasPendingChange && originalItem ? (
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="text-muted-foreground line-through">{originalItem.quantity}</span>
+                              <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                            </div>
+                          ) : null}
+                          <div className="flex items-center gap-1">
+                              {isCompact || item.itemType === 'Product' || !originalItems || originalItems.length === 0 ? (
+                                 <div className="py-1 px-2">{item.quantity}</div>
+                              ) : (
+                                 <EditableQuantity
+                                    initialValue={item.quantity}
+                                    onSave={(newQuantity) => onUpdateQuantity(item.id, newQuantity)}
+                                />
+                              )}
+                            {item.unitType && <span className="text-xs text-muted-foreground">({item.unitType})</span>}
+                          </div>
                         </div>
-                      ) : null}
-                      <div className="flex items-center gap-1">
-                          {isCompact || !originalItems || originalItems.length === 0 ? (
-                             <div className="py-1 px-2">{item.quantity}</div>
-                          ) : (
-                             <EditableQuantity
-                                initialValue={item.quantity}
-                                onSave={(newQuantity) => onUpdateQuantity(item.id, newQuantity)}
-                            />
-                          )}
-                        {item.unitType && <span className="text-xs text-muted-foreground">({item.unitType})</span>}
-                      </div>
+                        {!isCompact && <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                          disabled={isCompact || item.itemType === 'Product' || !originalItems}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>}
                     </div>
-                    {!isCompact && <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                      disabled={isCompact || !originalItems || originalItems.length === 0}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>}
+                    {item.itemType === 'Component' && item.quantity < LOW_STOCK_THRESHOLD && !isCompact && (
+                         <Badge variant="destructive" className="mt-2 text-center w-full max-w-fit mx-auto">Low Stock</Badge>
+                    )}
                   </div>
-                  {item.quantity < LOW_STOCK_THRESHOLD && !isCompact && (
-                     <Badge variant="destructive" className="mt-2 text-center w-full max-w-fit mx-auto">Low Stock</Badge>
-                  )}
                 </TableCell>
                 {!isCompact && <TableCell className="hidden lg:table-cell text-right font-medium">
                   {formatCurrency(item.value * item.quantity)}

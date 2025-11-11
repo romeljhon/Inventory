@@ -28,8 +28,9 @@ export function StartNewCountAlert({
         <AlertDialogHeader>
           <AlertDialogTitle>Start a new stock count?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action will set all item quantities to 0 as a pending change.
-            You can then input your new counts and save. Your current inventory
+            This action will set all component quantities to 0 as a pending change.
+            Product quantities are calculated automatically and cannot be manually set.
+            You can then input your new counts for components and save. Your current inventory
             levels will not be changed until you save.
           </AlertDialogDescription>
         </AlertDialogHeader>
