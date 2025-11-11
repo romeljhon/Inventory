@@ -69,13 +69,10 @@ export function LandingPage() {
                   </SheetHeader>
                   <div className="flex flex-col h-full">
                     <div className="flex items-center justify-between border-b border-gray-700 pb-4">
-                       <Link href="/" className="flex items-center space-x-2">
+                       <Link href="/" className="flex items-center space-x-2" onClick={() => setIsMobileMenuOpen(false)}>
                           <Icons.logo className="h-6 w-6 text-white" />
                           <span className="font-bold">Inventory</span>
                         </Link>
-                         <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} className="text-white hover:bg-white/10 hover:text-white">
-                            <X className="h-6 w-6" />
-                         </Button>
                     </div>
                     <nav className="flex flex-col items-start gap-6 text-lg font-medium mt-8">
                       <Link
@@ -304,3 +301,5 @@ export function LandingPage() {
     </div>
   );
 }
+
+    
