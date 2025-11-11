@@ -94,7 +94,7 @@ export function LandingPage() {
                       </Link>
                     </nav>
                      <div className="mt-auto flex flex-col gap-4">
-                        <Button asChild variant="outline" size="lg" className="border-gray-700 text-white hover:bg-gray-800 hover:text-white">
+                        <Button asChild variant="outline" size="lg" className="border-gray-700 bg-transparent text-white hover:bg-gray-800 hover:text-white">
                             <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>Login</Link>
                         </Button>
                         <Button asChild size="lg" className="bg-white text-black hover:bg-gray-200">
