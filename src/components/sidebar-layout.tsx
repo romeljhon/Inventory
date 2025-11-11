@@ -35,7 +35,7 @@ import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Icons } from "@/components/icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddBusinessDialog } from "./businesses/add-business-dialog";
 import { EditBusinessDialog } from "./businesses/edit-business-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -50,7 +50,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
   const [isAddBusinessOpen, setIsAddBusinessOpen] = useState(false);
   const [isEditBusinessOpen, setIsEditBusinessOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleLogout = async () => {
     if (auth) {
@@ -198,9 +202,9 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               <Button variant="ghost" className="w-full justify-start gap-3 px-3 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" disabled={isUserLoading}>
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.photoURL || undefined} />
-                  <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
+                  <AvatarFallback>{isClient ? (user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U') : null}</AvatarFallback>
                 </Avatar>
-                <span className="truncate">{user?.displayName || "User"}</span>
+                <span className="truncate">{isClient ? (user?.displayName || "User") : ""}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
