@@ -57,7 +57,25 @@ export default function SalesReportPage() {
     if (timestamp instanceof Timestamp) {
       return timestamp.toDate();
     }
-    return new Date(timestamp);
+    // Attempt to parse if it's a string, otherwise return as is if it's already a Date
+    if (typeof timestamp === 'string') {
+        const parsedDate = new Date(timestamp);
+        if (!isNaN(parsedDate.getTime())) {
+            return parsedDate;
+        }
+    }
+    // Fallback for objects that might be serialized Timestamps or already dates
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    
+    // If it's already a Date object, just return it.
+    if (timestamp instanceof Date) {
+        return timestamp;
+    }
+    
+    // Return a new invalid date if all else fails, so `format` can handle it.
+    return new Date('invalid');
   };
 
   const salesData = useMemo(() => {
@@ -146,10 +164,10 @@ export default function SalesReportPage() {
     }
 
     const dataToExport = filteredSales.map(sale => ({
-      date: format(sale.timestamp, "yyyy-MM-dd HH:mm:ss"),
-      product_name: sale.itemName,
-      quantity_sold: sale.quantitySold,
-      total_revenue: sale.totalRevenue,
+      "Date": format(sale.timestamp, "PP"),
+      "Product Name": sale.itemName,
+      "Quantity Sold": sale.quantitySold,
+      "Total Revenue": sale.totalRevenue,
     }));
 
     const branchName = activeBranch?.name.replace(/ /g, "_") || "branch";
@@ -304,3 +322,5 @@ export default function SalesReportPage() {
     </SidebarLayout>
   );
 }
+
+    
