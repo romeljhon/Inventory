@@ -53,7 +53,7 @@ export default function SetupPage() {
     }
     // If the user is no longer "new" (i.e. they created a business), move them to the dashboard.
     if (!isLoading && user && !isNewUser) {
-      router.replace("/dashboard?tour=true");
+      router.replace("/dashboard");
     }
   }, [isLoading, user, isNewUser, router]);
 
