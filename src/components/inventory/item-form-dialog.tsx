@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -203,6 +202,7 @@ export function ItemFormDialog({
             Fill in the details below. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
+        <div className="overflow-y-auto px-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -404,12 +404,14 @@ export function ItemFormDialog({
                 </div>
              </div>
             
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit">Save</Button>
-            </DialogFooter>
+            
           </form>
         </Form>
+        </div>
+        <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" form="item-form">Save</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

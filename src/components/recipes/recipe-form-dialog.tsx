@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -105,6 +104,7 @@ export function RecipeFormDialog({
             Define the components needed to create a product.
           </DialogDescription>
         </DialogHeader>
+        <div className="overflow-y-auto px-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -204,6 +204,7 @@ export function RecipeFormDialog({
             </DialogFooter>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
