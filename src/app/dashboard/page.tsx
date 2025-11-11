@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp, CalendarX2, Trash2 } from "lucide-react";
+import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp, CalendarX2, Trash2, Edit } from "lucide-react";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import type { Branch } from "@/lib/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +38,8 @@ import { startOfDay, startOfWeek, startOfMonth, startOfYear, isBefore } from "da
 import { AddBranchDialog } from "@/components/branches/add-branch-dialog";
 import { DeleteBranchAlert } from "@/components/branches/delete-branch-alert";
 import { Loader2 } from "lucide-react";
+import { EditBranchDialog } from "@/components/branches/edit-branch-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
@@ -378,11 +380,15 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
 }
 
 export default function DashboardPage() {
-  const { business, branches, activeBranch, addBranch, deleteBranch, switchBranch, isLoading: isBusinessLoading } = useBusiness();
+  const { business, branches, activeBranch, addBranch, deleteBranch, switchBranch, isLoading: isBusinessLoading, updateBranch } = useBusiness();
   const router = useRouter();
+  const { toast } = useToast();
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
+
+  const [isEditBranchOpen, setIsEditBranchOpen] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
 
   const handleSelectBranch = (branch: Branch) => {
     switchBranch(branch.id);
@@ -408,6 +414,22 @@ export default function DashboardPage() {
       setDeletingBranch(null);
     }
     setIsDeleteAlertOpen(false);
+  };
+
+  const openEditDialog = (branch: Branch) => {
+    setEditingBranch(branch);
+    setIsEditBranchOpen(true);
+  };
+
+  const handleSaveBranch = async (newName: string) => {
+    if (editingBranch) {
+      await updateBranch(editingBranch.id, newName);
+      toast({
+        title: "Branch Updated",
+        description: `The branch has been renamed to ${newName}.`
+      });
+      setEditingBranch(null);
+    }
   };
   
   const isLoading = isBusinessLoading;
@@ -445,11 +467,23 @@ export default function DashboardPage() {
                     <CardTitle className="text-lg">{branch.name}</CardTitle>
                     <CardDescription>View Dashboard</CardDescription>
                   </div>
-                   <CardFooter className="p-2 border-t">
+                   <CardFooter className="p-2 border-t flex items-center justify-center gap-1">
+                     <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditDialog(branch);
+                      }}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={(e) => {
                         e.stopPropagation();
                         openDeleteDialog(branch);
@@ -457,7 +491,7 @@ export default function DashboardPage() {
                       disabled={branches.length <= 1}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Branch
+                      Delete
                     </Button>
                   </CardFooter>
                 </Card>
@@ -488,6 +522,12 @@ export default function DashboardPage() {
         onOpenChange={setIsDeleteAlertOpen}
         onConfirm={handleConfirmDelete}
         branchName={deletingBranch?.name || ''}
+      />
+       <EditBranchDialog
+        isOpen={isEditBranchOpen}
+        onOpenChange={setIsEditBranchOpen}
+        onSave={handleSaveBranch}
+        currentName={editingBranch?.name || ''}
       />
     </SidebarLayout>
   );

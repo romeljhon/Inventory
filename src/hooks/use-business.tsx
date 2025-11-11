@@ -24,6 +24,7 @@ interface BusinessContextType {
   addBranch: (branchName: string) => Promise<Branch | undefined>;
   deleteBranch: (branchId: string) => Promise<void>;
   updateBusiness: (businessId: string, newName: string) => Promise<void>;
+  updateBranch: (branchId: string, newName: string) => Promise<void>;
   switchBusiness: (businessId: string | null) => void;
   switchBranch: (branchId: string | null) => void;
 }
@@ -197,6 +198,20 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     });
   }, [firestore]);
 
+  const updateBranch = useCallback(async (branchId: string, newName: string): Promise<void> => {
+    if (!firestore || !business?.id) return;
+    const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
+    await updateDoc(branchDocRef, { name: newName }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: branchDocRef.path,
+        operation: 'update',
+        requestResourceData: { name: newName },
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      throw serverError;
+    });
+  }, [firestore, business?.id]);
+
 
   const addBranch = useCallback(async (branchName: string): Promise<Branch | undefined> => {
     if (!branchesCollectionRef) return undefined;
@@ -267,9 +282,10 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     addBranch,
     deleteBranch,
     updateBusiness,
+    updateBranch,
     switchBusiness,
     switchBranch
-  }), [business, businesses, branches, activeBranch, isLoading, isNewUser, setupBusiness, addBranch, deleteBranch, updateBusiness, switchBusiness, switchBranch]);
+  }), [business, businesses, branches, activeBranch, isLoading, isNewUser, setupBusiness, addBranch, deleteBranch, updateBusiness, updateBranch, switchBusiness, switchBranch]);
 
   return (
     <BusinessContext.Provider value={contextValue}>
