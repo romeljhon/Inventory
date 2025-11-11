@@ -22,15 +22,16 @@ service cloud.firestore {
     }
 
     match /businesses/{businessId} {
-      // The owner can do anything.
+      // The owner can do anything with the business document itself.
       allow read, write: if isOwner(businessId);
       
       // An employee can read the main business document.
       allow get: if isEmployee(businessId);
 
-      // Rule for all subcollections within a business (e.g., branches, employees)
-      match /{subcollection}/{docId} {
-        // The owner has full read and write access to all subcollections.
+      // This rule applies to all subcollections (branches, items, recipes, etc.)
+      // within a business, recursively.
+      match /{subcollection=**} {
+        // The owner has full read and write access to all subcollection documents.
         allow read, write: if isOwner(businessId);
       }
     }
