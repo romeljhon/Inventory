@@ -18,6 +18,7 @@ export interface Category {
   id: string;
   name: string;
   color: string;
+  showInSales?: boolean;
 }
 
 export interface RecipeComponent {

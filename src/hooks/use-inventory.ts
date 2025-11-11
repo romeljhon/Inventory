@@ -253,16 +253,16 @@ export function useInventory(branchId: string | undefined) {
     });
   }, [firestore, itemsCollection, items, recipes, recipesCollection, addHistory]);
 
-  const addCategory = useCallback(async (name: string): Promise<Category> => {
+  const addCategory = useCallback(async (name: string, showInSales: boolean = false): Promise<Category> => {
     if (!categoriesCollection || !categories) {
-        return { id: `local-${Date.now()}`, name, color: getRandomColor() };
+        return { id: `local-${Date.now()}`, name, color: getRandomColor(), showInSales };
     }
     const existingCategory = categories.find(c => c.name.toLowerCase() === name.toLowerCase());
     if (existingCategory) {
         return existingCategory;
     }
     
-    const newCategoryData = { name, color: getRandomColor() };
+    const newCategoryData = { name, color: getRandomColor(), showInSales };
     const docRef = await addDoc(categoriesCollection, newCategoryData)
         .catch(async (serverError) => {
             const permissionError = new FirestorePermissionError({
@@ -274,19 +274,19 @@ export function useInventory(branchId: string | undefined) {
             return null;
         });
 
-    if (!docRef) return { id: `local-${Date.now()}`, name, color: newCategoryData.color };
+    if (!docRef) return { id: `local-${Date.now()}`, name, color: newCategoryData.color, showInSales };
     
     return { ...newCategoryData, id: docRef.id };
   }, [categoriesCollection, categories]);
 
-  const updateCategory = useCallback(async (id: string, name: string, color: string) => {
+  const updateCategory = useCallback(async (id: string, data: Partial<Omit<Category, 'id'>>) => {
     if (!categoriesCollection) return;
     const categoryDoc = doc(categoriesCollection, id);
-    updateDoc(categoryDoc, { name, color }).catch(async (serverError) => {
+    updateDoc(categoryDoc, data).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
             path: categoryDoc.path,
             operation: 'update',
-            requestResourceData: { name, color },
+            requestResourceData: data,
         });
         errorEmitter.emit('permission-error', permissionError);
     });

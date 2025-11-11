@@ -39,6 +39,10 @@ export default function SalesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
+  
+  const salesCategories = useMemo(() => {
+    return categories.filter(c => c.showInSales);
+  }, [categories]);
 
   const getProductStock = (productId: string, currentCart: CartItem[], allRecipes: Recipe[], allItems: Item[]): number => {
     const recipe = allRecipes.find(r => r.productId === productId);
@@ -248,7 +252,7 @@ export default function SalesPage() {
                         />
                       </div>
                       <CategoryPills
-                          categories={categories}
+                          categories={salesCategories}
                           activeCategory={activeCategory}
                           onSelectCategory={setActiveCategory}
                         />

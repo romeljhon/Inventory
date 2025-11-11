@@ -32,6 +32,8 @@ import { CategoryForm } from "@/components/categories/category-form";
 import { PlusCircle, Edit, Trash2, Building } from "lucide-react";
 import type { Category } from "@/lib/types";
 import { DeleteCategoryAlert } from "@/components/categories/delete-category-alert";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function CategoriesPage() {
   const { activeBranch } = useBusiness();
@@ -50,11 +52,11 @@ export default function CategoriesPage() {
     setIsFormOpen(true);
   };
 
-  const handleSaveCategory = (name: string, color: string) => {
+  const handleSaveCategory = (data: Partial<Category>) => {
     if (editingCategory) {
-      updateCategory(editingCategory.id, name, color);
+      updateCategory(editingCategory.id, data);
     } else {
-      addCategory(name);
+      addCategory(data.name || '', data.showInSales);
     }
     setIsFormOpen(false);
     setEditingCategory(null);
@@ -71,6 +73,10 @@ export default function CategoriesPage() {
     }
     setIsDeleteAlertOpen(false);
     setDeletingCategory(null);
+  };
+  
+  const handleToggleShowInSales = (category: Category) => {
+    updateCategory(category.id, { showInSales: !category.showInSales });
   };
 
   return (
@@ -106,7 +112,7 @@ export default function CategoriesPage() {
               <CardHeader>
                 <CardTitle>Category List</CardTitle>
                 <CardDescription>
-                  View, create, and edit your item categories for this branch.
+                  View and manage item categories. Use the toggle to control which categories appear on the sales page.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -115,6 +121,7 @@ export default function CategoriesPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Category Name</TableHead>
+                        <TableHead className="w-[150px]">Show in Sales</TableHead>
                         <TableHead className="w-[100px] text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -130,6 +137,14 @@ export default function CategoriesPage() {
                                 />
                                 <span className="font-medium">{category.name}</span>
                               </div>
+                            </TableCell>
+                            <TableCell>
+                               <Switch
+                                  id={`show-in-sales-${category.id}`}
+                                  checked={category.showInSales}
+                                  onCheckedChange={() => handleToggleShowInSales(category)}
+                                  aria-label="Show in sales"
+                                />
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
@@ -154,7 +169,7 @@ export default function CategoriesPage() {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={2} className="h-24 text-center">
+                          <TableCell colSpan={3} className="h-24 text-center">
                             No categories found for this branch.
                           </TableCell>
                         </TableRow>

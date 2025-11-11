@@ -5,11 +5,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import type { Category } from "@/lib/types";
 
 interface CategoryFormProps {
   category: Category | null;
-  onSave: (name: string, color: string) => void;
+  onSave: (data: Partial<Category>) => void;
   onCancel: () => void;
 }
 
@@ -20,16 +21,19 @@ export function CategoryForm({
 }: CategoryFormProps) {
   const [name, setName] = useState("");
   const [color, setColor] = useState("#000000");
+  const [showInSales, setShowInSales] = useState(false);
 
   useEffect(() => {
     if (category) {
       setName(category.name);
       setColor(category.color);
+      setShowInSales(category.showInSales || false);
     } else {
       setName("");
       // Generate a random color for new categories
       const randomColor = `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
       setColor(randomColor);
+      setShowInSales(false);
     }
   }, [category]);
   
@@ -41,7 +45,7 @@ export function CategoryForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
-      onSave(name, color);
+      onSave({ name, color, showInSales });
     }
   };
 
@@ -74,7 +78,15 @@ export function CategoryForm({
           Enter a valid HSL, Hex, or RGB color.
         </p>
       </div>
-      <div className="flex justify-end gap-2">
+       <div className="flex items-center space-x-2">
+        <Switch
+          id="show-in-sales"
+          checked={showInSales}
+          onCheckedChange={setShowInSales}
+        />
+        <Label htmlFor="show-in-sales">Show in Sales Page</Label>
+      </div>
+      <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>

@@ -98,6 +98,10 @@
         "color": {
           "type": "string",
           "description": "A hex or HSL color code for the category."
+        },
+        "showInSales": {
+          "type": "boolean",
+          "description": "Whether this category should appear on the sales page."
         }
       },
       "required": ["name", "color"]
