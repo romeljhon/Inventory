@@ -164,7 +164,7 @@ export default function SalesReportPage() {
     }
 
     const dataToExport = filteredSales.map(sale => ({
-      "Date": format(sale.timestamp, "PP"),
+      "Date": format(sale.timestamp, "yyyy-MM-dd HH:mm:ss"),
       "Product Name": sale.itemName,
       "Quantity Sold": sale.quantitySold,
       "Total Revenue": sale.totalRevenue,
@@ -322,5 +322,7 @@ export default function SalesReportPage() {
     </SidebarLayout>
   );
 }
+
+    
 
     
