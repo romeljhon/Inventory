@@ -14,7 +14,7 @@ import {
   orderBy,
   Timestamp,
 } from "firebase/firestore";
-import { startOfDay, parseISO, isAfter, endOfDay } from "date-fns";
+import { startOfDay, parseISO, isAfter, endOfDay, isBefore } from "date-fns";
 import { useFirestore } from "@/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
 import type { Item, Category, InventoryHistory, Recipe } from "@/lib/types";
@@ -370,44 +370,54 @@ export function useInventory(branchId: string | undefined) {
     return Array.from(dates).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
   }, [history]);
 
- const getInventorySnapshot = useCallback((date: string): Item[] => {
+  const getInventorySnapshot = useCallback((date: string): Item[] => {
     const endOfTargetDay = endOfDay(new Date(date));
     if (!history || !items) return [];
 
-    // Create a deep copy of current items to start with
-    const snapshotItems = new Map<string, Item>(
-        items.map(item => [item.id, { ...item }])
-    );
+    // Filter logs to only include those up to the end of the target day, sorted oldest to newest
+    const relevantLogs = history
+      .map(log => ({
+        ...log,
+        createdAtDate: log.createdAt instanceof Timestamp ? log.createdAt.toDate() : new Date(log.createdAt as string)
+      }))
+      .filter(log => isBefore(log.createdAtDate, endOfTargetDay))
+      .sort((a, b) => a.createdAtDate.getTime() - b.createdAtDate.getTime());
 
-    // Get logs that happened AFTER the snapshot date, and sort them newest to oldest
-    const logsToRewind = history
-        .map(log => ({
-            ...log,
-            createdAtDate: log.createdAt instanceof Timestamp ? log.createdAt.toDate() : new Date(log.createdAt as string)
-        }))
-        .filter(log => isAfter(log.createdAtDate, endOfTargetDay))
-        .sort((a, b) => b.createdAtDate.getTime() - a.createdAtDate.getTime());
+    const snapshotItems = new Map<string, Item>();
+    const allItemsFromHistory = new Map<string, Omit<Item, 'quantity'>>();
 
-    // "Rewind" the changes
-    for (const log of logsToRewind) {
+    // First pass: get the static data for all items that ever existed up to the snapshot date
+    for (const item of items) {
+      const createdAt = item.createdAt instanceof Timestamp ? item.createdAt.toDate() : new Date(item.createdAt as string);
+      if (isBefore(createdAt, endOfTargetDay)) {
+        const { quantity, ...rest } = item;
+        allItemsFromHistory.set(item.id, rest);
+      }
+    }
+
+    // Second pass: replay history to calculate quantities
+    for (const log of relevantLogs) {
+      if (log.type === 'add' || log.type === 'initial') {
+        const baseItem = allItemsFromHistory.get(log.itemId);
+        if (baseItem) {
+          snapshotItems.set(log.itemId, {
+            ...baseItem,
+            quantity: log.newQuantity,
+          });
+        }
+      } else if (log.type === 'quantity' || log.type === 'update') {
         const item = snapshotItems.get(log.itemId);
         if (item) {
-            // To reverse a change, we subtract it.
-            // newQuantity = oldQuantity + change  =>  oldQuantity = newQuantity - change
-            const reversedChange = -log.change;
-            item.quantity += reversedChange;
-            snapshotItems.set(log.itemId, item);
-        } else if (log.type === 'add' || log.type === 'initial') {
-            // If the item was added after the snapshot date, it didn't exist then.
-            snapshotItems.delete(log.itemId);
+          item.quantity = log.newQuantity;
+          snapshotItems.set(log.itemId, item);
         }
-        // We don't need to handle 'delete' because we started with all items.
-        // If an item was deleted after the snapshot date, it must have existed on that date.
-        // We also don't rewind name/value changes in this simplified model.
+      } else if (log.type === 'delete') {
+        snapshotItems.delete(log.itemId);
+      }
     }
-    
+
     return Array.from(snapshotItems.values());
-}, [history, items]);
+  }, [history, items]);
 
 
   return {
