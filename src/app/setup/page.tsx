@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Icons } from "@/components/icons";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/firebase";
 
 const setupSchema = z.object({
   businessName: z.string().min(2, { message: "Business name must be at least 2 characters." }),
@@ -30,7 +31,8 @@ const setupSchema = z.object({
 type SetupFormData = z.infer<typeof setupSchema>;
 
 export default function SetupPage() {
-  const { businesses, setupBusiness, isLoading, isUserLoading, switchBusiness } = useBusiness();
+  const { user, loading: userLoading } = useUser();
+  const { businesses, setupBusiness, isLoading: businessLoading, isNewUser, switchBusiness } = useBusiness();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -39,15 +41,21 @@ export default function SetupPage() {
     resolver: zodResolver(setupSchema),
     defaultValues: {
       businessName: "",
-      branchName: "",
+      branchName: "Main",
     },
   });
 
+  const isLoading = userLoading || businessLoading;
+
   useEffect(() => {
-    if (!isLoading && businesses.length > 0) {
-      router.push("/dashboard");
+    if (!isLoading && !user) {
+      router.replace("/login");
     }
-  }, [businesses, isLoading, router]);
+    // If the user is no longer "new" (i.e. they created a business), move them to the dashboard.
+    if (!isLoading && user && !isNewUser) {
+      router.replace("/dashboard?tour=true");
+    }
+  }, [isLoading, user, isNewUser, router]);
 
   const onSubmit = async (data: SetupFormData) => {
     setIsSubmitting(true);
@@ -58,8 +66,7 @@ export default function SetupPage() {
             title: "Welcome!",
             description: "Your business has been created successfully."
         });
-        // Redirect to dashboard
-        router.push('/dashboard');
+        // The useEffect above will handle the redirection.
     } else {
         setIsSubmitting(false);
         toast({
@@ -69,10 +76,8 @@ export default function SetupPage() {
         })
     }
   };
-  
-  const pageIsLoading = isLoading || isUserLoading;
 
-  if (pageIsLoading || businesses.length > 0) {
+  if (isLoading || (user && !isNewUser)) {
       return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="mr-2 h-8 w-8 animate-spin" />
@@ -129,7 +134,7 @@ export default function SetupPage() {
                             </FormItem>
                         )}
                         />
-                        <Button type="submit" className="w-full" disabled={isSubmitting || pageIsLoading}>
+                        <Button type="submit" className="w-full" disabled={isSubmitting || isLoading}>
                             {isSubmitting ? (
                                 <>
                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />

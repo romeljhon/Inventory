@@ -10,9 +10,8 @@ import { useCollection } from '@/firebase/firestore/use-collection';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-
-const ACTIVE_BUSINESS_STORAGE_KEY = 'stock-sherpa-active-business';
-const ACTIVE_BRANCH_STORAGE_KEY = 'stock-sherpa-active-branch';
+const ACTIVE_BUSINESS_STORAGE_KEY = 'inventory-active-business';
+const ACTIVE_BRANCH_STORAGE_KEY = 'inventory-active-branch';
 
 interface BusinessContextType {
   business: Business | null; // The active business
@@ -20,7 +19,7 @@ interface BusinessContextType {
   branches: Branch[];
   activeBranch: Branch | null;
   isLoading: boolean;
-  isUserLoading: boolean;
+  isNewUser: boolean;
   setupBusiness: (businessName: string, initialBranchName: string) => Promise<Business | undefined>;
   addBranch: (branchName: string) => Promise<Branch | undefined>;
   deleteBranch: (branchId: string) => Promise<void>;
@@ -34,36 +33,101 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
-  
-  const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
 
-  const businessQuery = useMemo(() => 
+  const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
+  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [isBusinessLogicLoading, setIsBusinessLogicLoading] = useState(true);
+
+  // --- Data Fetching ---
+
+  // 1. Fetch businesses owned by the current user
+  const ownedBusinessesQuery = useMemo(() =>
     firestore && user?.uid ? query(collection(firestore, 'businesses'), where('ownerId', '==', user.uid)) : null,
     [firestore, user?.uid]
   );
+  const { data: ownedBusinessesData, loading: ownedBusinessesLoading } = useCollection<Business>(ownedBusinessesQuery);
+  const ownedBusinesses = useMemo(() => ownedBusinessesData || [], [ownedBusinessesData]);
 
-  const { data: businessesData, loading: businessesLoading } = useCollection<Business>(businessQuery);
-  const businesses = useMemo(() => businessesData || [], [businessesData]);
-  
-  const business = useMemo(() => businesses.find(b => b.id === activeBusinessId) || null, [businesses, activeBusinessId]);
+  // For now, businesses the user has access to is just the ones they own.
+  // This could be expanded to include businesses they are an employee of.
+  const businesses = ownedBusinesses;
 
-  const branchesCollectionRef = useMemo(() => 
+  // 2. Fetch branches for the currently active business
+  const branchesCollectionRef = useMemo(() =>
     firestore && activeBusinessId ? collection(firestore, 'businesses', activeBusinessId, 'branches') : null,
     [firestore, activeBusinessId]
   );
-  
   const { data: branchesData, loading: branchesLoading } = useCollection<Branch>(branchesCollectionRef);
   const branches = useMemo(() => branchesData || [], [branchesData]);
+  
+  // --- Derived State ---
+  
+  const business = useMemo(() => businesses.find(b => b.id === activeBusinessId) || null, [businesses, activeBusinessId]);
+  const activeBranch = useMemo(() => branches?.find(b => b.id === activeBranchId) || null, [branches, activeBranchId]);
 
-  const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
+  const isLoading = userLoading || isBusinessLogicLoading;
+
+  // --- Business Logic Effects ---
   
-  const isLoading = userLoading || businessesLoading || branchesLoading;
-  
+  // Effect to determine if the user is new and handle initial routing
+  useEffect(() => {
+    // We wait until the initial check for businesses is complete
+    if (userLoading || ownedBusinessesLoading) return;
+
+    if (user) {
+      if (ownedBusinesses.length === 0) {
+        setIsNewUser(true);
+      } else {
+        setIsNewUser(false);
+      }
+    } else {
+      setIsNewUser(false);
+    }
+    setIsBusinessLogicLoading(false);
+  }, [user, ownedBusinesses, userLoading, ownedBusinessesLoading]);
+
+  // Redirect logic
+  useEffect(() => {
+    if (isLoading) return;
+
+    const unauthenticatedPages = ['/login', '/signup', '/forgot-password', '/'];
+    const path = window.location.pathname;
+
+    if (!user && !unauthenticatedPages.includes(path)) {
+      router.replace('/login');
+    } else if (user && isNewUser && path !== '/setup') {
+      router.replace('/setup');
+    }
+  }, [user, isNewUser, isLoading, router]);
+
+  // Restore state from localStorage
+  useEffect(() => {
+    const storedBusinessId = localStorage.getItem(ACTIVE_BUSINESS_STORAGE_KEY);
+    if (storedBusinessId && businesses.some(b => b.id === storedBusinessId)) {
+      setActiveBusinessId(storedBusinessId);
+    } else if (businesses.length > 0) {
+      // Default to the first business if none is selected or stored one is invalid
+      setActiveBusinessId(businesses[0].id);
+    }
+
+    const storedBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
+    if (storedBranchId && branches.some(b => b.id === storedBranchId)) {
+        setActiveBranchId(storedBranchId);
+    } else {
+        setActiveBranchId(null);
+    }
+  }, [businesses, branches]); // Re-run when businesses/branches load
+
+
+  // --- Actions ---
+
   const switchBusiness = useCallback((businessId: string | null) => {
     setActiveBusinessId(businessId);
-    switchBranch(null); // Reset active branch when switching business
+    setActiveBranchId(null); // Reset active branch when switching business
     if (businessId) {
       localStorage.setItem(ACTIVE_BUSINESS_STORAGE_KEY, businessId);
+      localStorage.removeItem(ACTIVE_BRANCH_STORAGE_KEY);
     } else {
       localStorage.removeItem(ACTIVE_BUSINESS_STORAGE_KEY);
     }
@@ -78,55 +142,6 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, []);
 
-  useEffect(() => {
-    if (!isLoading && !user && window.location.pathname !== '/login' && window.location.pathname !== '/signup' && window.location.pathname !== '/') {
-        router.push('/login');
-    }
-     if (!isLoading && user && businesses.length === 0 && window.location.pathname !== '/setup') {
-      router.push('/setup');
-    }
-  }, [isLoading, user, businesses, router]);
-
-  useEffect(() => {
-    const storedActiveBusinessId = localStorage.getItem(ACTIVE_BUSINESS_STORAGE_KEY);
-    if (storedActiveBusinessId) {
-        setActiveBusinessId(storedActiveBusinessId);
-    }
-    const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
-    if (storedActiveBranchId && storedActiveBranchId !== 'null') {
-      setActiveBranchId(storedActiveBranchId);
-    } else {
-        setActiveBranchId(null);
-    }
-  }, []);
-
-  // Auto-select business if only one exists
-  useEffect(() => {
-    if (!isLoading && businesses.length === 1 && !activeBusinessId) {
-        switchBusiness(businesses[0].id);
-    }
-  }, [isLoading, businesses, activeBusinessId, switchBusiness]);
-
-
-  // Effect to validate stored active branch
-  useEffect(() => {
-    if (branches && branches.length > 0) {
-      const storedActiveBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
-      const branchExists = branches.some(b => b.id === storedActiveBranchId);
-      if (!storedActiveBranchId || !branchExists) {
-        if (storedActiveBranchId && !branchExists) {
-            switchBranch(null);
-        }
-      }
-    } else if (branches.length === 0) {
-        switchBranch(null);
-    }
-  }, [branches, switchBranch]);
-
-  const activeBranch = useMemo(() => {
-    return branches?.find(b => b.id === activeBranchId) || null;
-  }, [branches, activeBranchId]);
-
   const setupBusiness = useCallback(async (businessName: string, initialBranchName: string): Promise<Business | undefined> => {
     if (!firestore || !user?.uid) {
         console.error("Setup cannot proceed: Firestore not initialized or user not authenticated.");
@@ -140,7 +155,6 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         createdAt: serverTimestamp(),
     };
     
-    // Create business
     await setDoc(newBusinessRef, businessData).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: newBusinessRef.path,
@@ -148,16 +162,12 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         requestResourceData: businessData,
       });
       errorEmitter.emit('permission-error', permissionError);
-      throw serverError; // rethrow to stop execution
+      throw serverError;
     });
 
     const newBranchRef = doc(collection(newBusinessRef, 'branches'));
-    const branchData = { 
-        name: initialBranchName,
-        createdAt: serverTimestamp(),
-    };
+    const branchData = { name: initialBranchName, createdAt: serverTimestamp() };
     
-    // Create initial branch
     await setDoc(newBranchRef, branchData).catch(async (serverError) => {
        const permissionError = new FirestorePermissionError({
         path: newBranchRef.path,
@@ -165,7 +175,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         requestResourceData: branchData,
       });
       errorEmitter.emit('permission-error', permissionError);
-      throw serverError; // rethrow to stop execution
+      throw serverError;
     });
 
     return { id: newBusinessRef.id, ...businessData } as Business;
@@ -197,9 +207,8 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
     
-    // Using a try/catch here because batch writes don't have individual catch blocks
     try {
-        const collectionsToDelete = ['items', 'categories', 'history'];
+        const collectionsToDelete = ['items', 'categories', 'recipes', 'history', 'employees'];
         for (const subcollection of collectionsToDelete) {
             const subcollectionRef = collection(branchDocRef, subcollection);
             const snapshot = await getDocs(subcollectionRef);
@@ -230,13 +239,13 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     branches,
     activeBranch,
     isLoading,
-    isUserLoading: userLoading,
+    isNewUser,
     setupBusiness,
     addBranch,
     deleteBranch,
     switchBusiness,
     switchBranch
-  }), [business, businesses, branches, activeBranch, isLoading, userLoading, setupBusiness, addBranch, deleteBranch, switchBusiness, switchBranch]);
+  }), [business, businesses, branches, activeBranch, isLoading, isNewUser, setupBusiness, addBranch, deleteBranch, switchBusiness, switchBranch]);
 
   return (
     <BusinessContext.Provider value={contextValue}>

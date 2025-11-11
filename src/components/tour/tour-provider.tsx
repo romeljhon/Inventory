@@ -61,7 +61,8 @@ const getSteps = (router: any) => [
         text: 'Go to Inventory',
         action() {
           router.push('/inventory');
-          this.next();
+          // Shepherd needs a moment for the page to transition
+          setTimeout(() => this.next(), 300);
         }
       },
     ],
@@ -91,7 +92,7 @@ const getSteps = (router: any) => [
         text: 'Go to Recipes',
         action() {
           router.push('/recipes');
-          this.next();
+          setTimeout(() => this.next(), 300);
         }
       },
     ],
@@ -121,7 +122,7 @@ const getSteps = (router: any) => [
         text: 'Go to Sales',
         action() {
           router.push('/sales');
-          this.next();
+          setTimeout(() => this.next(), 300);
         }
       },
     ],
@@ -152,21 +153,31 @@ function Tour() {
 
   const handleTourCompletion = useCallback(() => {
     localStorage.setItem(TOUR_STORAGE_KEY, 'true');
-    router.replace('/dashboard', undefined);
-  }, [router]);
+    // Use replace to remove the 'tour' query param from the URL
+    router.replace('/dashboard');
+    if (tour?.steps.length) {
+      tour.complete();
+    }
+  }, [router, tour]);
   
   useEffect(() => {
     const hasCompletedTour = localStorage.getItem(TOUR_STORAGE_KEY);
     const isTouring = searchParams.get('tour') === 'true';
 
     if (isTouring && !hasCompletedTour && tour) {
-        // Clear existing steps before adding new ones
-        tour.steps = []; 
-        const steps = getSteps(router);
-        tour.addSteps(steps);
-        tour.start();
-        tour.on('complete', handleTourCompletion);
-        tour.on('cancel', handleTourCompletion);
+        // A hacky way to ensure the tour starts after the page has had a moment to render
+        const startTour = () => {
+            if (tour.steps.length > 0) {
+              tour.start();
+            } else {
+              const steps = getSteps(router);
+              tour.addSteps(steps);
+              tour.start();
+            }
+            tour.on('complete', handleTourCompletion);
+            tour.on('cancel', handleTourCompletion);
+        }
+        setTimeout(startTour, 500);
     }
 
      return () => {

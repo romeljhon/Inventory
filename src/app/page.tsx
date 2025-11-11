@@ -10,21 +10,21 @@ import { Loader2 } from 'lucide-react';
 
 export default function Home() {
   const { user, loading: isUserLoading } = useUser();
-  const { business, isLoading: isBusinessLoading } = useBusiness();
+  const { businesses, isLoading: isBusinessLoading, isNewUser } = useBusiness();
   const router = useRouter();
 
   const isLoading = isUserLoading || isBusinessLoading;
 
   useEffect(() => {
     if (!isLoading) {
-      if (user && business) {
+      if (user && isNewUser) {
+        router.push('/setup');
+      } else if (user && businesses.length > 0) {
         router.push('/dashboard');
-      } else if (user && !business) {
-        router.push('/businesses');
       }
     }
-  }, [user, business, isLoading, router]);
-
+  }, [user, businesses, isLoading, isNewUser, router]);
+  
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -38,7 +38,7 @@ export default function Home() {
      return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-        <span>Redirecting to your dashboard...</span>
+        <span>Redirecting...</span>
       </div>
     );
   }

@@ -4,6 +4,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Functions to check user roles
+    function isOwner(businessId) {
+      return request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+    }
+
+    function isEmployee(businessId, userId) {
+      return request.auth != null && exists(/databases/$(database)/documents/businesses/$(businessId)/employees/$(userId));
+    }
+    
     // Rule for the connection test - allow any authenticated user
     match /test_connection/{docId} {
       allow read, write: if request.auth != null;
@@ -11,36 +20,39 @@ service cloud.firestore {
     
     // Users can create and manage their own profile
     match /users/{userId} {
-      allow read, create: if request.auth != null && request.auth.uid == userId;
-      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Businesses can be read by their owner.
-    // Businesses can be created if the ownerId matches the user.
+    // Business Rules
     match /businesses/{businessId} {
-      allow read: if request.auth != null && resource.data.ownerId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
-      // The owner of the business can update or delete it
-      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+      // Owner can do anything to their business document
+      allow read, write: if isOwner(businessId);
+      
+      // Employees can read the business document
+      allow read: if isEmployee(businessId, request.auth.uid);
 
-      // The owner of a business can create, read, update, and delete branches.
+      // Branch Rules
       match /branches/{branchId} {
-        allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
-        
-        // The owner of the business can manage items in a branch
-        match /items/{itemId} {
-            allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
-        }
+        // Owner has full access to branches
+        allow read, write: if isOwner(businessId);
+        // Employees of the business can read the branch documents
+        allow read: if isEmployee(businessId, request.auth.uid);
 
-        // The owner of the business can manage recipes in a branch
-        match /recipes/{recipeId} {
-            allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+        // Rules for all subcollections within a branch (items, recipes, etc.)
+        match /{subcollection}/{docId} {
+          // Owner has full access.
+          // Employees assigned to this specific branch have full access.
+          allow read, write: if isOwner(businessId) || 
+                              (isEmployee(businessId, request.auth.uid) && get(/databases/$(database)/documents/businesses/$(businessId)/employees/$(request.auth.uid)).data.branchId == branchId);
         }
-
-        // All other subcollections can only be accessed if the parent business exists and is owned by the user.
-        match /{path=**} {
-          allow read, write: if request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
-        }
+      }
+      
+      // Employee Management Rules
+      match /employees/{employeeId} {
+        // Owner can read and write (add/edit/delete) employees
+        allow read, write: if isOwner(businessId);
+        // An employee can read their own employee record
+        allow read: if request.auth.uid == employeeId;
       }
     }
   }

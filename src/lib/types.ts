@@ -1,3 +1,4 @@
+
 import { FieldValue } from 'firebase/firestore';
 
 export interface Item {
@@ -42,6 +43,15 @@ export interface Business {
   name: string;
   ownerId: string;
   createdAt: FieldValue;
+}
+
+export interface Employee {
+  id: string; // Corresponds to the user's UID
+  email: string;
+  name: string;
+  role: 'admin' | 'staff'; // Or other roles you might have
+  branchId: string;
+  createdAt: FieldValue | string;
 }
 
 export interface InventoryHistory {
