@@ -139,6 +139,14 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/sales"}>
+                    <Link href="/sales">
+                        <ShoppingCart />
+                        Sales
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === "/inventory"}>
                 <Link href="/inventory">
                   <Package />
@@ -161,14 +169,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                   Categories
                 </Link>
               </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/sales"}>
-                    <Link href="/sales">
-                        <ShoppingCart />
-                        Sales
-                    </Link>
-                </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith("/reports")}>
@@ -202,7 +202,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               <Button variant="ghost" className="w-full justify-start gap-3 px-3 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" disabled={isUserLoading}>
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.photoURL || undefined} />
-                  <AvatarFallback>{isClient ? (user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U') : null}</AvatarFallback>
+                   <AvatarFallback>{isClient ? (user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U') : null}</AvatarFallback>
                 </Avatar>
                 <span className="truncate">{isClient ? (user?.displayName || "User") : ""}</span>
               </Button>
