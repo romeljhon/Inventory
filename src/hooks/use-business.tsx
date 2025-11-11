@@ -207,8 +207,15 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
     
+    // We optimistically update the UI, but will need to handle failure
+    if (activeBranch?.id === branchId) {
+        switchBranch(null);
+    }
+    
     try {
-        const collectionsToDelete = ['items', 'categories', 'recipes', 'history', 'employees'];
+        // This is a simplification. In a real app, you might want to archive
+        // this data or handle it more gracefully.
+        const collectionsToDelete = ['items', 'categories', 'recipes', 'history'];
         for (const subcollection of collectionsToDelete) {
             const subcollectionRef = collection(branchDocRef, subcollection);
             const snapshot = await getDocs(subcollectionRef);
@@ -221,10 +228,10 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
         await deleteDoc(branchDocRef);
 
-        if (activeBranch?.id === branchId) {
-            switchBranch(null);
-        }
     } catch (e) {
+        // If the delete fails, we should ideally revert the UI change
+        // and show an error toast.
+        console.error("Failed to delete branch:", e);
         const permissionError = new FirestorePermissionError({
             path: branchDocRef.path,
             operation: 'delete',
