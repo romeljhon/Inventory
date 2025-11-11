@@ -91,6 +91,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const isOwner = business?.ownerId === user?.uid;
 
   return (
     <SidebarProvider>
@@ -121,7 +122,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 <PlusCircle className="mr-2 h-4 w-4" />
                 <span>Create New Business</span>
               </DropdownMenuItem>
-               <DropdownMenuItem onSelect={() => setIsEditBusinessOpen(true)} disabled={!business}>
+               <DropdownMenuItem onSelect={() => setIsEditBusinessOpen(true)} disabled={!business || !isOwner}>
                 <Edit className="mr-2 h-4 w-4" />
                 <span>Edit Business Name</span>
               </DropdownMenuItem>
@@ -131,38 +132,38 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
-                <Link href="/dashboard">
-                  <LayoutDashboard />
-                  Dashboard
-                </Link>
-              </SidebarMenuButton>
+                <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
+                    <Link href="/dashboard">
+                    <LayoutDashboard />
+                    Dashboard
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/categories"}>
-                <Link href="/categories">
-                  <Shapes />
-                  Categories
-                </Link>
-              </SidebarMenuButton>
+                <SidebarMenuButton asChild isActive={pathname === "/categories"}>
+                    <Link href="/categories">
+                    <Shapes />
+                    Categories
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/inventory"}>
-                <Link href="/inventory">
-                  <Package />
-                  Inventory
-                </Link>
-              </SidebarMenuButton>
+                <SidebarMenuButton asChild isActive={pathname === "/inventory"}>
+                    <Link href="/inventory">
+                    <Package />
+                    Inventory
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/recipes"}>
-                <Link href="/recipes">
-                  <BookCopy />
-                  Recipes
-                </Link>
-              </SidebarMenuButton>
+                <SidebarMenuButton asChild isActive={pathname === "/recipes"}>
+                    <Link href="/recipes">
+                    <BookCopy />
+                    Recipes
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
+             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.startsWith("/reports")}>
                 <Link href="/reports/sales">
                   <AreaChart />
@@ -173,24 +174,24 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
             <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/history"}>
                     <Link href="/history">
-                        <History />
-                        History
+                    <History />
+                    History
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
+            <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/snapshots"}>
                     <Link href="/snapshots">
-                        <Camera />
-                        Snapshots
+                    <Camera />
+                    Snapshots
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/sales"}>
                     <Link href="/sales">
-                        <ShoppingCart />
-                        Sales
+                    <ShoppingCart />
+                    Sales
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
@@ -210,7 +211,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               <Button variant="ghost" className="w-full justify-start gap-3 px-3 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" disabled={isUserLoading}>
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.photoURL || undefined} />
-                   <AvatarFallback>{isClient ? (user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U') : null}</AvatarFallback>
+                   <AvatarFallback>{isClient ? (user?.displayName?.charAt(0) || user?.email?.charAt(0) || 'U').toUpperCase() : null}</AvatarFallback>
                 </Avatar>
                 <span className="truncate">{isClient ? (user?.displayName || "User") : ""}</span>
               </Button>

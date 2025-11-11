@@ -8,7 +8,8 @@ service cloud.firestore {
       return request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
     }
 
-    // Checks if a user is listed as an employee for a specific business.
+    // Checks if a user is an employee of a specific business by checking their UID against the employee subcollection.
+    // The employee document ID must be the user's UID.
     function isEmployee(businessId) {
       return request.auth != null && exists(/databases/$(database)/documents/businesses/$(businessId)/employees/$(request.auth.uid));
     }
@@ -28,15 +29,16 @@ service cloud.firestore {
       match /employees/{employeeId} {
         // The business owner can manage employees.
         allow read, write: if isOwner(businessId);
+        // An employee can read their own employee record.
+        allow get: if request.auth != null && request.auth.uid == employeeId;
       }
 
       // This rule applies to all subcollections (branches, items, recipes, etc.)
       // within a business, recursively.
       match /{subcollection=**} {
-        // The owner has full read and write access to all subcollection documents.
-        // Employees have read access to all subcollection documents for now.
-        allow read, write: if isOwner(businessId);
-        allow get, list: if isEmployee(businessId);
+        // Employees and owners have full read and write access for now.
+        // In a real-world scenario, you would have more granular roles (e.g., staff can only make sales).
+        allow read, write: if isOwner(businessId) || isEmployee(businessId);
       }
     }
   }

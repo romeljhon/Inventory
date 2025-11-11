@@ -52,14 +52,62 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     firestore && user?.uid ? query(collection(firestore, 'businesses'), where('ownerId', '==', user.uid)) : null,
     [firestore, user?.uid]
   );
-  const { data: ownedBusinessesData, loading: ownedBusinessesLoading } = useCollection<Business>(ownedBusinessesQuery);
-  const ownedBusinesses = useMemo(() => ownedBusinessesData || [], [ownedBusinessesData]);
+  const { data: ownedBusinesses, loading: ownedBusinessesLoading } = useCollection<Business>(ownedBusinessesQuery);
 
-  // For now, businesses the user has access to is just the ones they own.
-  // This could be expanded to include businesses they are an employee of.
-  const businesses = ownedBusinesses;
+  // 2. Fetch businesses where the user is an employee
+  const employeeBusinessesQuery = useMemo(() => 
+    firestore && user?.email ? query(collection(firestore, 'businesses'), where('employees', 'array-contains', user.email)) : null,
+    [firestore, user?.email]
+  );
+  
+  const employeeOfBusinessesQuery = useMemo(() => {
+    if (!firestore || !user?.uid) return null;
+    return query(collection(firestore, 'employees'), where('uid', '==', user.uid));
+  }, [firestore, user?.uid]);
+  
+  // New logic to find businesses where user is an employee
+  const [employeeBusinesses, setEmployeeBusinesses] = useState<Business[]>([]);
+  const [employeeBusinessesLoading, setEmployeeBusinessesLoading] = useState(true);
 
-  // 2. Fetch branches for the currently active business
+  useEffect(() => {
+    if (!firestore || !user?.uid) {
+        setEmployeeBusinessesLoading(false);
+        return;
+    };
+    
+    const findBusinesses = async () => {
+        setEmployeeBusinessesLoading(true);
+        const employeeQuery = query(collection(firestore, 'businesses'));
+        const businessesSnapshot = await getDocs(employeeQuery);
+        const employeeOf: Business[] = [];
+        
+        for (const businessDoc of businessesSnapshot.docs) {
+            const employeesCollection = collection(firestore, 'businesses', businessDoc.id, 'employees');
+            const userEmployeeDoc = doc(employeesCollection, user.uid);
+            const employeeSnapshot = await getDoc(userEmployeeDoc);
+
+            if (employeeSnapshot.exists()) {
+                employeeOf.push({ id: businessDoc.id, ...businessDoc.data() } as Business);
+            }
+        }
+        setEmployeeBusinesses(employeeOf);
+        setEmployeeBusinessesLoading(false);
+    };
+
+    findBusinesses();
+  }, [firestore, user?.uid]);
+
+
+  // 3. Combine owned and employee businesses
+  const businesses = useMemo(() => {
+    const allBusinesses = new Map<string, Business>();
+    (ownedBusinesses || []).forEach(b => allBusinesses.set(b.id, b));
+    employeeBusinesses.forEach(b => allBusinesses.set(b.id, b));
+    return Array.from(allBusinesses.values());
+  }, [ownedBusinesses, employeeBusinesses]);
+
+
+  // 4. Fetch branches for the currently active business
   const branchesCollectionRef = useMemo(() =>
     firestore && activeBusinessId ? collection(firestore, 'businesses', activeBusinessId, 'branches') : null,
     [firestore, activeBusinessId]
@@ -67,7 +115,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { data: branchesData, loading: branchesLoading } = useCollection<Branch>(branchesCollectionRef);
   const branches = useMemo(() => branchesData || [], [branchesData]);
   
-  // 3. Fetch employees for the currently active business
+  // 5. Fetch employees for the currently active business
   const employeesCollectionRef = useMemo(() =>
     firestore && activeBusinessId ? collection(firestore, 'businesses', activeBusinessId, 'employees') : null,
     [firestore, activeBusinessId]
@@ -80,17 +128,17 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const business = useMemo(() => businesses.find(b => b.id === activeBusinessId) || null, [businesses, activeBusinessId]);
   const activeBranch = useMemo(() => branches?.find(b => b.id === activeBranchId) || null, [branches, activeBranchId]);
 
-  const isLoading = userLoading || isBusinessLogicLoading || employeesLoading;
+  const isLoading = userLoading || isBusinessLogicLoading || employeesLoading || ownedBusinessesLoading || employeeBusinessesLoading;
 
   // --- Business Logic Effects ---
   
   // Effect to determine if the user is new and handle initial routing
   useEffect(() => {
     // We wait until the initial check for businesses is complete
-    if (userLoading || ownedBusinessesLoading) return;
+    if (userLoading || ownedBusinessesLoading || employeeBusinessesLoading) return;
 
     if (user) {
-      if (ownedBusinesses.length === 0) {
+      if ((ownedBusinesses || []).length === 0 && employeeBusinesses.length === 0) {
         setIsNewUser(true);
       } else {
         setIsNewUser(false);
@@ -99,7 +147,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsNewUser(false);
     }
     setIsBusinessLogicLoading(false);
-  }, [user, ownedBusinesses, userLoading, ownedBusinessesLoading]);
+  }, [user, ownedBusinesses, employeeBusinesses, userLoading, ownedBusinessesLoading, employeeBusinessesLoading]);
 
   // Redirect logic
   useEffect(() => {
@@ -285,10 +333,16 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const addEmployee = useCallback(async (employeeData: Omit<Employee, "id" | "createdAt">): Promise<Employee | undefined> => {
     if (!employeesCollectionRef) return;
+    // This is a placeholder. In a real app, you would trigger a cloud function 
+    // to create a user account and then create the employee document with the user's UID as the ID.
+    // For now, we'll use a placeholder ID, but this won't allow the employee to log in.
     const newEmployeeData = {
       ...employeeData,
       createdAt: serverTimestamp(),
     };
+    // The document ID should be the employee's future Firebase Auth UID.
+    // This requires an invitation flow which is beyond this scope.
+    // We'll add it with a generated ID for now to show in the list.
     const docRef = await addDoc(employeesCollectionRef, newEmployeeData)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
