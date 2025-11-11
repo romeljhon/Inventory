@@ -22,10 +22,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Edit, Trash2, Building, BookCopy } from "lucide-react";
 import { RecipeFormDialog } from "@/components/recipes/recipe-form-dialog";
 import type { Recipe } from "@/lib/types";
+import { DeleteRecipeAlert } from "@/components/recipes/delete-recipe-alert";
 
 export default function RecipesPage() {
   const { activeBranch } = useBusiness();
@@ -33,6 +33,9 @@ export default function RecipesPage() {
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [deletingRecipe, setDeletingRecipe] = useState<Recipe | null>(null);
   
   const products = items?.filter(item => item.itemType === 'Product') || [];
   const components = items?.filter(item => item.itemType === 'Component') || [];
@@ -52,10 +55,17 @@ export default function RecipesPage() {
     setEditingRecipe(null);
   };
   
-  const handleDeleteRecipe = (id: string) => {
-    if (confirm("Are you sure you want to delete this recipe?")) {
-      deleteRecipe(id);
+  const handleDeleteRecipe = (recipe: Recipe) => {
+    setDeletingRecipe(recipe);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deletingRecipe) {
+      deleteRecipe(deletingRecipe.id);
     }
+    setIsDeleteAlertOpen(false);
+    setDeletingRecipe(null);
   };
 
   const getComponentNames = (recipe: Recipe) => {
@@ -136,7 +146,7 @@ export default function RecipesPage() {
                                       variant="ghost"
                                       size="icon"
                                       className="text-destructive hover:text-destructive"
-                                      onClick={() => handleDeleteRecipe(recipe.id)}
+                                      onClick={() => handleDeleteRecipe(recipe)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -173,6 +183,13 @@ export default function RecipesPage() {
         recipe={editingRecipe}
         products={products}
         components={components}
+      />
+
+      <DeleteRecipeAlert
+        isOpen={isDeleteAlertOpen}
+        onOpenChange={setIsDeleteAlertOpen}
+        onConfirm={handleConfirmDelete}
+        recipeName={deletingRecipe?.productName || ''}
       />
 
     </SidebarLayout>

@@ -27,11 +27,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { CategoryForm } from "@/components/categories/category-form";
 import { PlusCircle, Edit, Trash2, Building } from "lucide-react";
 import type { Category } from "@/lib/types";
+import { DeleteCategoryAlert } from "@/components/categories/delete-category-alert";
 
 export default function CategoriesPage() {
   const { activeBranch } = useBusiness();
@@ -40,6 +40,10 @@ export default function CategoriesPage() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+
 
   const handleOpenForm = (category: Category | null = null) => {
     setEditingCategory(category);
@@ -56,10 +60,17 @@ export default function CategoriesPage() {
     setEditingCategory(null);
   };
 
-  const handleDeleteCategory = (id: string) => {
-    if (confirm("Are you sure you want to delete this category? Items in this category will become uncategorized.")) {
-      deleteCategory(id);
+  const handleDeleteCategory = (category: Category) => {
+    setDeletingCategory(category);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deletingCategory) {
+      deleteCategory(deletingCategory.id);
     }
+    setIsDeleteAlertOpen(false);
+    setDeletingCategory(null);
   };
 
   return (
@@ -133,7 +144,7 @@ export default function CategoriesPage() {
                                   variant="ghost"
                                   size="icon"
                                   className="text-destructive hover:text-destructive"
-                                  onClick={() => handleDeleteCategory(category.id)}
+                                  onClick={() => handleDeleteCategory(category)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -168,11 +179,16 @@ export default function CategoriesPage() {
                 />
                 </DialogContent>
             </Dialog>
+
+             <DeleteCategoryAlert
+              isOpen={isDeleteAlertOpen}
+              onOpenChange={setIsDeleteAlertOpen}
+              onConfirm={handleConfirmDelete}
+              categoryName={deletingCategory?.name || ''}
+            />
           </>
         )}
       </div>
     </SidebarLayout>
   );
 }
-
-    
