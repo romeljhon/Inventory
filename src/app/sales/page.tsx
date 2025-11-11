@@ -40,24 +40,41 @@ export default function SalesPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const getProductStock = (productId: string, recipes: Recipe[], items: Item[]): number => {
-    const recipe = recipes.find(r => r.productId === productId);
-    if (!recipe) {
-      // If it's a product without a recipe, it can't be sold as it has no stock itself.
-      // Or if it's a component, we use its direct quantity.
-      const item = items.find(i => i.id === productId);
-      return item?.itemType === 'Component' ? item.quantity : 0;
+  const getProductStock = (productId: string, currentCart: CartItem[], allRecipes: Recipe[], allItems: Item[]): number => {
+    const recipe = allRecipes.find(r => r.productId === productId);
+    
+    // Create a temporary, mutable copy of component quantities
+    const availableComponents: Record<string, number> = {};
+    allItems.filter(i => i.itemType === 'Component').forEach(item => {
+        availableComponents[item.id] = item.quantity;
+    });
+
+    // Subtract components already reserved by items in the cart
+    for (const cartItem of currentCart) {
+        const cartItemRecipe = allRecipes.find(r => r.productId === cartItem.id);
+        if (cartItemRecipe) {
+            for (const component of cartItemRecipe.components) {
+                if (availableComponents[component.itemId] !== undefined) {
+                    availableComponents[component.itemId] -= component.quantity * cartItem.saleQuantity;
+                }
+            }
+        }
     }
     
-    // If it is a product with a recipe, calculate how many can be made from components
+    // Now, calculate how many of this specific product can be made with the remaining components
+    if (!recipe) {
+      const item = allItems.find(i => i.id === productId);
+      return item?.itemType === 'Component' ? availableComponents[productId] || 0 : 0;
+    }
+    
     if (!recipe.components || recipe.components.length === 0) {
-      return 0; // Cannot make a product with no components in recipe
+      return 0;
     }
 
     const possibleQuantities = recipe.components.map(component => {
-      const componentItem = items.find(i => i.id === component.itemId);
-      if (!componentItem) return 0; // Component not in inventory
-      return Math.floor(componentItem.quantity / component.quantity);
+      const availableQuantity = availableComponents[component.itemId] || 0;
+      if (component.quantity === 0) return Infinity; // Avoid division by zero
+      return Math.floor(availableQuantity / component.quantity);
     });
 
     return Math.min(...possibleQuantities);
@@ -70,10 +87,10 @@ export default function SalesPage() {
       .filter(item => item.itemType === 'Product')
       .map(item => ({
         ...item,
-        // The effective quantity is how many we can make based on components
-        quantity: getProductStock(item.id, recipes, items),
+        // The effective quantity is now dynamically calculated based on the cart
+        quantity: getProductStock(item.id, cart, recipes, items),
       }));
-  }, [items, recipes]);
+  }, [items, recipes, cart]);
 
   const filteredItems = useMemo(() => {
     return (sellableItems || [])
@@ -92,9 +109,16 @@ export default function SalesPage() {
   const addToCart = (item: Item) => {
     setCart((currentCart = []) => {
       const existingItem = currentCart.find((cartItem) => cartItem.id === item.id);
+      const stock = getProductStock(item.id, currentCart, recipes, items);
+
+      if (stock <= 0) {
+        toast({ variant: 'destructive', title: 'Out of stock' });
+        return currentCart;
+      }
+      
       if (existingItem) {
         // If item is already in cart, increase its quantity by 1, if stock allows
-        const newQuantity = Math.min(existingItem.saleQuantity + 1, item.quantity);
+        const newQuantity = Math.min(existingItem.saleQuantity + 1, stock + existingItem.saleQuantity);
         return currentCart.map((cartItem) =>
           cartItem.id === item.id ? { ...cartItem, saleQuantity: newQuantity } : cartItem
         );
@@ -112,29 +136,29 @@ export default function SalesPage() {
 
       const newQuantity = existingItem.saleQuantity + change;
       
-      return setCartQuantity(itemId, newQuantity);
+      return setCartQuantity(itemId, newQuantity, currentCart);
     });
   };
 
-  const setCartQuantity = (itemId: string, newQuantity: number) => {
-      setCart((currentCart = []) => {
-        const existingItem = currentCart.find((cartItem) => cartItem.id === itemId);
-        if (!existingItem) return currentCart;
-        
-        const stock = getProductStock(itemId, recipes, items);
+  const setCartQuantity = (itemId: string, newQuantity: number, currentCart: CartItem[]) => {
+      const existingItem = currentCart.find((cartItem) => cartItem.id === itemId);
+      if (!existingItem) return currentCart;
+      
+      if (newQuantity <= 0) {
+          // Remove item if quantity becomes 0 or less
+          return currentCart.filter((cartItem) => cartItem.id !== itemId);
+      }
+      
+      // Calculate stock considering the item is already in the cart
+      const cartWithoutItem = currentCart.filter(i => i.id !== itemId);
+      const stock = getProductStock(itemId, cartWithoutItem, recipes, items);
 
-        if (newQuantity <= 0) {
-            // Remove item if quantity becomes 0 or less
-            return currentCart.filter((cartItem) => cartItem.id !== itemId);
-        }
-        
-        // Clamp quantity to available stock
-        const clampedQuantity = Math.min(newQuantity, stock);
-        
-        return currentCart.map((cartItem) =>
-            cartItem.id === itemId ? { ...cartItem, saleQuantity: clampedQuantity } : cartItem
-        );
-      });
+      // Clamp quantity to available stock
+      const clampedQuantity = Math.min(newQuantity, stock);
+      
+      return currentCart.map((cartItem) =>
+          cartItem.id === itemId ? { ...cartItem, saleQuantity: clampedQuantity } : cartItem
+      );
   };
 
   const removeFromCart = (itemId: string) => {
@@ -149,11 +173,12 @@ export default function SalesPage() {
   };
 
   const cartTotal = useMemo(() => {
-    return (cart || []).reduce((total, item) => total + item.value * item.saleQuantity, 0);
+    if (!cart) return 0;
+    return cart.reduce((total, item) => total + item.value * item.saleQuantity, 0);
   }, [cart]);
 
   const completeSale = () => {
-    if (cart.length === 0) {
+    if (!cart || cart.length === 0) {
       toast({
         variant: "destructive",
         title: "Cart is empty",
@@ -286,7 +311,7 @@ export default function SalesPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {cart.length === 0 ? (
+                    {!cart || cart.length === 0 ? (
                       <div className="py-12 text-center text-muted-foreground">
                         Your cart is empty.
                       </div>
@@ -311,8 +336,8 @@ export default function SalesPage() {
                                 </Button>
                                 <EditableQuantity
                                     initialValue={item.saleQuantity}
-                                    onSave={(newVal) => setCartQuantity(item.id, newVal)}
-                                    max={item.quantity}
+                                    onSave={(newVal) => setCartQuantity(item.id, newVal, cart)}
+                                    max={getProductStock(item.id, cart.filter(i => i.id !== item.id), recipes, items)}
                                     className="w-12"
                                 />
                               <Button
@@ -320,7 +345,7 @@ export default function SalesPage() {
                                   variant="ghost"
                                   className="h-7 w-7"
                                   onClick={() => updateCartQuantity(item.id, 1)}
-                                  disabled={item.saleQuantity >= item.quantity}
+                                  disabled={item.saleQuantity >= getProductStock(item.id, cart.filter(i => i.id !== item.id), recipes, items)}
                                 >
                                   <Plus className="h-4 w-4" />
                                 </Button>
@@ -338,7 +363,7 @@ export default function SalesPage() {
                       </div>
                     )}
                   </CardContent>
-                  {cart.length > 0 && (
+                  {cart && cart.length > 0 && (
                     <div className="border-t p-6 space-y-4">
                         <div className="flex items-center justify-between text-lg font-bold">
                             <span>Total:</span>
@@ -361,3 +386,5 @@ export default function SalesPage() {
     </SidebarLayout>
   );
 }
+
+    
