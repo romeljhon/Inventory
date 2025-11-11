@@ -23,8 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign, Building, Pointer } from "lucide-react";
-import { CategoryPills } from "@/components/inventory/category-pills";
+import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign, Building } from "lucide-react";
 import type { Item, Recipe } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { EditableQuantity } from "@/components/inventory/editable-quantity";
@@ -37,11 +36,10 @@ export default function SalesPage() {
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   
-  const salesCategories = useMemo(() => {
-    return categories.filter(c => c.showInSales);
+  const salesCategoryIds = useMemo(() => {
+    return categories.filter(c => c.showInSales).map(c => c.id);
   }, [categories]);
 
   const getProductStock = (productId: string, currentCart: CartItem[], allRecipes: Recipe[], allItems: Item[]): number => {
@@ -88,34 +86,24 @@ export default function SalesPage() {
     if (!items || !recipes) return [];
     
     return items
-      .filter(item => item.itemType === 'Product')
+      .filter(item => item.itemType === 'Product' && salesCategoryIds.includes(item.categoryId))
       .map(item => ({
         ...item,
         // The effective quantity is now dynamically calculated based on the cart
         quantity: getProductStock(item.id, cart, recipes, items),
       }));
-  }, [items, recipes, cart]);
+  }, [items, recipes, cart, salesCategoryIds]);
 
   const filteredItems = useMemo(() => {
-    // If no category is selected, show no items.
-    if (!activeCategory) {
-      return [];
-    }
-
     return (sellableItems || [])
       .filter((item) => {
-        // Filter by the active category.
-        if (item.categoryId !== activeCategory) {
-          return false;
-        }
-        // Further filter by search term if it exists.
         if (searchTerm) {
           return item.name.toLowerCase().includes(searchTerm.toLowerCase());
         }
         return true;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [sellableItems, searchTerm, activeCategory]);
+  }, [sellableItems, searchTerm]);
 
   const addToCart = (item: Item) => {
     setCart((currentCart = []) => {
@@ -240,22 +228,14 @@ export default function SalesPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Available Products</CardTitle>
-                    <div className="flex flex-col gap-4 pt-4 md:flex-row">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          placeholder="Search products..."
-                          className="pl-9"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          disabled={!activeCategory}
-                        />
-                      </div>
-                      <CategoryPills
-                          categories={salesCategories}
-                          activeCategory={activeCategory}
-                          onSelectCategory={setActiveCategory}
-                        />
+                    <div className="relative flex-1 pt-4">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Search products..."
+                        className="pl-9"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
                     </div>
                   </CardHeader>
                   <CardContent className="max-h-[60vh] overflow-y-auto">
@@ -273,7 +253,7 @@ export default function SalesPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {filteredItems.map((item) => (
+                            {filteredItems.length > 0 ? filteredItems.map((item) => (
                               <TableRow key={item.id} className={item.quantity === 0 ? "opacity-50" : ""}>
                                 <TableCell className="font-medium">
                                   {item.name}
@@ -292,28 +272,16 @@ export default function SalesPage() {
                                   </Button>
                                 </TableCell>
                               </TableRow>
-                            ))}
+                            )) : (
+                               <TableRow>
+                                <TableCell colSpan={4} className="h-24 text-center">
+                                  No products found.
+                                </TableCell>
+                              </TableRow>
+                            )}
                           </TableBody>
                         </Table>
                       </div>
-                    )}
-                    {!activeCategory && !isLoading && (
-                        <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-                            <Pointer className="h-12 w-12 text-muted-foreground/80" />
-                            <h3 className="text-xl font-semibold">Select a Category</h3>
-                            <p className="text-muted-foreground">
-                            Please select a category above to view available products.
-                            </p>
-                        </div>
-                    )}
-                    {activeCategory && filteredItems.length === 0 && !isLoading && (
-                        <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-                            <Package className="h-12 w-12 text-muted-foreground/80" />
-                            <h3 className="text-xl font-semibold">No Products Found</h3>
-                            <p className="text-muted-foreground">
-                            There are no products to display for the current selection.
-                            </p>
-                        </div>
                     )}
                   </CardContent>
                 </Card>
