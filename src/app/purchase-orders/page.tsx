@@ -29,9 +29,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { PlusCircle, Edit, Trash2, Building, ShoppingBag, MoreHorizontal, Truck, CheckCircle, Ban, FileText } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Building, ShoppingBag, MoreHorizontal, Truck, CheckCircle, Ban, FileText, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { PurchaseOrder, Supplier } from "@/lib/types";
+import type { PurchaseOrder, Supplier, Item, PurchaseOrderItem } from "@/lib/types";
 import { format, parseISO } from "date-fns";
 import { useCollection } from "@/firebase";
 import { useFirestore } from "@/firebase";
@@ -48,6 +48,11 @@ const statusConfig = {
   Received: { color: "bg-green-500", icon: CheckCircle },
   Cancelled: { color: "bg-red-500", icon: Ban },
 };
+
+type POSuggestion = {
+  supplier: Supplier;
+  items: Item[];
+}
 
 export default function PurchaseOrdersPage() {
   const { business, activeBranch } = useBusiness();
@@ -77,6 +82,8 @@ export default function PurchaseOrdersPage() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPO, setEditingPO] = useState<PurchaseOrderType | null>(null);
+  const [prefillData, setPrefillData] = useState<Partial<Omit<PurchaseOrder, 'id' | 'createdAt'>> | null>(null);
+
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [deletingPO, setDeletingPO] = useState<PurchaseOrderType | null>(null);
@@ -86,10 +93,54 @@ export default function PurchaseOrdersPage() {
 
   const isLoading = isInventoryLoading || poLoading || suppliersLoading;
 
-  const handleOpenForm = (po: PurchaseOrderType | null = null) => {
+  const poSuggestions = useMemo(() => {
+    if (!components || !suppliers) return [];
+
+    const lowStockItems = components.filter(
+      (item) => item.reorderPoint !== undefined && item.quantity <= item.reorderPoint
+    );
+
+    if (lowStockItems.length === 0) return [];
+
+    const suggestionsBySupplier = lowStockItems.reduce((acc, item) => {
+      const supplierId = item.preferredSupplierId;
+      if (!supplierId) return acc;
+      if (!acc[supplierId]) {
+        const supplier = suppliers.find(s => s.id === supplierId);
+        if (supplier) {
+            acc[supplierId] = { supplier, items: [] };
+        }
+      }
+      if(acc[supplierId]) {
+        acc[supplierId].items.push(item);
+      }
+      return acc;
+    }, {} as Record<string, POSuggestion>);
+
+    return Object.values(suggestionsBySupplier);
+  }, [components, suppliers]);
+
+  const handleOpenForm = (po: PurchaseOrderType | null = null, prefill: Partial<Omit<PurchaseOrder, 'id' | 'createdAt'>> | null = null) => {
     setEditingPO(po);
+    setPrefillData(prefill);
     setIsFormOpen(true);
   };
+
+  const handleCreatePOFromSuggestion = (suggestion: POSuggestion) => {
+    const suggestedItems: PurchaseOrderItem[] = suggestion.items.map(item => ({
+        itemId: item.id,
+        itemName: item.name,
+        quantity: item.reorderQuantity || 1,
+        price: item.value,
+    }));
+    
+    const prefill: Partial<Omit<PurchaseOrder, 'id' | 'createdAt'>> = {
+      supplierId: suggestion.supplier.id,
+      supplierName: suggestion.supplier.name,
+      items: suggestedItems,
+    };
+    handleOpenForm(null, prefill);
+  }
   
   const handleOpenDeleteAlert = (po: PurchaseOrderType) => {
     setDeletingPO(po);
@@ -173,6 +224,42 @@ export default function PurchaseOrdersPage() {
                 Create PO
               </Button>
             </div>
+
+            {poSuggestions.length > 0 && (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Lightbulb className="h-6 w-6 text-yellow-400" />
+                            Purchase Order Suggestions
+                        </CardTitle>
+                        <CardDescription>
+                            The following components are running low. Create a purchase order to restock.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {poSuggestions.map(suggestion => (
+                            <Card key={suggestion.supplier.id} className="flex flex-col">
+                                <CardHeader>
+                                    <CardTitle className="text-lg">{suggestion.supplier.name}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex-grow">
+                                    <ul className="list-disc pl-5 text-sm space-y-1">
+                                        {suggestion.items.map(item => (
+                                            <li key={item.id}>
+                                               <span className="font-medium">{item.name}</span> (Order {item.reorderQuantity || 1})
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                                <div className="p-4 border-t">
+                                     <Button className="w-full" onClick={() => handleCreatePOFromSuggestion(suggestion)}>Create PO</Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>Purchase Order List</CardTitle>
@@ -265,6 +352,7 @@ export default function PurchaseOrdersPage() {
         onOpenChange={setIsFormOpen}
         onSave={handleSavePurchaseOrder}
         purchaseOrder={editingPO}
+        prefillData={prefillData}
         suppliers={suppliers || []}
         components={components || []}
         poCount={purchaseOrders?.length || 0}

@@ -37,7 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar"
-import type { Item, Category } from "@/lib/types";
+import type { Item, Category, Supplier } from "@/lib/types";
 import { suggestItemCategories } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Loader2, CalendarIcon } from "lucide-react";
@@ -53,6 +53,9 @@ const formSchema = z.object({
   unitType: z.enum(['pcs', 'box', 'pack']).optional(),
   expirationDate: z.date().optional(),
   itemType: z.enum(['Product', 'Component']),
+  reorderPoint: z.coerce.number().int().min(0).optional(),
+  reorderQuantity: z.coerce.number().int().min(0).optional(),
+  preferredSupplierId: z.string().optional(),
 });
 
 export type ItemFormData = z.infer<typeof formSchema>;
@@ -63,6 +66,7 @@ interface ItemFormDialogProps {
   onSave: (data: Omit<Item, 'id' | 'createdAt'>) => void;
   item: Item | null;
   categories: Category[];
+  suppliers: Supplier[];
   onAddCategory: (name: string) => Category;
 }
 
@@ -72,6 +76,7 @@ export function ItemFormDialog({
   onSave,
   item,
   categories,
+  suppliers,
   onAddCategory,
 }: ItemFormDialogProps) {
   const { toast } = useToast();
@@ -87,6 +92,9 @@ export function ItemFormDialog({
       categoryId: "",
       unitType: 'pcs',
       itemType: 'Component',
+      reorderPoint: 0,
+      reorderQuantity: 0,
+      preferredSupplierId: "",
     },
   });
 
@@ -108,9 +116,12 @@ export function ItemFormDialog({
           unitType: item.unitType || 'pcs',
           itemType: item.itemType || 'Component',
           expirationDate: item.expirationDate ? new Date(item.expirationDate) : undefined,
+          reorderPoint: item.reorderPoint || 0,
+          reorderQuantity: item.reorderQuantity || 0,
+          preferredSupplierId: item.preferredSupplierId || "",
         });
       } else {
-        form.reset({ name: "", description: "", quantity: 0, value: 0, categoryId: "", unitType: 'pcs', itemType: 'Component', expirationDate: undefined });
+        form.reset({ name: "", description: "", quantity: 0, value: 0, categoryId: "", unitType: 'pcs', itemType: 'Component', expirationDate: undefined, reorderPoint: 0, reorderQuantity: 0, preferredSupplierId: "" });
       }
     }
   }, [item, isOpen, form]);
@@ -184,6 +195,9 @@ export function ItemFormDialog({
         categoryId: data.categoryId || "",
         unitType: data.unitType || 'pcs',
         itemType: data.itemType,
+        reorderPoint: data.reorderPoint,
+        reorderQuantity: data.reorderQuantity,
+        preferredSupplierId: data.preferredSupplierId,
     };
 
     if (data.expirationDate) {
@@ -403,6 +417,66 @@ export function ItemFormDialog({
                     )}
                 </div>
              </div>
+             {itemType === 'Component' && (
+                <div className="space-y-4 rounded-lg border p-4 mt-4">
+                    <h3 className="text-lg font-medium">Reordering</h3>
+                     <p className="text-sm text-muted-foreground">
+                       Set a reorder point to get automatic suggestions for new Purchase Orders.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="reorderPoint"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Reorder Point</FormLabel>
+                                <FormControl>
+                                <Input type="number" placeholder="e.g., 10" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="reorderQuantity"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Reorder Quantity</FormLabel>
+                                <FormControl>
+                                <Input type="number" placeholder="e.g., 50" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+                     <FormField
+                        control={form.control}
+                        name="preferredSupplierId"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Preferred Supplier</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a supplier" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                {suppliers.map((s) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                    {s.name}
+                                    </SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                </div>
+            )}
           </form>
         </Form>
         </div>

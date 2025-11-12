@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useBusiness } from "@/hooks/use-business";
 import { useUser } from "@/firebase";
@@ -17,13 +17,24 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SidebarLayout } from "@/components/sidebar-layout";
 import { Loader2 } from "lucide-react";
+import { useCollection } from "@/firebase";
+import { useFirestore } from "@/firebase";
+import { collection } from "firebase/firestore";
+import type { Supplier } from "@/lib/types";
 
 export default function InventoryPage() {
   const { business, activeBranch, isLoading: isBusinessLoading } = useBusiness();
   const { user, loading: isUserLoading } = useUser();
   const router = useRouter();
+  const firestore = useFirestore();
 
-  const isLoading = isUserLoading || isBusinessLoading;
+  const suppliersCollectionRef = useMemo(() => 
+    firestore && business?.id ? collection(firestore, 'businesses', business.id, 'suppliers') : null,
+    [firestore, business?.id]
+  );
+  const { data: suppliers, loading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
+
+  const isLoading = isUserLoading || isBusinessLoading || suppliersLoading;
   
   useEffect(() => {
     if (!isLoading && !user) {
@@ -45,7 +56,7 @@ export default function InventoryPage() {
     <SidebarLayout>
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
         {activeBranch ? (
-          <InventoryView branch={activeBranch} />
+          <InventoryView branch={activeBranch} suppliers={suppliers || []} />
         ) : (
           <Card>
             <CardHeader className="flex flex-col items-center justify-center text-center p-8">

@@ -2,7 +2,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Item, Branch, Recipe } from "@/lib/types";
+import type { Item, Branch, Recipe, Supplier } from "@/lib/types";
 import { useInventory } from "@/hooks/use-inventory";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -26,9 +26,10 @@ import { Button } from "@/components/ui/button";
 
 interface InventoryViewProps {
     branch: Branch;
+    suppliers: Supplier[];
 }
 
-export function InventoryView({ branch }: InventoryViewProps) {
+export function InventoryView({ branch, suppliers }: InventoryViewProps) {
   const {
     items,
     recipes,
@@ -386,6 +387,7 @@ export function InventoryView({ branch }: InventoryViewProps) {
         onSave={handleSaveItem}
         item={editingItem}
         categories={categories}
+        suppliers={suppliers}
         onAddCategory={addCategory}
       />
       
@@ -403,5 +405,3 @@ export function InventoryView({ branch }: InventoryViewProps) {
     </div>
   );
 }
-
-    

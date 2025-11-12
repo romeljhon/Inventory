@@ -1,4 +1,3 @@
-
 import { FieldValue } from 'firebase/firestore';
 
 export interface Item {
@@ -12,6 +11,9 @@ export interface Item {
   unitType?: 'pcs' | 'box' | 'pack';
   itemType: 'Product' | 'Component';
   expirationDate?: string;
+  reorderPoint?: number;
+  reorderQuantity?: number;
+  preferredSupplierId?: string;
 }
 
 export interface Category {

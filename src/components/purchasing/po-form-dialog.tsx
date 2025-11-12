@@ -55,6 +55,7 @@ interface PurchaseOrderFormDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   onSave: (data: Omit<PurchaseOrder, 'id' | 'createdAt'>) => void;
   purchaseOrder: PurchaseOrder | null;
+  prefillData: Partial<Omit<PurchaseOrder, 'id' | 'createdAt'>> | null;
   suppliers: Supplier[];
   components: Item[];
   poCount: number;
@@ -74,6 +75,7 @@ export function PurchaseOrderFormDialog({
   onOpenChange,
   onSave,
   purchaseOrder,
+  prefillData,
   suppliers,
   components,
   poCount,
@@ -105,7 +107,15 @@ export function PurchaseOrderFormDialog({
           orderDate: typeof purchaseOrder.orderDate === 'string' ? new Date(purchaseOrder.orderDate) : purchaseOrder.orderDate instanceof Date ? purchaseOrder.orderDate : new Date(),
           expectedDate: purchaseOrder.expectedDate ? new Date(purchaseOrder.expectedDate as string) : undefined,
         });
-      } else {
+      } else if (prefillData) {
+        form.reset({
+          supplierId: prefillData.supplierId || "",
+          items: prefillData.items?.map(i => ({...i})) || [{ itemId: "", quantity: 1, price: 0 }],
+          orderDate: new Date(),
+          expectedDate: undefined,
+        });
+      }
+       else {
         form.reset({
           supplierId: "",
           items: [{ itemId: "", quantity: 1, price: 0 }],
@@ -114,7 +124,7 @@ export function PurchaseOrderFormDialog({
         });
       }
     }
-  }, [purchaseOrder, isOpen, form]);
+  }, [purchaseOrder, prefillData, isOpen, form]);
 
   const onSubmit = (data: POFormData) => {
     const supplierName = suppliers.find(s => s.id === data.supplierId)?.name || 'Unknown';

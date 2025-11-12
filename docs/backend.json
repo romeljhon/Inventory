@@ -117,6 +117,18 @@
           "format": "date-time",
           "description": "The expiration date of the item, if applicable."
         },
+        "reorderPoint": {
+          "type": "number",
+          "description": "The stock level at which a reorder is suggested."
+        },
+        "reorderQuantity": {
+          "type": "number",
+          "description": "The suggested quantity to reorder."
+        },
+        "preferredSupplierId": {
+          "type": "string",
+          "description": "The ID of the preferred supplier for this component."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
