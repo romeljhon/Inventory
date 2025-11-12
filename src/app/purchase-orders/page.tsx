@@ -39,6 +39,7 @@ import { collection } from "firebase/firestore";
 import { PurchaseOrderFormDialog } from "@/components/purchasing/po-form-dialog";
 import { DeletePurchaseOrderAlert } from "@/components/purchasing/po-delete-alert";
 import { ReceivePurchaseOrderAlert } from "@/components/purchasing/po-receive-alert";
+import { PurchaseOrder as PurchaseOrderType } from "@/lib/types";
 
 const statusConfig = {
   Draft: { color: "bg-gray-500", icon: FileText },
@@ -66,7 +67,7 @@ export default function PurchaseOrdersPage() {
     firestore && business?.id && activeBranch?.id ? collection(firestore, 'businesses', business.id, 'branches', activeBranch.id, 'purchaseOrders') : null,
     [firestore, business?.id, activeBranch?.id]
   );
-  const { data: purchaseOrders, loading: poLoading } = useCollection<PurchaseOrder>(purchaseOrdersCollectionRef);
+  const { data: purchaseOrders, loading: poLoading } = useCollection<PurchaseOrderType>(purchaseOrdersCollectionRef);
 
   const suppliersCollectionRef = useMemo(() => 
     firestore && business?.id ? collection(firestore, 'businesses', business.id, 'suppliers') : null,
@@ -75,22 +76,22 @@ export default function PurchaseOrdersPage() {
   const { data: suppliers, loading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
+  const [editingPO, setEditingPO] = useState<PurchaseOrderType | null>(null);
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [deletingPO, setDeletingPO] = useState<PurchaseOrder | null>(null);
+  const [deletingPO, setDeletingPO] = useState<PurchaseOrderType | null>(null);
   
   const [isReceiveAlertOpen, setIsReceiveAlertOpen] = useState(false);
-  const [receivingPO, setReceivingPO] = useState<PurchaseOrder | null>(null);
+  const [receivingPO, setReceivingPO] = useState<PurchaseOrderType | null>(null);
 
   const isLoading = isInventoryLoading || poLoading || suppliersLoading;
 
-  const handleOpenForm = (po: PurchaseOrder | null = null) => {
+  const handleOpenForm = (po: PurchaseOrderType | null = null) => {
     setEditingPO(po);
     setIsFormOpen(true);
   };
   
-  const handleOpenDeleteAlert = (po: PurchaseOrder) => {
+  const handleOpenDeleteAlert = (po: PurchaseOrderType) => {
     setDeletingPO(po);
     setIsDeleteAlertOpen(true);
   };
@@ -103,7 +104,7 @@ export default function PurchaseOrdersPage() {
     setDeletingPO(null);
   };
   
-  const handleOpenReceiveAlert = (po: PurchaseOrder) => {
+  const handleOpenReceiveAlert = (po: PurchaseOrderType) => {
     setReceivingPO(po);
     setIsReceiveAlertOpen(true);
   };
@@ -116,7 +117,7 @@ export default function PurchaseOrdersPage() {
     setReceivingPO(null);
   };
 
-  const handleUpdateStatus = (po: PurchaseOrder, status: PurchaseOrder['status']) => {
+  const handleUpdateStatus = (po: PurchaseOrderType, status: PurchaseOrderType['status']) => {
     updatePurchaseOrder(po.id, { status });
   };
   
@@ -136,6 +137,14 @@ export default function PurchaseOrdersPage() {
     });
   }, [purchaseOrders]);
 
+  const handleSavePurchaseOrder = async (data: Omit<PurchaseOrderType, 'id' | 'createdAt'>) => {
+    if (editingPO) {
+      await updatePurchaseOrder(editingPO.id, data);
+    } else {
+      await addPurchaseOrder(data);
+    }
+    setIsFormOpen(false);
+  };
 
   return (
     <SidebarLayout>
@@ -254,7 +263,7 @@ export default function PurchaseOrdersPage() {
        <PurchaseOrderFormDialog
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
-        onSave={editingPO ? (data) => updatePurchaseOrder(editingPO.id, data) : addPurchaseOrder}
+        onSave={handleSavePurchaseOrder}
         purchaseOrder={editingPO}
         suppliers={suppliers || []}
         components={components || []}
@@ -278,5 +287,3 @@ export default function PurchaseOrdersPage() {
     </SidebarLayout>
   );
 }
-
-    
