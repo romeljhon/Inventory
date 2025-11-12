@@ -55,6 +55,10 @@ export default function LoginPage() {
       let description = "An unexpected error occurred. Please try again.";
       if (error.code === AuthErrorCodes.INVALID_CREDENTIAL) {
         description = "Invalid email or password. Please try again.";
+        form.setError("password", {
+            type: "manual",
+            message: "Invalid email or password.",
+        });
       } else {
         console.error("Login failed:", error);
       }
