@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy, Edit, AreaChart, Users, Truck, ShoppingBag } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy, Edit, AreaChart, Users, Truck, ShoppingBag, BarChart } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
@@ -156,12 +156,24 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith("/reports")}>
-                <Link href="/reports/sales">
-                  <AreaChart />
-                  Reports
-                </Link>
-              </SidebarMenuButton>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/reports")}>
+                  <Link href="/reports">
+                    <AreaChart />
+                    Reports
+                  </Link>
+                </SidebarMenuButton>
+                 <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={pathname === "/reports/sales"}>
+                        <Link href="/reports/sales">Sales Report</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                   <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={pathname === "/reports/forecasting"}>
+                        <Link href="/reports/forecasting">Forecasting</Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
             </SidebarMenuItem>
              <SidebarMenu>
                 <SidebarMenuItem>
