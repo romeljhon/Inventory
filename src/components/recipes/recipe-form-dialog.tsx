@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -104,9 +105,9 @@ export function RecipeFormDialog({
             Define the components needed to create a product.
           </DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto px-6">
+        <div className="max-h-[70vh] overflow-y-auto pr-6 pl-1">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form id="recipe-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4 px-6">
             <FormField
               control={form.control}
               name="productId"
@@ -136,12 +137,12 @@ export function RecipeFormDialog({
               <FormLabel>Components</FormLabel>
               <div className="space-y-4 mt-2">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="grid grid-cols-12 gap-2 items-start">
+                  <div key={field.id} className="grid grid-cols-[1fr_80px_auto] gap-2 items-start">
                      <FormField
                         control={form.control}
                         name={`components.${index}.itemId`}
                         render={({ field }) => (
-                            <FormItem className="col-span-7">
+                            <FormItem>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                     <SelectTrigger>
@@ -164,7 +165,7 @@ export function RecipeFormDialog({
                       control={form.control}
                       name={`components.${index}.quantity`}
                       render={({ field }) => (
-                        <FormItem className="col-span-3">
+                        <FormItem>
                           <FormControl>
                             <Input type="number" placeholder="Qty" {...field} />
                           </FormControl>
@@ -172,17 +173,15 @@ export function RecipeFormDialog({
                         </FormItem>
                       )}
                     />
-                    <div className="col-span-2 flex items-center pt-2">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => remove(index)}
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </div>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive mt-1"
+                        onClick={() => remove(index)}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -197,14 +196,13 @@ export function RecipeFormDialog({
                     Add Component
                 </Button>
             </div>
-            
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="submit">Save Recipe</Button>
-            </DialogFooter>
           </form>
         </Form>
         </div>
+         <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="submit" form="recipe-form">Save Recipe</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

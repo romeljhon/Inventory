@@ -100,8 +100,9 @@ export function EmployeeFormDialog({
             Fill in the details for your team member.
           </DialogDescription>
         </DialogHeader>
+        <div className="max-h-[70vh] overflow-y-auto pr-6 pl-1 py-4">
         <Form {...form}>
-          <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6">
             <FormField
               control={form.control}
               name="name"
@@ -175,6 +176,7 @@ export function EmployeeFormDialog({
             />
           </form>
         </Form>
+        </div>
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
