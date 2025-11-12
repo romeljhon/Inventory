@@ -204,7 +204,7 @@ export function ItemFormDialog({
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto px-1 pr-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pl-6">
+          <form id="item-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <div className="space-y-4">
                      <FormField
@@ -403,12 +403,10 @@ export function ItemFormDialog({
                     )}
                 </div>
              </div>
-            
-            
           </form>
         </Form>
         </div>
-        <DialogFooter className="pr-6">
+        <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" form="item-form">Save</Button>
         </DialogFooter>
