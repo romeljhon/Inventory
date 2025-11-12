@@ -49,7 +49,7 @@ const statusConfig = {
 };
 
 export default function PurchaseOrdersPage() {
-  const { activeBranch } = useBusiness();
+  const { business, activeBranch } = useBusiness();
   const firestore = useFirestore();
   const { 
     items, 
@@ -63,14 +63,14 @@ export default function PurchaseOrdersPage() {
   const components = useMemo(() => items.filter(i => i.itemType === 'Component'), [items]);
   
   const purchaseOrdersCollectionRef = useMemo(() => 
-    firestore && activeBranch?.id ? collection(firestore, 'businesses', activeBranch.businessId, 'branches', activeBranch.id, 'purchaseOrders') : null,
-    [firestore, activeBranch?.id, activeBranch?.businessId]
+    firestore && business?.id && activeBranch?.id ? collection(firestore, 'businesses', business.id, 'branches', activeBranch.id, 'purchaseOrders') : null,
+    [firestore, business?.id, activeBranch?.id]
   );
   const { data: purchaseOrders, loading: poLoading } = useCollection<PurchaseOrder>(purchaseOrdersCollectionRef);
 
   const suppliersCollectionRef = useMemo(() => 
-    firestore && activeBranch?.businessId ? collection(firestore, 'businesses', activeBranch.businessId, 'suppliers') : null,
-    [firestore, activeBranch?.businessId]
+    firestore && business?.id ? collection(firestore, 'businesses', business.id, 'suppliers') : null,
+    [firestore, business?.id]
   );
   const { data: suppliers, loading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef);
 
