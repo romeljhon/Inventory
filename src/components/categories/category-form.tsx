@@ -78,7 +78,7 @@ export function CategoryForm({
           Enter a valid HSL, Hex, or RGB color.
         </p>
       </div>
-       <div className="flex items-center space-x-2">
+       <div className="flex items-center space-x-2 pt-2">
         <Switch
           id="show-in-sales"
           checked={showInSales}

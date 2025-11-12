@@ -195,17 +195,17 @@ export function ItemFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{item ? "Edit Item" : "Add New Item"}</DialogTitle>
           <DialogDescription>
             Fill in the details below. Click save when you're done.
           </DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto px-6">
+        <div className="max-h-[70vh] overflow-y-auto px-1 pr-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pl-6">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <div className="space-y-4">
                      <FormField
                         control={form.control}
@@ -408,7 +408,7 @@ export function ItemFormDialog({
           </form>
         </Form>
         </div>
-        <DialogFooter>
+        <DialogFooter className="pr-6">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" form="item-form">Save</Button>
         </DialogFooter>
