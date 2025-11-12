@@ -15,6 +15,8 @@ import {
   BookCopy,
   ShoppingCart,
   Receipt,
+  Truck,
+  Lightbulb,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -147,6 +149,50 @@ export function LandingPage() {
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <BarChart className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  AI Demand Forecasting
+                </h3>
+                <p className="text-muted-foreground">
+                  Use AI to analyze sales history and predict future product demand, helping you optimize stock levels.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Receipt className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Purchase Orders
+                </h3>
+                <p className="text-muted-foreground">
+                  Create, track, and manage purchase orders to suppliers and automatically update inventory upon receipt.
+                </p>
+              </div>
+               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Lightbulb className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Automated PO Suggestions
+                </h3>
+                <p className="text-muted-foreground">
+                  Get smart suggestions to create purchase orders when component stock drops below your reorder point.
+                </p>
+              </div>
+               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Truck className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  Supplier Management
+                </h3>
+                <p className="text-muted-foreground">
+                  Keep a directory of your suppliers to streamline your purchasing workflow and associate components.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Package className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
@@ -180,17 +226,6 @@ export function LandingPage() {
               </div>
               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <BarChart className="h-6 w-6" />
-                </div>
-                <h3 className="mb-2 text-xl font-semibold">
-                  Dashboard & Reports
-                </h3>
-                <p className="text-muted-foreground">
-                  Get valuable insights into sales, stock levels, and inventory value in real-time.
-                </p>
-              </div>
-              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Building className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
@@ -198,28 +233,6 @@ export function LandingPage() {
                 </h3>
                 <p className="text-muted-foreground">
                   Manage inventory for all your locations from a single, unified dashboard.
-                </p>
-              </div>
-               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Camera className="h-6 w-6" />
-                </div>
-                <h3 className="mb-2 text-xl font-semibold">
-                  Historical Snapshots
-                </h3>
-                <p className="text-muted-foreground">
-                  View a snapshot of your complete inventory from any date in the past.
-                </p>
-              </div>
-               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Receipt className="h-6 w-6" />
-                </div>
-                <h3 className="mb-2 text-xl font-semibold">
-                  Sales & History Logs
-                </h3>
-                <p className="text-muted-foreground">
-                  Track every sale and inventory change with a detailed, exportable history log.
                 </p>
               </div>
             </div>
