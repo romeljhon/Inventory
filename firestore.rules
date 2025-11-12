@@ -4,6 +4,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Checks if the requesting user is the owner of the business.
     function isOwner(businessId) {
       return request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
     }
@@ -13,31 +14,78 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email in get(/databases/$(database)/documents/businesses/$(businessId)).data.employees;
     }
     
+    // Retrieves the employee role document for the requesting user for a given business.
+    function getEmployee(businessId) {
+      // Note: This relies on the employee document ID being the user's UID.
+      // This part of the implementation is not complete yet and needs a more robust way to map email to UID.
+      // For now, we will assume a way to get the employee document.
+      // A more robust solution involves a Cloud Function or a different data structure.
+      let employeeDoc = get(/databases/$(database)/documents/businesses/$(businessId)/employees/$(request.auth.uid));
+      return employeeDoc.data;
+    }
+    
+    // Checks if the user is an Admin for the business.
+    function isAdmin(businessId) {
+      // This is a simplified check. A robust implementation needs to query the employees subcollection.
+      // Firestore rules cannot query, so this check is difficult. We will assume for now that admins
+      // have full access like owners for simplicity in rules.
+      // A truly secure system might use custom claims set via a Cloud Function.
+      // For now, isOwner is the primary "admin" check.
+      return isOwner(businessId); // Simplified: Only Owner is Admin for now in rules.
+    }
+
     match /users/{userId} {
       // Users can create and manage their own profile.
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     match /businesses/{businessId} {
-      // The owner can do anything with the business document itself.
+      // Owner can write/update the business document.
       allow write: if isOwner(businessId);
       
       // An employee or owner can read the main business document.
       allow read: if isOwner(businessId) || isEmployee(businessId);
       
+      // Employee Management: Only the Owner can manage employees.
       match /employees/{employeeId} {
-        // The business owner can manage employees.
         allow read, write: if isOwner(businessId);
-        // An employee can read their own employee record.
-        allow get: if request.auth != null && request.auth.uid == employeeId;
       }
 
-      // This rule applies to all subcollections (branches, items, recipes, etc.)
-      // within a business, recursively.
-      match /{subcollection=**} {
-        // Employees and owners have full read and write access for now.
-        // In a real-world scenario, you would have more granular roles (e.g., staff can only make sales).
-        allow read, write: if isOwner(businessId) || isEmployee(businessId);
+      // Branch Management: Only Owner/Admin can manage branches.
+      match /branches/{branchId} {
+        allow write: if isOwner(businessId); // For now, only owner can create/delete/edit branches
+        allow read: if isOwner(businessId) || isEmployee(businessId);
+      }
+
+      // Read access to all subcollections for all employees
+      match /{subcollection}/{docId} {
+         allow read: if isOwner(businessId) || isEmployee(businessId);
+      }
+      
+      // Write access for most data is restricted to Owners/Admins
+      match /branches/{branchId}/items/{itemId} {
+        allow read: if isOwner(businessId) || isEmployee(businessId);
+        // Only owner can create/delete items. Staff can only update quantity via sales.
+        allow create, delete, update: if isOwner(businessId);
+        // A specific rule for sales would be needed to allow staff to only decrease quantity.
+        // This is handled in the app logic for now (batchUpdateQuantities)
+      }
+      
+      match /branches/{branchId}/categories/{categoryId} {
+         allow read: if isOwner(businessId) || isEmployee(businessId);
+         allow write: if isOwner(businessId); // Only owners can manage categories
+      }
+      
+      match /branches/{branchId}/recipes/{recipeId} {
+         allow read: if isOwner(businessId) || isEmployee(businessId);
+         allow write: if isOwner(businessId); // Only owners can manage recipes
+      }
+
+      // All employees can create history logs (e.g., through sales)
+      match /branches/{branchId}/history/{historyId} {
+        allow read: if isOwner(businessId) || isEmployee(businessId);
+        allow create: if isOwner(businessId) || isEmployee(businessId); 
+        allow update, delete: if false; // History should be immutable
       }
     }
   }
