@@ -7,6 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { Category } from "@/lib/types";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const formSchema = z.object({
+  name: z.string().min(2, { message: "Category name must be at least 2 characters." }),
+  color: z.string().min(3, { message: "Please enter a valid color." }),
+  showInSales: z.boolean().default(false),
+});
+
+type CategoryFormData = z.infer<typeof formSchema>;
 
 interface CategoryFormProps {
   category: Category | null;
@@ -19,79 +38,107 @@ export function CategoryForm({
   onSave,
   onCancel,
 }: CategoryFormProps) {
-  const [name, setName] = useState("");
-  const [color, setColor] = useState("#000000");
-  const [showInSales, setShowInSales] = useState(false);
+  
+  const form = useForm<CategoryFormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      color: "#000000",
+      showInSales: false,
+    },
+  });
+  
+  const colorValue = form.watch("color");
 
   useEffect(() => {
     if (category) {
-      setName(category.name);
-      setColor(category.color);
-      setShowInSales(category.showInSales || false);
+      form.reset({
+        name: category.name,
+        color: category.color,
+        showInSales: category.showInSales || false,
+      });
     } else {
-      setName("");
-      // Generate a random color for new categories
       const randomColor = `hsl(${Math.floor(Math.random() * 360)}, 70%, 50%)`;
-      setColor(randomColor);
-      setShowInSales(false);
+      form.reset({
+        name: "",
+        color: randomColor,
+        showInSales: false,
+      });
     }
-  }, [category]);
-  
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // This is a simple text input for HSL color, for a real app a color picker would be better
-    setColor(e.target.value);
-  };
+  }, [category, form]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (name.trim()) {
-      onSave({ name, color, showInSales });
-    }
+  const handleSubmit = (data: CategoryFormData) => {
+    onSave(data);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 py-4">
-      <div className="space-y-2">
-        <Label htmlFor="category-name">Category Name</Label>
-        <Input
-          id="category-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Electronics"
-          required
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Category Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g. Beverages" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="category-color">Category Color</Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="category-color"
-            type="text"
-            value={color}
-            onChange={handleColorChange}
-            required
-            className="w-full"
-          />
-          <div className="h-8 w-8 rounded-md border" style={{ backgroundColor: color }} />
+        
+        <FormField
+          control={form.control}
+          name="color"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Category Color</FormLabel>
+              <div className="flex items-center gap-2">
+                <FormControl>
+                  <Input placeholder="e.g., hsl(24, 9.8%, 10%)" {...field} />
+                </FormControl>
+                <div 
+                  className="h-8 w-8 rounded-md border" 
+                  style={{ backgroundColor: colorValue }} 
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enter any valid CSS color (hex, rgb, hsl).
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="showInSales"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-4">
+              <div className="space-y-0.5">
+                <FormLabel>Show in Sales</FormLabel>
+                <p className="text-[0.8rem] text-muted-foreground">
+                  Make this category visible on the sales page.
+                </p>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit">Save</Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Enter a valid HSL, Hex, or RGB color.
-        </p>
-      </div>
-       <div className="flex items-center space-x-2 pt-2">
-        <Switch
-          id="show-in-sales"
-          checked={showInSales}
-          onCheckedChange={setShowInSales}
-        />
-        <Label htmlFor="show-in-sales">Show in Sales Page</Label>
-      </div>
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">Save</Button>
-      </div>
-    </form>
+      </form>
+    </Form>
   );
 }
