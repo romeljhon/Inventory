@@ -31,10 +31,16 @@ export default function ForecastingPage() {
 
     const salesHistory = history
       .filter((log) => log.itemId === selectedProductId && log.type === 'sale')
-      .map((log) => ({
-        date: typeof log.createdAt === 'string' ? log.createdAt : (log.createdAt as any).toDate().toISOString(),
-        quantitySold: Math.abs(log.change),
-      }));
+      .map((log) => {
+        const date = log.createdAt instanceof Date 
+            ? log.createdAt 
+            : (log.createdAt as any)?.toDate();
+
+        return {
+          date: date ? date.toISOString() : new Date().toISOString(),
+          quantitySold: Math.abs(log.change),
+        };
+      });
 
     try {
       const result = await forecastDemand({
@@ -44,6 +50,10 @@ export default function ForecastingPage() {
       setForecastResult(result);
     } catch (error) {
       console.error('Forecasting failed', error);
+      setForecastResult({
+          forecastedSales: 0,
+          reasoning: "An unexpected error occurred while generating the forecast."
+      })
     } finally {
       setIsForecasting(false);
     }
