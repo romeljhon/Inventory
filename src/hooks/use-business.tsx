@@ -21,6 +21,7 @@ interface BusinessContextType {
   activeBranch: Branch | null;
   isLoading: boolean;
   isNewUser: boolean;
+  userRole: 'Owner' | 'Admin' | 'Staff' | null;
   setupBusiness: (businessName: string, initialBranchName: string) => Promise<Business | undefined>;
   addBranch: (branchName: string) => Promise<Branch | undefined>;
   deleteBranch: (branchId: string) => Promise<void>;
@@ -90,6 +91,12 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   const business = useMemo(() => businesses.find(b => b.id === activeBusinessId) || null, [businesses, activeBusinessId]);
   const activeBranch = useMemo(() => branches?.find(b => b.id === activeBranchId) || null, [branches, activeBranchId]);
+  const userRole = useMemo(() => {
+    if (!user || !business) return null;
+    if (business.ownerId === user.uid) return 'Owner';
+    const employeeRecord = employees.find(e => e.email === user.email);
+    return employeeRecord?.role || null;
+  }, [user, business, employees]);
 
   const isLoading = userLoading || isBusinessLogicLoading || ownedBusinessesLoading || employeeBusinessesLoading;
 
@@ -126,23 +133,36 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, [user, isNewUser, isLoading, router]);
 
-  // Restore state from localStorage
+  // Restore state from localStorage and auto-select branch for non-owners
   useEffect(() => {
     const storedBusinessId = localStorage.getItem(ACTIVE_BUSINESS_STORAGE_KEY);
     if (storedBusinessId && businesses.some(b => b.id === storedBusinessId)) {
       setActiveBusinessId(storedBusinessId);
     } else if (businesses.length > 0) {
-      // Default to the first business if none is selected or stored one is invalid
       setActiveBusinessId(businesses[0].id);
     }
-
-    const storedBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
-    if (storedBranchId && branches.some(b => b.id === storedBranchId)) {
-        setActiveBranchId(storedBranchId);
-    } else {
-        setActiveBranchId(null);
+    
+    // Once business and user roles are determined
+    if (business && user && userRole) {
+      if (userRole === 'Owner') {
+          // Owners can select any branch, so we restore their last selection if it exists
+          const storedBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
+          if (storedBranchId && branches.some(b => b.id === storedBranchId)) {
+              setActiveBranchId(storedBranchId);
+          } else {
+              setActiveBranchId(null);
+          }
+      } else { // For 'Admin' and 'Staff'
+          const employeeRecord = employees.find(e => e.email === user.email);
+          if (employeeRecord && employeeRecord.branchId) {
+            // Auto-select their assigned branch
+            setActiveBranchId(employeeRecord.branchId);
+            localStorage.setItem(ACTIVE_BRANCH_STORAGE_KEY, employeeRecord.branchId);
+          }
+      }
     }
-  }, [businesses, branches]); // Re-run when businesses/branches load
+
+  }, [businesses, business, user, userRole, employees, branches]);
 
 
   // --- Actions ---
@@ -372,6 +392,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     activeBranch,
     isLoading,
     isNewUser,
+    userRole,
     setupBusiness,
     addBranch,
     deleteBranch,
@@ -390,6 +411,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     activeBranch, 
     isLoading, 
     isNewUser, 
+    userRole,
     setupBusiness, 
     addBranch, 
     deleteBranch, 
@@ -416,3 +438,4 @@ export const useBusiness = (): BusinessContextType => {
   }
   return context;
 };
+

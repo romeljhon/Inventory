@@ -380,7 +380,7 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
 }
 
 export default function DashboardPage() {
-  const { business, branches, activeBranch, addBranch, deleteBranch, switchBranch, isLoading: isBusinessLoading, updateBranch } = useBusiness();
+  const { business, branches, activeBranch, addBranch, deleteBranch, switchBranch, isLoading: isBusinessLoading, updateBranch, userRole } = useBusiness();
   const router = useRouter();
   const { toast } = useToast();
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);
@@ -389,6 +389,9 @@ export default function DashboardPage() {
 
   const [isEditBranchOpen, setIsEditBranchOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  
+  const canManageBranches = userRole === 'Owner' || userRole === 'Admin';
+
 
   const handleSelectBranch = (branch: Branch) => {
     switchBranch(branch.id);
@@ -467,47 +470,51 @@ export default function DashboardPage() {
                     <CardTitle className="text-lg">{branch.name}</CardTitle>
                     <CardDescription>View Dashboard</CardDescription>
                   </div>
-                   <CardFooter className="p-2 border-t flex items-center justify-center gap-1">
-                     <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditDialog(branch);
-                      }}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteDialog(branch);
-                      }}
-                      disabled={branches.length <= 1}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
-                  </CardFooter>
+                  {canManageBranches && (
+                     <CardFooter className="p-2 border-t flex items-center justify-center gap-1">
+                       <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditDialog(branch);
+                        }}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteDialog(branch);
+                        }}
+                        disabled={branches.length <= 1}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    </CardFooter>
+                  )}
                 </Card>
               ))}
-               <Card 
-                  className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-1 border-2 border-dashed bg-muted/20 hover:border-primary/50 hover:bg-muted/50"
-                  onClick={() => setIsAddBranchOpen(true)}
-                >
-                  <CardHeader className="flex flex-col items-center justify-center text-center p-6 h-full">
-                     <div className="p-4 bg-primary/10 rounded-full mb-4">
-                        <PlusCircle className="h-8 w-8 text-primary" />
-                     </div>
-                    <CardTitle className="text-lg">Add New Branch</CardTitle>
-                    <CardDescription>Create a new location</CardDescription>
-                  </CardHeader>
-                </Card>
+              {canManageBranches && (
+                 <Card 
+                    className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-1 border-2 border-dashed bg-muted/20 hover:border-primary/50 hover:bg-muted/50"
+                    onClick={() => setIsAddBranchOpen(true)}
+                  >
+                    <CardHeader className="flex flex-col items-center justify-center text-center p-6 h-full">
+                       <div className="p-4 bg-primary/10 rounded-full mb-4">
+                          <PlusCircle className="h-8 w-8 text-primary" />
+                       </div>
+                      <CardTitle className="text-lg">Add New Branch</CardTitle>
+                      <CardDescription>Create a new location</CardDescription>
+                    </CardHeader>
+                  </Card>
+              )}
             </div>
           </div>
         )}
