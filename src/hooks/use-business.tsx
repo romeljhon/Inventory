@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Business, Branch, Item, Category, InventoryHistory, Employee } from '@/lib/types';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -59,50 +59,13 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     firestore && user?.email ? query(collection(firestore, 'businesses'), where('employees', 'array-contains', user.email)) : null,
     [firestore, user?.email]
   );
-  
-  const employeeOfBusinessesQuery = useMemo(() => {
-    if (!firestore || !user?.uid) return null;
-    return query(collection(firestore, 'employees'), where('uid', '==', user.uid));
-  }, [firestore, user?.uid]);
-  
-  // New logic to find businesses where user is an employee
-  const [employeeBusinesses, setEmployeeBusinesses] = useState<Business[]>([]);
-  const [employeeBusinessesLoading, setEmployeeBusinessesLoading] = useState(true);
-
-  useEffect(() => {
-    if (!firestore || !user?.uid) {
-        setEmployeeBusinessesLoading(false);
-        return;
-    };
-    
-    const findBusinesses = async () => {
-        setEmployeeBusinessesLoading(true);
-        const employeeQuery = query(collection(firestore, 'businesses'));
-        const businessesSnapshot = await getDocs(employeeQuery);
-        const employeeOf: Business[] = [];
-        
-        for (const businessDoc of businessesSnapshot.docs) {
-            const employeesCollection = collection(firestore, 'businesses', businessDoc.id, 'employees');
-            const userEmployeeDoc = doc(employeesCollection, user.uid);
-            const employeeSnapshot = await getDoc(userEmployeeDoc);
-
-            if (employeeSnapshot.exists()) {
-                employeeOf.push({ id: businessDoc.id, ...businessDoc.data() } as Business);
-            }
-        }
-        setEmployeeBusinesses(employeeOf);
-        setEmployeeBusinessesLoading(false);
-    };
-
-    findBusinesses();
-  }, [firestore, user?.uid]);
-
+  const { data: employeeBusinesses, loading: employeeBusinessesLoading } = useCollection<Business>(employeeBusinessesQuery);
 
   // 3. Combine owned and employee businesses
   const businesses = useMemo(() => {
     const allBusinesses = new Map<string, Business>();
     (ownedBusinesses || []).forEach(b => allBusinesses.set(b.id, b));
-    employeeBusinesses.forEach(b => allBusinesses.set(b.id, b));
+    (employeeBusinesses || []).forEach(b => allBusinesses.set(b.id, b));
     return Array.from(allBusinesses.values());
   }, [ownedBusinesses, employeeBusinesses]);
 
@@ -128,7 +91,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const business = useMemo(() => businesses.find(b => b.id === activeBusinessId) || null, [businesses, activeBusinessId]);
   const activeBranch = useMemo(() => branches?.find(b => b.id === activeBranchId) || null, [branches, activeBranchId]);
 
-  const isLoading = userLoading || isBusinessLogicLoading || employeesLoading || ownedBusinessesLoading || employeeBusinessesLoading;
+  const isLoading = userLoading || isBusinessLogicLoading || ownedBusinessesLoading || employeeBusinessesLoading;
 
   // --- Business Logic Effects ---
   
@@ -138,7 +101,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (userLoading || ownedBusinessesLoading || employeeBusinessesLoading) return;
 
     if (user) {
-      if ((ownedBusinesses || []).length === 0 && employeeBusinesses.length === 0) {
+      if ((ownedBusinesses || []).length === 0 && (employeeBusinesses || []).length === 0) {
         setIsNewUser(true);
       } else {
         setIsNewUser(false);
@@ -214,6 +177,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     const businessData = { 
         name: businessName,
         ownerId: user.uid,
+        employees: [],
         createdAt: serverTimestamp(),
     };
     
@@ -332,17 +296,22 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [firestore, business?.id, activeBranch?.id, switchBranch]);
 
   const addEmployee = useCallback(async (employeeData: Omit<Employee, "id" | "createdAt">): Promise<Employee | undefined> => {
-    if (!employeesCollectionRef) return;
-    // This is a placeholder. In a real app, you would trigger a cloud function 
-    // to create a user account and then create the employee document with the user's UID as the ID.
-    // For now, we'll use a placeholder ID, but this won't allow the employee to log in.
+    if (!firestore || !business?.id || !employeesCollectionRef) return;
+    
+    // In a real app, you would have a Cloud Function to find the user by email, get their UID,
+    // and then create the employee document with that UID.
+    // For now, we will add the email to the business's employee array and create a record.
+    const businessDocRef = doc(firestore, 'businesses', business.id);
+
+    await updateDoc(businessDocRef, {
+        employees: arrayUnion(employeeData.email)
+    });
+    
     const newEmployeeData = {
       ...employeeData,
       createdAt: serverTimestamp(),
     };
-    // The document ID should be the employee's future Firebase Auth UID.
-    // This requires an invitation flow which is beyond this scope.
-    // We'll add it with a generated ID for now to show in the list.
+
     const docRef = await addDoc(employeesCollectionRef, newEmployeeData)
       .catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -358,7 +327,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     return { id: docRef.id, ...newEmployeeData } as Employee;
 
-  }, [employeesCollectionRef]);
+  }, [firestore, business?.id, employeesCollectionRef]);
 
   const updateEmployee = useCallback(async (employeeId: string, employeeData: Partial<Omit<Employee, "id" | "createdAt">>) => {
     if (!employeesCollectionRef) return;
@@ -374,8 +343,18 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [employeesCollectionRef]);
   
   const deleteEmployee = useCallback(async (employeeId: string) => {
-    if (!employeesCollectionRef) return;
+    if (!firestore || !business?.id || !employeesCollectionRef) return;
+
     const employeeDocRef = doc(employeesCollectionRef, employeeId);
+    const employee = (await getDoc(employeeDocRef)).data() as Employee;
+    
+    if (employee?.email) {
+      const businessDocRef = doc(firestore, 'businesses', business.id);
+      await updateDoc(businessDocRef, {
+        employees: arrayRemove(employee.email)
+      });
+    }
+
     await deleteDoc(employeeDocRef).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: employeeDocRef.path,
@@ -383,7 +362,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       });
       errorEmitter.emit('permission-error', permissionError);
     });
-  }, [employeesCollectionRef]);
+  }, [firestore, business?.id, employeesCollectionRef]);
 
   const contextValue = useMemo(() => ({
     business,

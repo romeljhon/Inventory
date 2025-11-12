@@ -8,10 +8,9 @@ service cloud.firestore {
       return request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
     }
 
-    // Checks if a user is an employee of a specific business by checking their UID against the employee subcollection.
-    // The employee document ID must be the user's UID.
+    // Checks if a user is an employee of a specific business by checking their email against an array on the business document.
     function isEmployee(businessId) {
-      return request.auth != null && exists(/databases/$(database)/documents/businesses/$(businessId)/employees/$(request.auth.uid));
+      return request.auth != null && request.auth.token.email in get(/databases/$(database)/documents/businesses/$(businessId)).data.employees;
     }
     
     match /users/{userId} {
@@ -21,10 +20,10 @@ service cloud.firestore {
 
     match /businesses/{businessId} {
       // The owner can do anything with the business document itself.
-      allow read, write: if isOwner(businessId);
+      allow write: if isOwner(businessId);
       
-      // An employee can read the main business document.
-      allow get: if isEmployee(businessId);
+      // An employee or owner can read the main business document.
+      allow read: if isOwner(businessId) || isEmployee(businessId);
       
       match /employees/{employeeId} {
         // The business owner can manage employees.

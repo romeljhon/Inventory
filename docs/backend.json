@@ -13,6 +13,14 @@
           "type": "string",
           "description": "The UID of the user who owns this business."
         },
+        "employees": {
+          "type": "array",
+          "description": "An array of email addresses for users who are employees.",
+          "items": {
+            "type": "string",
+            "format": "email"
+          }
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -40,7 +48,7 @@
     },
     "employee": {
       "title": "Employee",
-      "description": "Represents an employee of a business, linked to a user account.",
+      "description": "Represents an employee of a business, linked to a user account. The document ID for an employee is their user UID.",
       "type": "object",
       "properties": {
         "name": {
@@ -244,7 +252,7 @@
       "schema": {
         "$ref": "#/entities/employee"
       },
-      "description": "Sub-collection for employees within a business."
+      "description": "Sub-collection for employees within a business. The document ID is the employee's user UID."
     },
     "/businesses/{businessId}/branches/{branchId}/items/{itemId}": {
       "schema": {
