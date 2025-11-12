@@ -17,7 +17,7 @@ import {
 import { startOfDay, parseISO, isAfter, endOfDay, isBefore } from "date-fns";
 import { useFirestore } from "@/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import type { Item, Category, InventoryHistory, Recipe } from "@/lib/types";
+import type { Item, Category, InventoryHistory, Recipe, PurchaseOrder, PurchaseOrderItem } from "@/lib/types";
 import { useBusiness } from "./use-business";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -51,6 +51,7 @@ export function useInventory(branchId: string | undefined) {
   const categoriesCollection = useMemo(() => branchRef ? collection(branchRef, 'categories') : null, [branchRef]);
   const historyCollection = useMemo(() => branchRef ? collection(branchRef, 'history') : null, [branchRef]);
   const recipesCollection = useMemo(() => branchRef ? collection(branchRef, 'recipes') : null, [branchRef]);
+  const poCollection = useMemo(() => branchRef ? collection(branchRef, 'purchaseOrders') : null, [branchRef]);
   
   const { data: itemsData, loading: itemsLoading } = useCollection<Item>(
     itemsCollection ? query(itemsCollection, orderBy('createdAt', 'desc')) : null
@@ -151,21 +152,26 @@ export function useInventory(branchId: string | undefined) {
 
       for (const cartItem of cart) {
         const recipe = recipes.find(r => r.productId === cartItem.id);
+        const cartItemIsComponent = items.find(i => i.id === cartItem.id)?.itemType === 'Component';
+        
         if (recipe) {
           // This is a product with a recipe, calculate component deductions
           for (const component of recipe.components) {
             const totalDeduction = component.quantity * cartItem.saleQuantity;
             componentDeductions[component.itemId] = (componentDeductions[component.itemId] || 0) + totalDeduction;
           }
-          // Log sale of the product itself, but with 0 quantity change as it's virtual
-          addHistory({
-            itemId: cartItem.id,
-            itemName: cartItem.name,
-            change: -cartItem.saleQuantity, // Log the sale quantity
-            newQuantity: 0, // Not relevant for product itself
-            type: 'quantity',
-          });
+        } else if (cartItemIsComponent) {
+          // This is a component being sold directly
+          componentDeductions[cartItem.id] = (componentDeductions[cartItem.id] || 0) + cartItem.saleQuantity;
         }
+
+        addHistory({
+          itemId: cartItem.id,
+          itemName: cartItem.name,
+          change: -cartItem.saleQuantity,
+          newQuantity: 0, // Placeholder, actual new quantity is for components
+          type: 'sale',
+        });
       }
 
       // Apply component deductions
@@ -357,6 +363,84 @@ export function useInventory(branchId: string | undefined) {
     });
   }, [recipesCollection]);
 
+  const addPurchaseOrder = useCallback(async (poData: Omit<PurchaseOrder, 'id' | 'createdAt'>) => {
+    if (!poCollection) return;
+    const newPOData = {
+      ...poData,
+      createdAt: serverTimestamp(),
+    };
+    addDoc(poCollection, newPOData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: poCollection.path,
+        operation: 'create',
+        requestResourceData: newPOData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  }, [poCollection]);
+
+  const updatePurchaseOrder = useCallback(async (id: string, updatedData: Partial<Omit<PurchaseOrder, 'id' | 'createdAt'>>) => {
+    if (!poCollection) return;
+    const poDoc = doc(poCollection, id);
+    updateDoc(poDoc, updatedData).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: poDoc.path,
+        operation: 'update',
+        requestResourceData: updatedData,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  }, [poCollection]);
+
+  const deletePurchaseOrder = useCallback(async (id: string) => {
+    if (!poCollection) return;
+    const poDoc = doc(poCollection, id);
+    deleteDoc(poDoc).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: poDoc.path,
+        operation: 'delete',
+      });
+      errorEmitter.emit('permission-error', permissionError);
+    });
+  }, [poCollection]);
+
+  const receivePurchaseOrder = useCallback(async (poId: string, poItems: PurchaseOrderItem[]) => {
+    if (!firestore || !itemsCollection || !poCollection || !items) return;
+
+    const batch = writeBatch(firestore);
+
+    // Update quantities for each item in the PO
+    for (const poItem of poItems) {
+      const itemDocRef = doc(itemsCollection, poItem.itemId);
+      const currentItem = items.find(i => i.id === poItem.itemId);
+      if (currentItem) {
+        const newQuantity = currentItem.quantity + poItem.quantity;
+        batch.update(itemDocRef, { quantity: newQuantity });
+        addHistory({
+            itemId: poItem.itemId,
+            itemName: poItem.itemName,
+            change: poItem.quantity,
+            newQuantity: newQuantity,
+            type: 'po-receive',
+        });
+      }
+    }
+
+    // Update the PO status to 'Received'
+    const poDocRef = doc(poCollection, poId);
+    batch.update(poDocRef, { status: 'Received', receivedDate: serverTimestamp() });
+
+    await batch.commit().catch(async (serverError) => {
+        // This is a simplified error context. A real app might need more detail.
+        const permissionError = new FirestorePermissionError({
+            path: poCollection.path,
+            operation: 'update',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
+
+  }, [firestore, poCollection, itemsCollection, items, addHistory]);
+
   const availableSnapshotDates = useMemo(() => {
     if (!history || history.length === 0) return [];
     const dates = new Set(
@@ -435,6 +519,10 @@ export function useInventory(branchId: string | undefined) {
     addRecipe,
     updateRecipe,
     deleteRecipe,
+    addPurchaseOrder,
+    updatePurchaseOrder,
+    deletePurchaseOrder,
+    receivePurchaseOrder,
     isLoading,
     availableSnapshotDates,
     getInventorySnapshot,
