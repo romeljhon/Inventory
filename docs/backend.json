@@ -203,7 +203,7 @@
         },
         "type": {
           "type": "string",
-          "enum": ["initial", "add", "update", "delete", "quantity"]
+          "enum": ["initial", "add", "update", "delete", "quantity", "sale", "po-receive"]
         },
         "createdAt": {
           "type": "string",
@@ -230,6 +230,95 @@
         }
       },
       "required": ["displayName", "email"]
+    },
+    "supplier": {
+      "title": "Supplier",
+      "description": "Represents a supplier or vendor for inventory components.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "contactName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["name", "createdAt"]
+    },
+    "purchaseOrder": {
+      "title": "Purchase Order",
+      "description": "A purchase order to a supplier for components.",
+      "type": "object",
+      "properties": {
+        "poNumber": {
+          "type": "string"
+        },
+        "supplierId": {
+          "type": "string"
+        },
+        "supplierName": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Draft", "Ordered", "Partially Received", "Received", "Cancelled"]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "itemName": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "price": {
+                "type": "number"
+              }
+            },
+            "required": ["itemId", "itemName", "quantity", "price"]
+          }
+        },
+        "total": {
+          "type": "number"
+        },
+        "orderDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expectedDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "receivedDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["poNumber", "supplierId", "supplierName", "status", "items", "total", "createdAt"]
     }
   },
   "auth": {
@@ -241,6 +330,12 @@
         "$ref": "#/entities/business"
       },
       "description": "Top-level collection for business entities."
+    },
+    "/businesses/{businessId}/suppliers/{supplierId}": {
+      "schema": {
+        "$ref": "#/entities/supplier"
+      },
+      "description": "Sub-collection for suppliers within a business."
     },
     "/businesses/{businessId}/branches/{branchId}": {
       "schema": {
@@ -277,6 +372,12 @@
         "$ref": "#/entities/inventoryHistory"
       },
       "description": "Sub-collection for inventory history logs within a branch."
+    },
+    "/businesses/{businessId}/branches/{branchId}/purchaseOrders/{poId}": {
+      "schema": {
+        "$ref": "#/entities/purchaseOrder"
+      },
+      "description": "Sub-collection for purchase orders within a branch."
     },
     "/users/{userId}": {
       "schema": {

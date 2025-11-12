@@ -62,7 +62,7 @@ export interface InventoryHistory {
     itemName: string;
     change: number;
     newQuantity: number;
-    type: 'initial' | 'add' | 'update' | 'delete' | 'quantity';
+    type: 'initial' | 'add' | 'update' | 'delete' | 'quantity' | 'sale' | 'po-receive';
     createdAt: FieldValue | string;
 }
 
@@ -71,4 +71,35 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  createdAt: FieldValue | string;
+}
+
+export interface PurchaseOrderItem {
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  price: number;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  poNumber: string;
+  supplierId: string;
+  supplierName: string;
+  status: 'Draft' | 'Ordered' | 'Partially Received' | 'Received' | 'Cancelled';
+  items: PurchaseOrderItem[];
+  total: number;
+  orderDate: FieldValue | string;
+  expectedDate?: FieldValue | string;
+  receivedDate?: FieldValue | string;
+  createdAt: FieldValue | string;
 }

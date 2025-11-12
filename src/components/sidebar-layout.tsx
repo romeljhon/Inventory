@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy, Edit, AreaChart, Users } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy, Edit, AreaChart, Users, Truck, ShoppingBag } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
@@ -140,14 +140,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/categories"}>
-                    <Link href="/categories">
-                    <Shapes />
-                    Categories
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/inventory"}>
                     <Link href="/inventory">
                     <Package />
@@ -155,11 +147,11 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/recipes"}>
-                    <Link href="/recipes">
-                    <BookCopy />
-                    Recipes
+             <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/sales"}>
+                    <Link href="/sales">
+                    <ShoppingCart />
+                    Sales
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
@@ -170,6 +162,40 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                   Reports
                 </Link>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/suppliers"}>
+                        <Link href="/suppliers">
+                        <Truck />
+                        Suppliers
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/purchase-orders"}>
+                        <Link href="/purchase-orders">
+                        <ShoppingBag />
+                        Purchase Orders
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/categories"}>
+                    <Link href="/categories">
+                    <Shapes />
+                    Categories
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/recipes"}>
+                    <Link href="/recipes">
+                    <BookCopy />
+                    Recipes
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/history"}>
@@ -184,14 +210,6 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                     <Link href="/snapshots">
                     <Camera />
                     Snapshots
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/sales"}>
-                    <Link href="/sales">
-                    <ShoppingCart />
-                    Sales
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
