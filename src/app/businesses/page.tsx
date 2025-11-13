@@ -62,7 +62,7 @@ export default function BusinessesPage() {
                 </TooltipTrigger>
                 {!canCreateNewBusiness && (
                   <TooltipContent>
-                    <p>Upgrade your existing free business to create a new one.</p>
+                    <p>You've reached the business limit for your plan. Please upgrade.</p>
                   </TooltipContent>
                 )}
               </Tooltip>

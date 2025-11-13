@@ -24,58 +24,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-
-
-const plans = [
-  {
-    name: 'Starter',
-    price: 'Free',
-    priceMonthly: '₱0',
-    description: 'For solo owners & startups testing the waters.',
-    features: [
-      '1 User',
-      '1 Branch',
-      '100 Inventory Items',
-      '100 Sales/month',
-      'Limited AI Features (5 scans/forecasts)',
-    ],
-    tierId: 'free',
-    cta: 'Get Started for Free',
-  },
-  {
-    name: 'Growth',
-    price: '₱1,499',
-    priceMonthly: '₱1,499',
-    description: 'For growing businesses managing a small team.',
-    isPopular: true,
-    features: [
-      'Up to 5 Users',
-      'Up to 3 Branches',
-      '2,000 Inventory Items',
-      '2,000 Sales/month',
-      'Increased AI (75 scans/forecasts)',
-      'Automated PO Suggestions',
-    ],
-    tierId: 'growth',
-    cta: 'Choose Growth Plan',
-  },
-  {
-    name: 'Scale',
-    price: '₱3,999',
-    priceMonthly: '₱3,999',
-    description: 'For multi-branch operations and high-volume sales.',
-    features: [
-      'Unlimited Users',
-      'Unlimited Branches',
-      'Unlimited Items',
-      'Unlimited Sales & POs',
-      'Highest AI Limits (200 scans/forecasts)',
-      'Priority Support & API Access',
-    ],
-    tierId: 'scale',
-    cta: 'Choose Scale Plan',
-  },
-];
+import { PLANS } from '@/lib/plans';
 
 
 export function LandingPage() {
@@ -393,9 +342,9 @@ export function LandingPage() {
               </p>
             </div>
              <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-3">
-              {plans.map((plan) => (
+              {PLANS.map((plan) => (
                 <Card
-                  key={plan.name}
+                  key={plan.tierId}
                   className={cn(
                     'flex flex-col',
                     plan.isPopular && 'border-2 border-primary shadow-lg',
@@ -408,7 +357,7 @@ export function LandingPage() {
                   )}
                   <CardHeader className="text-center">
                     <CardTitle className="text-3xl">{plan.name}</CardTitle>
-                     <p className="text-4xl font-bold">{plan.priceMonthly}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                     <p className="text-4xl font-bold">{plan.price}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
                     <CardDescription>{plan.description}</CardDescription>
                   </CardHeader>
                   <CardContent className="flex-grow space-y-4">
@@ -416,14 +365,14 @@ export function LandingPage() {
                       {plan.features.map((feature, i) => (
                         <li key={i} className="flex items-start gap-3">
                           <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-                          <span className="text-muted-foreground">{feature}</span>
+                          <span className="text-muted-foreground">{feature.text}</span>
                         </li>
                       ))}
                     </ul>
                   </CardContent>
                   <CardFooter>
                      <Button asChild className="w-full" variant={plan.tierId === 'free' ? 'outline' : 'default'}>
-                       <Link href="/signup">{plan.cta}</Link>
+                       <Link href="/signup">Get Started</Link>
                     </Button>
                   </CardFooter>
                 </Card>
@@ -470,5 +419,3 @@ export function LandingPage() {
     </div>
   );
 }
-
-    

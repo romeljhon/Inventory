@@ -37,6 +37,8 @@ interface BusinessContextType {
   incrementUsage: (field: 'items' | 'sales' | 'purchaseOrders' | 'aiScans' | 'branches', count?: number) => Promise<void>;
   switchBusiness: (businessId: string | null) => void;
   switchBranch: (branchId: string | null) => void;
+  updateTier: (businessId: string, newTier: PlanId) => Promise<void>;
+  isSuperAdmin: boolean;
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
@@ -51,15 +53,24 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
   const [isNewUser, setIsNewUser] = useState(false);
   const [isBusinessLogicLoading, setIsBusinessLogicLoading] = useState(true);
+  
+  const isSuperAdmin = user?.email === 'romeljhonsalvaleon27@gmail.com';
 
   // --- Data Fetching ---
 
-  // 1. Fetch businesses where the user has a role
-  const businessesWithRoleQuery = useMemo(() => {
-    if (!firestore || !user?.uid) return null;
-    return query(collection(firestore, 'businesses'), where(`roles.${user.uid}`, 'in', ['Owner', 'Admin', 'Staff']))
-  }, [firestore, user?.uid]);
-  const { data: businesses, loading: businessesLoading } = useCollection<Business>(businessesWithRoleQuery);
+  // 1. Fetch all businesses if super admin, otherwise just the ones the user has a role in.
+  const businessesQuery = useMemo(() => {
+    if (!firestore) return null;
+    if (isSuperAdmin) {
+      return collection(firestore, 'businesses');
+    }
+    if (user?.uid) {
+      return query(collection(firestore, 'businesses'), where(`roles.${user.uid}`, 'in', ['Owner', 'Admin', 'Staff']));
+    }
+    return null;
+  }, [firestore, user?.uid, isSuperAdmin]);
+  const { data: businesses, loading: businessesLoading } = useCollection<Business>(businessesQuery);
+
 
   // 2. Fetch branches for the currently active business
   const branchesCollectionRef = useMemo(() =>
@@ -84,15 +95,25 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   const userRole = useMemo(() => {
     if (!user || !business || !business.roles) return null;
+    if (isSuperAdmin) return 'Owner'; // Super admin has owner privileges on any selected business
     return business.roles[user.uid] || null;
-  }, [user, business]);
+  }, [user, business, isSuperAdmin]);
   
   const canCreateNewBusiness = useMemo(() => {
     if (!user || !businesses) return false;
-    // A user cannot create a new business if they are an owner of any business that is on the 'free' tier.
-    const ownsFreeTierBusiness = businesses.some(b => b.ownerId === user.uid && b.tier === 'free');
-    return !ownsFreeTierBusiness;
-  }, [user, businesses]);
+    if (isSuperAdmin) return true;
+
+    const ownedBusinesses = businesses.filter(b => b.ownerId === user.uid);
+    if (ownedBusinesses.length === 0) return true;
+
+    const tierOrder: PlanId[] = ['free', 'growth', 'scale'];
+    const highestTier = ownedBusinesses.reduce((maxTier, b) => {
+        return tierOrder.indexOf(b.tier) > tierOrder.indexOf(maxTier) ? b.tier : maxTier;
+    }, 'free');
+
+    const limit = planLimits[highestTier].businesses;
+    return ownedBusinesses.length < limit;
+  }, [user, businesses, isSuperAdmin]);
 
   const isLoading = userLoading || isBusinessLogicLoading || businessesLoading;
 
@@ -103,7 +124,8 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (userLoading || businessesLoading) return;
 
     if (user) {
-      if (!businesses || businesses.length === 0) {
+      // If not a super admin and has no businesses, they are new.
+      if (!isSuperAdmin && (!businesses || businesses.length === 0)) {
         setIsNewUser(true);
       } else {
         setIsNewUser(false);
@@ -112,7 +134,8 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsNewUser(false);
     }
     setIsBusinessLogicLoading(false);
-  }, [user, businesses, userLoading, businessesLoading]);
+  }, [user, businesses, userLoading, businessesLoading, isSuperAdmin]);
+
 
   // Redirect logic
   useEffect(() => {
@@ -207,6 +230,27 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       localStorage.removeItem(ACTIVE_BRANCH_STORAGE_KEY);
     }
   }, []);
+  
+  const updateTier = useCallback(async (businessId: string, newTier: PlanId) => {
+    if (!firestore) return;
+    const businessDocRef = doc(firestore, 'businesses', businessId);
+    const updatePayload = {
+      tier: newTier,
+      'usage.lastReset': serverTimestamp() 
+    };
+    
+    await updateDoc(businessDocRef, updatePayload).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: businessDocRef.path,
+        operation: 'update',
+        requestResourceData: updatePayload,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      throw serverError;
+    });
+
+  }, [firestore]);
+
 
   const incrementUsage = useCallback(async (field: 'items' | 'sales' | 'purchaseOrders' | 'aiScans' | 'branches', count: number = 1) => {
     if (!firestore || !business?.id) return;
@@ -222,6 +266,15 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (!firestore || !user?.uid) {
         console.error("Setup cannot proceed: Firestore not initialized or user not authenticated.");
         return;
+    }
+    
+    if (!canCreateNewBusiness) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Create New Business",
+        description: "You have reached the maximum number of businesses for your current subscription.",
+      });
+      return;
     }
 
     const newBusinessRef = doc(collection(firestore, 'businesses'));
@@ -268,7 +321,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     return { id: newBusinessRef.id, ...businessData } as Business;
     
-  }, [firestore, user]);
+  }, [firestore, user, canCreateNewBusiness, toast]);
 
   const updateBusiness = useCallback(async (businessId: string, newName: string): Promise<void> => {
     if (!firestore) return;
@@ -476,7 +529,9 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     deleteEmployee,
     incrementUsage,
     switchBusiness,
-    switchBranch
+    switchBranch,
+    updateTier,
+    isSuperAdmin,
   }), [
     business, 
     businesses, 
@@ -497,7 +552,9 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     deleteEmployee,
     incrementUsage,
     switchBusiness, 
-    switchBranch
+    switchBranch,
+    updateTier,
+    isSuperAdmin,
   ]);
 
   return (

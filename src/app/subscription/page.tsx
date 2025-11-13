@@ -20,7 +20,7 @@ import { PlanId, PLANS, planLimits } from '@/lib/plans';
 
 
 export default function SubscriptionPage() {
-  const { business } = useBusiness();
+  const { business, businesses } = useBusiness();
   const currentTierId = business?.tier || 'free';
   const currentPlan = PLANS.find(p => p.tierId === currentTierId);
   const currentLimits = planLimits[currentTierId as PlanId] || planLimits.free;
@@ -39,11 +39,12 @@ export default function SubscriptionPage() {
   };
 
   const USAGE_METRICS = [
+      { label: 'Businesses Owned', value: businesses.filter(b => b.ownerId === business?.ownerId).length, limit: currentLimits.businesses },
       { label: 'Inventory Items', value: usage.items, limit: currentLimits.items },
       { label: 'Branches', value: usage.branches, limit: currentLimits.branches },
       { label: 'Sales This Month', value: usage.sales, limit: currentLimits.sales },
       { label: 'Purchase Orders This Month', value: usage.purchaseOrders, limit: currentLimits.purchaseOrders },
-      { label: 'AI Scans This Month', value: usage.aiScans, limit: currentLimits.aiScans },
+      { label: 'AI Features This Month', value: usage.aiScans, limit: currentLimits.aiScans },
   ]
 
   return (
@@ -66,7 +67,7 @@ export default function SubscriptionPage() {
                 Your Current Plan: {currentPlan.name}
               </CardTitle>
               <CardDescription>
-                This is your current monthly usage. You can upgrade at any time.
+                This is your current monthly usage for the active business. You can upgrade at any time.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
