@@ -30,9 +30,9 @@ import {
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip } from "recharts";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp, CalendarX2, Trash2, Edit } from "lucide-react";
+import { ArrowLeft, Package, Boxes, Shapes, AlertCircle, DollarSign, Building, PlusCircle, TrendingUp, CalendarX2, Trash2, Edit, CreditCard } from "lucide-react";
 import { InventoryTable } from "@/components/inventory/inventory-table";
-import type { Branch } from "@/lib/types";
+import type { Branch, Sale } from "@/lib/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, isBefore } from "date-fns";
 import { AddBranchDialog } from "@/components/branches/add-branch-dialog";
@@ -40,12 +40,13 @@ import { DeleteBranchAlert } from "@/components/branches/delete-branch-alert";
 import { Loader2 } from "lucide-react";
 import { EditBranchDialog } from "@/components/branches/edit-branch-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Timestamp } from "firebase/firestore";
 
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
 
 function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => void }) {
-  const { items, categories, history, isLoading: isInventoryLoading } = useInventory(branch?.id);
+  const { items, categories, sales, isLoading: isInventoryLoading } = useInventory(branch?.id);
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
 
   const formatCurrency = (amount: number) => {
@@ -57,9 +58,16 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
     }).format(amount);
   };
   
-  const filteredHistory = useMemo(() => {
-    if (!history) return [];
-    if (timeRange === "all") return history;
+  const getDate = (timestamp: any): Date => {
+    if (timestamp instanceof Timestamp) {
+      return timestamp.toDate();
+    }
+    return new Date(timestamp as string);
+  }
+
+  const filteredSales = useMemo(() => {
+    if (!sales) return [];
+    if (timeRange === "all") return sales;
     
     const now = new Date();
     let startDate: Date;
@@ -78,11 +86,11 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
         startDate = startOfYear(now);
         break;
       default:
-        return history;
+        return sales;
     }
     
-    return history.filter(log => new Date(log.createdAt as string) >= startDate);
-  }, [history, timeRange]);
+    return sales.filter(sale => getDate(sale.createdAt) >= startDate);
+  }, [sales, timeRange]);
 
   const stats = useMemo(() => {
     if (!items) return { totalItems: 0, totalQuantity: 0, totalValue: 0, lowStockItems: 0, uniqueCategories: 0 };
@@ -122,16 +130,16 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
   }, [items, categories]);
   
   const fastestSellingItems = useMemo(() => {
-    if (!filteredHistory) return [];
+    if (!filteredSales) return [];
 
-    const sales = filteredHistory.reduce((acc, log) => {
-      if (log.type === 'quantity' && log.change < 0) {
-        acc[log.itemId] = (acc[log.itemId] || 0) + Math.abs(log.change);
-      }
-      return acc;
+    const productSales = filteredSales.reduce((acc, sale) => {
+        sale.items.forEach(item => {
+            acc[item.itemId] = (acc[item.itemId] || 0) + item.quantity;
+        });
+        return acc;
     }, {} as Record<string, number>);
     
-    return Object.entries(sales)
+    return Object.entries(productSales)
       .map(([itemId, quantitySold]) => {
         const item = items.find(i => i.id === itemId);
         return {
@@ -142,7 +150,27 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
       .sort((a, b) => b.quantitySold - a.quantitySold)
       .slice(0, 5);
 
-  }, [filteredHistory, items]);
+  }, [filteredSales, items]);
+  
+  const salesByPaymentMethod = useMemo(() => {
+    if (!filteredSales) return [];
+    
+    const paymentData = filteredSales.reduce((acc, sale) => {
+        const method = sale.paymentMethod || 'Unknown';
+        if (!acc[method]) {
+            acc[method] = { count: 0, total: 0 };
+        }
+        acc[method].count += 1;
+        acc[method].total += sale.total;
+        return acc;
+    }, {} as Record<string, { count: number, total: number }>);
+    
+    return Object.entries(paymentData)
+        .map(([method, data]) => ({ method, ...data }))
+        .sort((a,b) => b.total - a.total);
+
+  }, [filteredSales]);
+
 
   const chartConfig = useMemo(() => {
     if (!categoryValueData) return {};
@@ -375,6 +403,46 @@ function BranchDashboard({ branch, onBack }: { branch: Branch, onBack: () => voi
             </CardContent>
           </Card>
        </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Sales by Payment Method
+          </CardTitle>
+          <CardDescription>
+            Breakdown of sales transactions by payment method for the selected period.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {salesByPaymentMethod.length > 0 ? (
+            <div className="w-full overflow-x-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Payment Method</TableHead>
+                    <TableHead className="text-right">Transactions</TableHead>
+                    <TableHead className="text-right">Total Revenue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {salesByPaymentMethod.map(({ method, count, total }) => (
+                    <TableRow key={method}>
+                      <TableCell className="font-medium">{method}</TableCell>
+                      <TableCell className="text-right">{count}</TableCell>
+                      <TableCell className="text-right font-semibold">{formatCurrency(total)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="flex h-24 items-center justify-center text-muted-foreground">
+              No sales data available for this period.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </>
   )
 }

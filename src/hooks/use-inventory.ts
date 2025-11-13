@@ -64,14 +64,18 @@ export function useInventory(branchId: string | undefined) {
   const { data: recipesData, loading: recipesLoading } = useCollection<Recipe>(
     recipesCollection ? query(recipesCollection, orderBy('createdAt', 'desc')) : null
   );
+  const { data: salesData, loading: salesLoading } = useCollection<Sale>(
+    salesCollection ? query(salesCollection, orderBy('createdAt', 'desc')) : null
+  );
 
   // Memoize data to prevent unnecessary re-renders
   const items = useMemo(() => itemsData || [], [itemsData]);
   const categories = useMemo(() => categoriesData || [], [categoriesData]);
   const history = useMemo(() => historyData || [], [historyData]);
   const recipes = useMemo(() => recipesData || [], [recipesData]);
+  const sales = useMemo(() => salesData || [], [salesData]);
 
-  const isLoading = itemsLoading || categoriesLoading || historyLoading || recipesLoading;
+  const isLoading = itemsLoading || categoriesLoading || historyLoading || recipesLoading || salesLoading;
 
   const addHistory = useCallback(async (log: Omit<InventoryHistory, 'id' | 'createdAt' | 'branchId'>) => {
     if (!historyCollection) return;
@@ -523,6 +527,7 @@ export function useInventory(branchId: string | undefined) {
     categories,
     recipes,
     history,
+    sales,
     addItem,
     updateItem,
     batchUpdateQuantities,
