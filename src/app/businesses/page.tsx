@@ -11,9 +11,10 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AddBusinessDialog } from '@/components/businesses/add-business-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function BusinessesPage() {
-  const { businesses, switchBusiness, isLoading, setupBusiness } = useBusiness();
+  const { businesses, switchBusiness, isLoading, setupBusiness, canCreateNewBusiness } = useBusiness();
   const router = useRouter();
   const { toast } = useToast();
   const [isAddBusinessOpen, setIsAddBusinessOpen] = useState(false);
@@ -49,10 +50,23 @@ export default function BusinessesPage() {
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
         <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">My Businesses</h1>
-            <Button onClick={() => setIsAddBusinessOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4"/>
-                New Business
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-block"> 
+                    <Button onClick={() => setIsAddBusinessOpen(true)} disabled={!canCreateNewBusiness}>
+                        <PlusCircle className="mr-2 h-4 w-4"/>
+                        New Business
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                {!canCreateNewBusiness && (
+                  <TooltipContent>
+                    <p>Upgrade your existing free business to create a new one.</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
         </div>
         <p className="text-muted-foreground">Select a business to manage its inventory and sales.</p>
         
