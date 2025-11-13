@@ -265,8 +265,8 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
 
   const setupBusiness = useCallback(async (businessName: string, initialBranchName: string): Promise<Business | undefined> => {
-    if (!firestore || !user?.uid) {
-        console.error("Setup cannot proceed: Firestore not initialized or user not authenticated.");
+    if (!firestore || !user?.uid || !businesses) {
+        console.error("Setup cannot proceed: Firestore not initialized, user not authenticated, or businesses not loaded.");
         return;
     }
     
@@ -279,6 +279,12 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       return;
     }
 
+    const ownedBusinesses = businesses.filter(b => b.ownerId === user.uid);
+    const tierOrder: PlanId[] = ['free', 'growth', 'scale'];
+    const highestTier = ownedBusinesses.reduce((maxTier, b) => {
+        return tierOrder.indexOf(b.tier) > tierOrder.indexOf(maxTier) ? b.tier : maxTier;
+    }, 'free');
+
     const newBusinessRef = doc(collection(firestore, 'businesses'));
     const businessData = { 
         name: businessName,
@@ -287,7 +293,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
           [user.uid]: 'Owner'
         },
         createdAt: serverTimestamp(),
-        tier: 'free' as const,
+        tier: highestTier,
         usage: {
           items: 0,
           sales: 0,
@@ -323,7 +329,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     return { id: newBusinessRef.id, ...businessData } as Business;
     
-  }, [firestore, user, canCreateNewBusiness, toast]);
+  }, [firestore, user, businesses, canCreateNewBusiness, toast]);
 
   const updateBusiness = useCallback(async (businessId: string, newName: string): Promise<void> => {
     if (!firestore) return;
