@@ -139,7 +139,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 <SidebarMenuButton asChild isActive={pathname === "/admin"}>
                     <Link href="/admin">
                     <Shield />
-                    Super Admin
+                    Admin
                     </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

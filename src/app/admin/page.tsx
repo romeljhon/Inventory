@@ -42,9 +42,7 @@ type BusinessWithDetails = Business & {
   userCount: number;
 };
 
-const SUPER_ADMIN_EMAIL = 'romeljhonsalvaleon27@gmail.com';
-
-export default function SuperAdminPage() {
+export default function AdminPage() {
   const { user, isSuperAdmin, isLoading: isBusinessLoading, updateTier } = useBusiness();
   const router = useRouter();
   const firestore = useFirestore();
@@ -152,7 +150,7 @@ export default function SuperAdminPage() {
   return (
     <SidebarLayout>
       <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-        <h1 className="text-3xl font-bold tracking-tight">Super Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
         <Card>
           <CardHeader>
             <CardTitle>All Businesses</CardTitle>
