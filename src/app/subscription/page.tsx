@@ -16,76 +16,15 @@ import { useBusiness } from '@/hooks/use-business';
 import { CheckCircle2, XCircle, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { PlanId, PLANS, planLimits } from '@/lib/plans';
 
-const plans = [
-  {
-    name: 'Starter',
-    price: 'Free',
-    priceNumeric: 0,
-    description: 'Perfect for solo business owners, new online sellers, or first-time users who want to explore the system risk-free.',
-    features: [
-      { text: '1 User (Owner)', included: true },
-      { text: '1 Branch', included: true },
-      { text: '100 Inventory Items', included: true },
-      { text: '100 Sales per month', included: true },
-      { text: '10 Purchase Orders per month', included: true },
-      { text: '5 AI Receipt Scans per month', included: true },
-      { text: '5 AI Demand Forecasts per month', included: true },
-      { text: 'Community Support', included: true },
-    ],
-    tierId: 'free',
-  },
-  {
-    name: 'Growth',
-    price: '₱1,499',
-    priceNumeric: 1499,
-    description: 'For growing cafés, restaurants, or small retailers managing multiple staff or branches.',
-    isPopular: true,
-    features: [
-      { text: 'Up to 5 Users', included: true },
-      { text: 'Up to 3 Branches', included: true },
-      { text: '2,000 Inventory Items', included: true },
-      { text: '2,000 Sales per month', included: true },
-      { text: '100 Purchase Orders per month', included: true },
-      { text: '75 AI Receipt Scans per month', included: true },
-      { text: '75 AI Demand Forecasts per month', included: true },
-      { text: 'Email Support', included: true },
-      { text: 'Automated PO Suggestions', included: true },
-    ],
-    tierId: 'growth',
-  },
-  {
-    name: 'Scale',
-    price: '₱3,999',
-    priceNumeric: 3999,
-    description: 'For enterprises, restaurant chains, or distributors managing multiple branches and high volume.',
-    features: [
-      { text: 'Unlimited Users', included: true },
-      { text: 'Unlimited Branches', included: true },
-      { text: 'Unlimited Inventory Items', included: true },
-      { text: 'Unlimited Sales & POs', included: true },
-      { text: '200 AI Receipt Scans per month', included: true },
-      { text: '200 AI Demand Forecasts per month', included: true },
-      { text: 'Priority Support', included: true },
-      { text: 'API Access & Early AI Features', included: true },
-    ],
-    tierId: 'scale',
-  },
-];
-
-const planLimits = {
-    free: { items: 100, sales: 100, purchaseOrders: 10, aiScans: 5 },
-    growth: { items: 2000, sales: 2000, purchaseOrders: 100, aiScans: 75 },
-    scale: { items: Infinity, sales: Infinity, purchaseOrders: Infinity, aiScans: 200 },
-}
 
 export default function SubscriptionPage() {
   const { business } = useBusiness();
   const currentTierId = business?.tier || 'free';
-  const currentPlan = plans.find(p => p.tierId === currentTierId);
-  const currentLimits = planLimits[currentTierId as keyof typeof planLimits] || planLimits.free;
+  const currentPlan = PLANS.find(p => p.tierId === currentTierId);
+  const currentLimits = planLimits[currentTierId as PlanId] || planLimits.free;
 
-  // Mock usage data - in a real app, this would come from your backend
   const usage = business?.usage || {
     items: 0,
     sales: 0,
@@ -94,7 +33,7 @@ export default function SubscriptionPage() {
   };
   
   const getProgress = (used: number, limit: number) => {
-    if (limit === Infinity) return 0;
+    if (limit === Infinity || limit === 0) return 0;
     return (used / limit) * 100;
   };
 
@@ -139,7 +78,7 @@ export default function SubscriptionPage() {
         )}
 
         <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-3">
-          {plans.map((plan) => (
+          {PLANS.map((plan) => (
             <Card
               key={plan.name}
               className={cn(

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -20,6 +21,7 @@ import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { collection, CollectionReference } from 'firebase/firestore';
 import { useCollection } from '@/firebase';
+import { planLimits } from '@/lib/plans';
 
 
 export default function ReceiptScannerPage() {
@@ -29,7 +31,7 @@ export default function ReceiptScannerPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { business, activeBranch } = useBusiness();
+  const { business, activeBranch, incrementUsage } = useBusiness();
   const { items } = useInventory(activeBranch?.id);
   const firestore = useFirestore();
 
@@ -132,6 +134,19 @@ export default function ReceiptScannerPage() {
   };
 
   const handleScan = async (imageData: string) => {
+    if (!business) return;
+
+    const limits = planLimits[business.tier || 'free'];
+    if (business.usage.aiScans >= limits.aiScans) {
+      toast({
+        variant: "destructive",
+        title: "AI Scan Limit Reached",
+        description: `You have reached the monthly limit of ${limits.aiScans} AI scans for the ${limits.name} plan.`,
+      });
+      router.push('/subscription');
+      return;
+    }
+
     setIsLoading(true);
     setExtractedData(null);
     setScanError(null);
@@ -141,6 +156,7 @@ export default function ReceiptScannerPage() {
     try {
       const result = await scanReceipt({ receiptImage: imageData });
       setExtractedData(result);
+      await incrementUsage('aiScans');
       toast({ title: 'Receipt Scanned Successfully!' });
     } catch (error) {
       console.error("Scan failed:", error);

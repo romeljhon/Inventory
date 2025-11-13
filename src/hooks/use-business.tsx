@@ -1,9 +1,10 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, deleteDoc, writeBatch, getDocs, query, where, serverTimestamp, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Business, Branch, Item, Category, InventoryHistory, Employee } from '@/lib/types';
 import { useCollection } from '@/firebase/firestore/use-collection';
@@ -30,6 +31,7 @@ interface BusinessContextType {
   addEmployee: (employeeData: Omit<Employee, "id" | "createdAt">) => Promise<Employee | undefined>;
   updateEmployee: (employeeId: string, employeeData: Partial<Omit<Employee, "id" | "createdAt">>) => Promise<void>;
   deleteEmployee: (employeeId: string) => Promise<void>;
+  incrementUsage: (field: 'items' | 'sales' | 'purchaseOrders' | 'aiScans', count?: number) => Promise<void>;
   switchBusiness: (businessId: string | null) => void;
   switchBranch: (branchId: string | null) => void;
 }
@@ -187,6 +189,16 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, []);
 
+  const incrementUsage = useCallback(async (field: 'items' | 'sales' | 'purchaseOrders' | 'aiScans', count: number = 1) => {
+    if (!firestore || !business?.id) return;
+    const businessDocRef = doc(firestore, 'businesses', business.id);
+    const updatePayload = {
+      [`usage.${field}`]: increment(count)
+    };
+    await updateDoc(businessDocRef, updatePayload).catch(e => console.error(`Failed to increment usage for ${field}`, e));
+  }, [firestore, business?.id]);
+
+
   const setupBusiness = useCallback(async (businessName: string, initialBranchName: string): Promise<Business | undefined> => {
     if (!firestore || !user?.uid) {
         console.error("Setup cannot proceed: Firestore not initialized or user not authenticated.");
@@ -199,6 +211,14 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         ownerId: user.uid,
         employees: [],
         createdAt: serverTimestamp(),
+        tier: 'free' as const,
+        usage: {
+          items: 0,
+          sales: 0,
+          purchaseOrders: 0,
+          aiScans: 0,
+          lastReset: serverTimestamp(),
+        }
     };
     
     await setDoc(newBusinessRef, businessData).catch(async (serverError) => {
@@ -401,6 +421,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     addEmployee,
     updateEmployee,
     deleteEmployee,
+    incrementUsage,
     switchBusiness,
     switchBranch
   }), [
@@ -420,6 +441,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     addEmployee,
     updateEmployee,
     deleteEmployee,
+    incrementUsage,
     switchBusiness, 
     switchBranch
   ]);
@@ -438,4 +460,3 @@ export const useBusiness = (): BusinessContextType => {
   }
   return context;
 };
-

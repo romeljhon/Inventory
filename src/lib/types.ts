@@ -1,5 +1,6 @@
 
 import { FieldValue } from 'firebase/firestore';
+import type { PlanId } from './plans';
 
 export interface Item {
   id: string;
@@ -42,11 +43,21 @@ export interface Branch {
   createdAt?: FieldValue;
 }
 
+export interface BusinessUsage {
+  items: number;
+  sales: number;
+  purchaseOrders: number;
+  aiScans: number;
+  lastReset: FieldValue | string;
+}
+
 export interface Business {
   id: string;
   name: string;
   ownerId: string;
   createdAt: FieldValue;
+  tier: PlanId;
+  usage: BusinessUsage;
 }
 
 export interface Employee {

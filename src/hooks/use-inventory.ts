@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -21,6 +22,9 @@ import type { Item, Category, InventoryHistory, Recipe, PurchaseOrder, PurchaseO
 import { useBusiness } from "./use-business";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { useToast } from "./use-toast";
+import { planLimits } from "@/lib/plans";
+import { useRouter } from "next/navigation";
 
 export const LOW_STOCK_THRESHOLD = 10;
 
@@ -40,7 +44,10 @@ type ProcessSalePayload = {
 
 export function useInventory(branchId: string | undefined) {
   const firestore = useFirestore();
-  const { business } = useBusiness();
+  const { business, incrementUsage } = useBusiness();
+  const { toast } = useToast();
+  const router = useRouter();
+
 
   const branchRef = useMemo(() =>
     firestore && business?.id && branchId ? doc(firestore, 'businesses', business.id, 'branches', branchId) : null,
@@ -94,7 +101,20 @@ export function useInventory(branchId: string | undefined) {
   }, [historyCollection]);
 
   const addItem = useCallback(async (itemData: Omit<Item, "id" | "createdAt">) => {
-    if (!itemsCollection) return;
+    if (!itemsCollection || !business) return;
+
+    const limits = planLimits[business.tier || 'free'];
+    if (business.usage.items >= limits.items) {
+      toast({
+        variant: "destructive",
+        title: "Item Limit Reached",
+        description: `You have reached the limit of ${limits.items} items for the ${limits.name} plan. Please upgrade to add more items.`,
+      });
+      router.push('/subscription');
+      return;
+    }
+
+
     const newItemData = {
         ...itemData,
         createdAt: serverTimestamp(),
@@ -107,6 +127,7 @@ export function useInventory(branchId: string | undefined) {
             newQuantity: itemData.quantity,
             type: 'add'
         });
+        incrementUsage('items');
     }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
             path: itemsCollection.path,
@@ -115,7 +136,7 @@ export function useInventory(branchId: string | undefined) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-  }, [itemsCollection, addHistory]);
+  }, [itemsCollection, addHistory, business, incrementUsage, toast, router]);
 
   const updateItem = useCallback(async (id: string, updatedData: Partial<Omit<Item, "id" | "createdAt">>) => {
     if (!itemsCollection || !items) return;
@@ -146,7 +167,20 @@ export function useInventory(branchId: string | undefined) {
   }, [itemsCollection, addHistory, items]);
   
   const processSale = useCallback(async (payload: ProcessSalePayload) => {
-    if (!firestore || !itemsCollection || !salesCollection || !items) return;
+    if (!firestore || !itemsCollection || !salesCollection || !items || !business) return;
+
+    const limits = planLimits[business.tier || 'free'];
+    if (business.usage.sales >= limits.sales) {
+      toast({
+        variant: "destructive",
+        title: "Sales Limit Reached",
+        description: `You have reached the monthly limit of ${limits.sales} sales for the ${limits.name} plan.`,
+      });
+      router.push('/subscription');
+      return;
+    }
+
+
     const batch = writeBatch(firestore);
 
     const componentDeductions: Record<string, number> = {};
@@ -204,8 +238,10 @@ export function useInventory(branchId: string | undefined) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
+    
+    await incrementUsage('sales');
 
-  }, [firestore, itemsCollection, salesCollection, items, recipes, addHistory]);
+  }, [firestore, itemsCollection, salesCollection, items, recipes, addHistory, business, incrementUsage, toast, router]);
 
   const batchUpdateQuantities = useCallback(async (updates: Record<string, number>) => {
     if (!firestore || !itemsCollection || !items) return;
@@ -268,6 +304,7 @@ export function useInventory(branchId: string | undefined) {
             newQuantity: 0,
             type: 'delete'
         });
+        incrementUsage('items', -1);
     }).catch(async (serverError) => {
         const permissionError = new FirestorePermissionError({
             path: itemDoc.path,
@@ -275,7 +312,7 @@ export function useInventory(branchId: string | undefined) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-  }, [firestore, itemsCollection, items, recipes, recipesCollection, addHistory]);
+  }, [firestore, itemsCollection, items, recipes, recipesCollection, addHistory, incrementUsage]);
 
   const addCategory = useCallback(async (name: string, showInSales: boolean = false): Promise<Category> => {
     if (!categoriesCollection || !categories) {

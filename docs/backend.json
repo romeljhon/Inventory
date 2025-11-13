@@ -25,9 +25,46 @@
           "type": "string",
           "format": "date-time",
           "description": "Timestamp of when the business was created."
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["free", "growth", "scale"],
+          "description": "The subscription tier of the business."
+        },
+        "usage": {
+          "$ref": "#/entities/businessUsage"
         }
       },
-      "required": ["name", "ownerId", "createdAt"]
+      "required": ["name", "ownerId", "createdAt", "tier", "usage"]
+    },
+    "businessUsage": {
+      "title": "Business Usage",
+      "description": "Tracks the usage metrics for a business against their subscription plan.",
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "number",
+          "description": "The total count of inventory items (products + components)."
+        },
+        "sales": {
+          "type": "number",
+          "description": "The number of sales transactions in the current billing period."
+        },
+        "purchaseOrders": {
+          "type": "number",
+          "description": "The number of purchase orders in the current billing period."
+        },
+        "aiScans": {
+          "type": "number",
+          "description": "The number of AI receipt scans in the current billing period."
+        },
+        "lastReset": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the monthly usage counters were last reset."
+        }
+      },
+      "required": ["items", "sales", "purchaseOrders", "aiScans", "lastReset"]
     },
     "branch": {
       "title": "Branch",
