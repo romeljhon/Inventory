@@ -49,6 +49,7 @@ export interface BusinessUsage {
   sales: number;
   purchaseOrders: number;
   aiScans: number;
+  branches: number;
   lastReset: FieldValue | string;
 }
 

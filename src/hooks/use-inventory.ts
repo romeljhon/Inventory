@@ -464,14 +464,16 @@ export function useInventory(branchId: string | undefined) {
   const deletePurchaseOrder = useCallback(async (id: string) => {
     if (!poCollection) return;
     const poDoc = doc(poCollection, id);
-    deleteDoc(poDoc).catch(async (serverError) => {
+    deleteDoc(poDoc).then(() => {
+      incrementUsage('purchaseOrders', -1);
+    }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: poDoc.path,
         operation: 'delete',
       });
       errorEmitter.emit('permission-error', permissionError);
     });
-  }, [poCollection]);
+  }, [poCollection, incrementUsage]);
 
   const receivePurchaseOrder = useCallback(async (poId: string, poItems: PurchaseOrderItem[]) => {
     if (!firestore || !itemsCollection || !poCollection || !items) return;

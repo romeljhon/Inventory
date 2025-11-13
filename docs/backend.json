@@ -59,13 +59,17 @@
           "type": "number",
           "description": "The number of AI receipt scans in the current billing period."
         },
+        "branches": {
+            "type": "number",
+            "description": "The number of branches the business has."
+        },
         "lastReset": {
           "type": "string",
           "format": "date-time",
           "description": "Timestamp of when the monthly usage counters were last reset."
         }
       },
-      "required": ["items", "sales", "purchaseOrders", "aiScans", "lastReset"]
+      "required": ["items", "sales", "purchaseOrders", "aiScans", "branches", "lastReset"]
     },
     "branch": {
       "title": "Branch",
@@ -495,5 +499,3 @@
     }
   }
 }
-
-    

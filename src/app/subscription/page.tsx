@@ -30,12 +30,21 @@ export default function SubscriptionPage() {
     sales: 0,
     purchaseOrders: 0,
     aiScans: 0,
+    branches: 0,
   };
   
   const getProgress = (used: number, limit: number) => {
     if (limit === Infinity || limit === 0) return 0;
     return (used / limit) * 100;
   };
+
+  const USAGE_METRICS = [
+      { label: 'Inventory Items', value: usage.items, limit: currentLimits.items },
+      { label: 'Branches', value: usage.branches, limit: currentLimits.branches },
+      { label: 'Sales This Month', value: usage.sales, limit: currentLimits.sales },
+      { label: 'Purchase Orders This Month', value: usage.purchaseOrders, limit: currentLimits.purchaseOrders },
+      { label: 'AI Scans This Month', value: usage.aiScans, limit: currentLimits.aiScans },
+  ]
 
   return (
     <SidebarLayout>
@@ -60,19 +69,16 @@ export default function SubscriptionPage() {
                 This is your current monthly usage. You can upgrade at any time.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Inventory Items: {usage.items} / {currentLimits.items === Infinity ? 'Unlimited' : currentLimits.items}</p>
-                <Progress value={getProgress(usage.items, currentLimits.items)} />
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Sales This Month: {usage.sales} / {currentLimits.sales === Infinity ? 'Unlimited' : currentLimits.sales}</p>
-                <Progress value={getProgress(usage.sales, currentLimits.sales)} />
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium">AI Scans This Month: {usage.aiScans} / {currentLimits.aiScans === Infinity ? 'Unlimited' : currentLimits.aiScans}</p>
-                <Progress value={getProgress(usage.aiScans, currentLimits.aiScans)} />
-              </div>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+              {USAGE_METRICS.map(metric => (
+                 <div key={metric.label} className="space-y-2">
+                    <p className="text-sm font-medium flex justify-between">
+                        <span>{metric.label}</span>
+                        <span>{metric.value} / {metric.limit === Infinity ? 'Unlimited' : metric.limit}</span>
+                    </p>
+                    <Progress value={getProgress(metric.value, metric.limit)} />
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}

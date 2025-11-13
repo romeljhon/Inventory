@@ -15,6 +15,7 @@ import type { ForecastDemandOutput } from '@/ai/flows/forecast-demand';
 import { planLimits } from '@/lib/plans';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Timestamp } from 'firebase/firestore';
 
 export default function ForecastingPage() {
   const { business, activeBranch, incrementUsage } = useBusiness();
@@ -51,9 +52,9 @@ export default function ForecastingPage() {
     const salesHistory = history
       .filter((log) => log.itemId === selectedProductId && log.type === 'sale')
       .map((log) => {
-        const date = log.createdAt instanceof Date 
-            ? log.createdAt 
-            : (log.createdAt as any)?.toDate();
+        const date = log.createdAt instanceof Timestamp 
+            ? log.createdAt.toDate() 
+            : new Date(log.createdAt as string);
 
         return {
           date: date ? date.toISOString() : new Date().toISOString(),

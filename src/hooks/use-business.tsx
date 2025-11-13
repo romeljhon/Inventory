@@ -11,6 +11,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { PlanId, planLimits } from '@/lib/plans';
 import { isBefore, subMonths } from 'date-fns';
+import { useToast } from './use-toast';
 
 const ACTIVE_BUSINESS_STORAGE_KEY = 'inventory-active-business';
 const ACTIVE_BRANCH_STORAGE_KEY = 'inventory-active-branch';
@@ -36,7 +37,7 @@ interface BusinessContextType {
   addEmployee: (employeeData: Omit<Employee, "id" | "createdAt">) => Promise<Employee | undefined>;
   updateEmployee: (employeeId: string, employeeData: Partial<Omit<Employee, "id" | "createdAt">>) => Promise<void>;
   deleteEmployee: (employeeId: string) => Promise<void>;
-  incrementUsage: (field: 'items' | 'sales' | 'purchaseOrders' | 'aiScans', count?: number) => Promise<void>;
+  incrementUsage: (field: 'items' | 'sales' | 'purchaseOrders' | 'aiScans' | 'branches', count?: number) => Promise<void>;
   switchBusiness: (businessId: string | null) => void;
   switchBranch: (branchId: string | null) => void;
 }
@@ -47,6 +48,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const firestore = useFirestore();
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
   const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
   const [activeBranchId, setActiveBranchId] = useState<string | null>(null);
@@ -144,6 +146,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
               'usage.sales': 0,
               'usage.purchaseOrders': 0,
               'usage.aiScans': 0,
+              'usage.branches': 1, // Always have at least 1 branch
               'usage.lastReset': serverTimestamp()
           };
           updateDoc(businessDocRef, resetPayload).catch(e => console.error("Failed to reset usage metrics:", e));
@@ -207,7 +210,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   }, []);
 
-  const incrementUsage = useCallback(async (field: 'items' | 'sales' | 'purchaseOrders' | 'aiScans', count: number = 1) => {
+  const incrementUsage = useCallback(async (field: 'items' | 'sales' | 'purchaseOrders' | 'aiScans' | 'branches', count: number = 1) => {
     if (!firestore || !business?.id) return;
     const businessDocRef = doc(firestore, 'businesses', business.id);
     const updatePayload = {
@@ -237,6 +240,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
           sales: 0,
           purchaseOrders: 0,
           aiScans: 0,
+          branches: 1,
           lastReset: serverTimestamp(),
         }
     };
@@ -318,7 +322,18 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
 
   const addBranch = useCallback(async (branchName: string): Promise<Branch | undefined> => {
-    if (!branchesCollectionRef) return undefined;
+    if (!branchesCollectionRef || !business) return undefined;
+    
+    const limits = planLimits[business.tier];
+    if (branches.length >= limits.branches) {
+      toast({
+        variant: "destructive",
+        title: "Branch Limit Reached",
+        description: `You have reached the limit of ${limits.branches} branches for the ${limits.name} plan.`,
+      });
+      router.push('/subscription');
+      return undefined;
+    }
 
     const branchData: Omit<Branch, 'id'> = { name: branchName, createdAt: serverTimestamp() };
     const docRef = await addDoc(branchesCollectionRef, branchData)
@@ -333,9 +348,11 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       });
 
     if (!docRef) return undefined;
+
+    await incrementUsage('branches');
     
     return { ...branchData, id: docRef.id } as Branch;
-  }, [branchesCollectionRef]);
+  }, [branchesCollectionRef, business, branches, toast, router, incrementUsage]);
 
   const deleteBranch = useCallback(async (branchId: string) => {
     if (!firestore || !business?.id) return;
@@ -359,6 +376,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
 
         await deleteDoc(branchDocRef);
+        await incrementUsage('branches', -1);
 
     } catch (e) {
         console.error("Failed to delete branch:", e);
@@ -368,7 +386,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         });
         errorEmitter.emit('permission-error', permissionError);
     }
-  }, [firestore, business?.id, activeBranch?.id, switchBranch]);
+  }, [firestore, business?.id, activeBranch?.id, switchBranch, incrementUsage]);
 
   const addEmployee = useCallback(async (employeeData: Omit<Employee, "id" | "createdAt">): Promise<Employee | undefined> => {
     // This function will need a major refactor to work with the new `roles` map.
