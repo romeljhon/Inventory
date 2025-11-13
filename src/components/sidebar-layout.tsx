@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy, Edit, AreaChart, Users, Truck, ShoppingBag, BarChart, ScanLine, Shield, Star } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy, Edit, AreaChart, Users, Truck, ShoppingBag, BarChart, ScanLine, Shield, Star, Trash2 } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
@@ -42,10 +42,11 @@ import { useState, useEffect } from "react";
 import { AddBusinessDialog } from "./businesses/add-business-dialog";
 import { EditBusinessDialog } from "./businesses/edit-business-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { DeleteBusinessAlert } from "./businesses/delete-business-alert";
 
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const { business, businesses, activeBranch, switchBranch, switchBusiness, isUserLoading, setupBusiness, updateBusiness, isSuperAdmin } = useBusiness();
+  const { business, businesses, activeBranch, switchBranch, switchBusiness, isUserLoading, setupBusiness, updateBusiness, deleteBusiness } = useBusiness();
   const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -53,6 +54,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
 
   const [isAddBusinessOpen, setIsAddBusinessOpen] = useState(false);
   const [isEditBusinessOpen, setIsEditBusinessOpen] = useState(false);
+  const [isDeleteBusinessOpen, setIsDeleteBusinessOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -92,7 +94,13 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         description: `Your business has been renamed to ${newName}.`
       });
     }
-  }
+  };
+
+  const handleConfirmDelete = () => {
+    if (business) {
+      deleteBusiness(business.id);
+    }
+  };
 
   const isOwner = business?.ownerId === user?.uid;
 
@@ -111,8 +119,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64" align="start">
-              <DropdownMenuLabel>Switch Business</DropdownMenuLabel>
               <DropdownMenuGroup>
+                <DropdownMenuLabel>My Businesses</DropdownMenuLabel>
                 {businesses.map((b) => (
                   <DropdownMenuItem key={b.id} onSelect={() => switchBusiness(b.id)}>
                     <Check className={`mr-2 h-4 w-4 ${business?.id === b.id ? 'opacity-100' : 'opacity-0'}`} />
@@ -121,20 +129,29 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
                 ))}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
+               <DropdownMenuItem onSelect={() => router.push('/businesses')}>
+                <Edit className="mr-2 h-4 w-4" />
+                <span>Manage Businesses</span>
+              </DropdownMenuItem>
                <DropdownMenuItem onSelect={() => setIsAddBusinessOpen(true)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 <span>Create New Business</span>
               </DropdownMenuItem>
+               <DropdownMenuSeparator />
                <DropdownMenuItem onSelect={() => setIsEditBusinessOpen(true)} disabled={!business || !isOwner}>
                 <Edit className="mr-2 h-4 w-4" />
                 <span>Edit Business Name</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setIsDeleteBusinessOpen(true)} disabled={!business || !isOwner} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>Delete Business</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {isSuperAdmin && (
+            {isOwner && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/admin"}>
                     <Link href="/admin">
@@ -310,6 +327,12 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         onOpenChange={setIsEditBusinessOpen}
         onSave={handleSaveBusiness}
         currentName={business?.name || ''}
+      />
+       <DeleteBusinessAlert
+        isOpen={isDeleteBusinessOpen}
+        onOpenChange={setIsDeleteBusinessOpen}
+        onConfirm={handleConfirmDelete}
+        businessName={business?.name || ''}
       />
     </SidebarProvider>
   );
