@@ -78,11 +78,11 @@ export const PLANS = [
       { text: 'Unlimited Users', included: true },
       { text: 'Unlimited Branches', included: true },
       { text: 'Unlimited Inventory Items', included: true },
-      { text: 'Unlimited Sales & POs', included: true },
+      { text: 'Unlimited Sales &amp; POs', included: true },
       { text: '200 AI Receipt Scans per month', included: true },
       { text: '200 AI Demand Forecasts per month', included: true },
       { text: 'Priority Support', included: true },
-      { text: 'API Access & Early AI Features', included: true },
+      { text: 'API Access &amp; Early AI Features', included: true },
     ],
   },
 ];
