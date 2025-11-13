@@ -69,7 +69,9 @@ export default function SalesPage() {
     // Now, calculate how many of this specific product can be made with the remaining components
     if (!recipe) {
       const item = allItems.find(i => i.id === productId);
-      return item?.itemType === 'Component' ? availableComponents[productId] || 0 : 0;
+      const stock = item?.quantity ?? 0;
+      const reserved = currentCart.find(ci => ci.id === productId)?.saleQuantity ?? 0;
+      return item?.itemType === 'Component' ? stock - reserved : stock;
     }
     
     if (!recipe.components || recipe.components.length === 0) {

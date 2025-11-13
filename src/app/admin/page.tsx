@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -43,7 +42,7 @@ type BusinessWithDetails = Business & {
 };
 
 export default function AdminPage() {
-  const { user, isSuperAdmin, isLoading: isBusinessLoading, updateTier } = useBusiness();
+  const { user, userRole, isLoading: isBusinessLoading, updateTier } = useBusiness();
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -51,15 +50,17 @@ export default function AdminPage() {
   const [businesses, setBusinesses] = useState<BusinessWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isGlobalAdmin = user?.email === 'romeljhonsalvaleon27@gmail.com';
+
   useEffect(() => {
-    if (!isBusinessLoading && !isSuperAdmin) {
+    if (!isBusinessLoading && !isGlobalAdmin) {
       router.replace('/dashboard');
     }
-  }, [isSuperAdmin, isBusinessLoading, router]);
+  }, [isGlobalAdmin, isBusinessLoading, router]);
 
   useEffect(() => {
     const fetchAllBusinesses = async () => {
-      if (!firestore || !isSuperAdmin) return;
+      if (!firestore || !isGlobalAdmin) return;
       setIsLoading(true);
 
       try {
@@ -104,7 +105,7 @@ export default function AdminPage() {
     };
 
     fetchAllBusinesses();
-  }, [firestore, isSuperAdmin]);
+  }, [firestore, isGlobalAdmin]);
 
   const handleTierChange = async (businessId: string, newTier: 'free' | 'growth' | 'scale') => {
     await updateTier(businessId, newTier);
@@ -124,7 +125,7 @@ export default function AdminPage() {
     );
   }
   
-  if (!isSuperAdmin) {
+  if (!isGlobalAdmin) {
     return (
        <SidebarLayout>
          <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">

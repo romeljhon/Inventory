@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { InventoryTable } from "@/components/inventory/inventory-table";
 import { format } from "date-fns";
-import type { Item } from "@/lib/types";
+import type { Item, Recipe } from "@/lib/types";
 import { Camera, Building, Download, Component, PackagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -30,7 +29,7 @@ import { downloadCSV } from "@/lib/utils";
 
 export default function SnapshotsPage() {
   const { activeBranch } = useBusiness();
-  const { categories, getInventorySnapshot, availableSnapshotDates, isLoading } =
+  const { categories, recipes, getInventorySnapshot, availableSnapshotDates, isLoading } =
     useInventory(activeBranch?.id);
   const { toast } = useToast();
 
@@ -38,10 +37,42 @@ export default function SnapshotsPage() {
     availableSnapshotDates.length > 0 ? availableSnapshotDates[0] : undefined
   );
   
-  const snapshotData: Item[] = useMemo(() => {
+  const snapshotRawData: Item[] = useMemo(() => {
     if (!selectedDate) return [];
     return getInventorySnapshot(selectedDate);
   }, [selectedDate, getInventorySnapshot]);
+
+  const getProductStock = (productId: string, allRecipes: Recipe[], allItems: Item[]): number => {
+    const recipe = allRecipes.find(r => r.productId === productId);
+    if (!recipe) {
+      const item = allItems.find(i => i.id === productId);
+      return item?.quantity ?? 0;
+    }
+    
+    if (!recipe.components || recipe.components.length === 0) {
+      return 0;
+    }
+
+    const possibleQuantities = recipe.components.map(component => {
+      const componentItem = allItems.find(i => i.id === component.itemId);
+      if (!componentItem) return 0;
+      if (component.quantity === 0) return Infinity; // Avoid division by zero
+      return Math.floor(componentItem.quantity / component.quantity);
+    });
+
+    return Math.min(...possibleQuantities);
+  };
+
+  const snapshotData = useMemo(() => {
+      return snapshotRawData.map(item => {
+          if (item.itemType === 'Product') {
+              const stock = getProductStock(item.id, recipes, snapshotRawData);
+              return {...item, quantity: stock};
+          }
+          return item;
+      })
+  }, [snapshotRawData, recipes]);
+
 
   const productItems = useMemo(() => snapshotData.filter(item => item.itemType === 'Product'), [snapshotData]);
   const componentItems = useMemo(() => snapshotData.filter(item => item.itemType === 'Component'), [snapshotData]);
@@ -216,5 +247,3 @@ export default function SnapshotsPage() {
     </SidebarLayout>
   );
 }
-
-    

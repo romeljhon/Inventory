@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { useAuth } from '@/firebase/provider';
 import type { UserProfile } from '@/lib/types';
@@ -12,6 +12,7 @@ export function useUser() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const lastKnownProfile = useRef<UserProfile | null>(null);
 
   const userProfile: UserProfile | null = useMemo(() => {
     if (!user) return null;
@@ -34,25 +35,34 @@ export function useUser() {
       async (user) => {
         if (user) {
           setUser(user);
-          const db = getFirestore(auth.app);
-          const userDocRef = doc(db, 'users', user.uid);
-          const userProfileData = {
-              displayName: user.displayName,
-              email: user.email,
-              photoURL: user.photoURL,
-              lastLogin: serverTimestamp()
+          const currentProfile = {
+            displayName: user.displayName,
+            email: user.email,
+            photoURL: user.photoURL,
           };
+          
+          // Only update Firestore if profile info has changed
+          if (JSON.stringify(currentProfile) !== JSON.stringify(lastKnownProfile.current)) {
+            const db = getFirestore(auth.app);
+            const userDocRef = doc(db, 'users', user.uid);
+            const userProfileData = {
+                ...currentProfile,
+                lastLogin: serverTimestamp()
+            };
 
-          setDoc(userDocRef, userProfileData, { merge: true }).catch(async (serverError) => {
-            const permissionError = new FirestorePermissionError({
-                path: userDocRef.path,
-                operation: 'update',
-                requestResourceData: userProfileData,
+            setDoc(userDocRef, userProfileData, { merge: true }).catch(async (serverError) => {
+              const permissionError = new FirestorePermissionError({
+                  path: userDocRef.path,
+                  operation: 'update',
+                  requestResourceData: userProfileData,
+              });
+              errorEmitter.emit('permission-error', permissionError);
             });
-            errorEmitter.emit('permission-error', permissionError);
-          });
+            lastKnownProfile.current = currentProfile;
+          }
         } else {
           setUser(null);
+          lastKnownProfile.current = null;
         }
         setLoading(false);
       },
