@@ -1,3 +1,4 @@
+
 import { FieldValue } from 'firebase/firestore';
 
 export interface Item {
@@ -103,5 +104,22 @@ export interface PurchaseOrder {
   orderDate: FieldValue | string;
   expectedDate?: FieldValue | string;
   receivedDate?: FieldValue | string;
+  createdAt: FieldValue | string;
+}
+
+export interface SaleItem {
+  itemId: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface Sale {
+  id: string;
+  items: SaleItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  paymentMethod: string;
   createdAt: FieldValue | string;
 }

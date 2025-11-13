@@ -13,6 +13,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,16 +28,19 @@ import { Search, ShoppingCart, Trash2, Plus, Minus, Package, DollarSign, Buildin
 import type { Item, Recipe } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { EditableQuantity } from "@/components/inventory/editable-quantity";
+import { SaleCompletionDialog } from "@/components/sales/sale-completion-dialog";
 
 type CartItem = Item & { saleQuantity: number };
 
 export default function SalesPage() {
   const { activeBranch } = useBusiness();
-  const { items, categories, recipes, batchUpdateQuantities, isLoading } = useInventory(activeBranch?.id);
+  const { items, categories, recipes, processSale, isLoading } = useInventory(activeBranch?.id);
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [discount, setDiscount] = useState(0);
+  const [isSaleDialogOpen, setIsSaleDialogOpen] = useState(false);
   
   const salesCategoryIds = useMemo(() => {
     return categories.filter(c => c.showInSales).map(c => c.id);
@@ -171,12 +175,17 @@ export default function SalesPage() {
     }).format(amount);
   };
 
-  const cartTotal = useMemo(() => {
+  const cartSubtotal = useMemo(() => {
     if (!cart) return 0;
     return cart.reduce((total, item) => total + item.value * item.saleQuantity, 0);
   }, [cart]);
 
-  const completeSale = () => {
+  const cartTotal = useMemo(() => {
+    const total = cartSubtotal - discount;
+    return Math.max(0, total);
+  }, [cartSubtotal, discount]);
+
+  const handleOpenSaleDialog = () => {
     if (!cart || cart.length === 0) {
       toast({
         variant: "destructive",
@@ -185,9 +194,16 @@ export default function SalesPage() {
       });
       return;
     }
+    setIsSaleDialogOpen(true);
+  };
 
-    // We only need to pass the cart items. The hook will figure out the deductions.
-    batchUpdateQuantities(cart);
+  const handleConfirmSale = (paymentMethod: string) => {
+    processSale({
+      items: cart,
+      discount: discount,
+      total: cartTotal,
+      paymentMethod: paymentMethod,
+    });
     
     toast({
       title: "Sale Completed!",
@@ -195,7 +211,10 @@ export default function SalesPage() {
     });
 
     setCart([]);
+    setDiscount(0);
+    setIsSaleDialogOpen(false);
   };
+
 
   return (
     <SidebarLayout>
@@ -353,22 +372,43 @@ export default function SalesPage() {
                     )}
                   </CardContent>
                   {cart && cart.length > 0 && (
-                    <div className="border-t p-6 space-y-4">
-                        <div className="flex items-center justify-between text-lg font-bold">
-                            <span>Total:</span>
-                            <div className="flex items-center gap-2">
-                                <DollarSign className="h-5 w-5 text-muted-foreground" />
+                    <CardFooter className="flex-col items-stretch space-y-4">
+                        <div className="space-y-2">
+                           <div className="flex justify-between">
+                                <span className="text-muted-foreground">Subtotal</span>
+                                <span>{formatCurrency(cartSubtotal)}</span>
+                           </div>
+                           <div className="flex justify-between items-center">
+                               <span className="text-muted-foreground">Discount</span>
+                               <Input 
+                                   type="number" 
+                                   value={discount} 
+                                   onChange={(e) => setDiscount(Math.max(0, Number(e.target.value)))}
+                                   className="w-24 h-8 text-right"
+                                   placeholder="0.00"
+                                />
+                           </div>
+                           <div className="flex items-center justify-between text-lg font-bold border-t pt-2">
+                                <span>Total:</span>
                                 <span>{formatCurrency(cartTotal)}</span>
-                            </div>
+                           </div>
                         </div>
-                      <Button size="lg" className="w-full" onClick={completeSale}>
+                      <Button size="lg" className="w-full" onClick={handleOpenSaleDialog}>
                         Complete Sale
                       </Button>
-                    </div>
+                    </CardFooter>
                   )}
                 </Card>
               </div>
             </div>
+            <SaleCompletionDialog
+                isOpen={isSaleDialogOpen}
+                onOpenChange={setIsSaleDialogOpen}
+                onConfirm={handleConfirmSale}
+                subtotal={cartSubtotal}
+                discount={discount}
+                total={cartTotal}
+            />
           </>
         )}
       </div>

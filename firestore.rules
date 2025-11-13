@@ -91,6 +91,13 @@ service cloud.firestore {
         allow create: if isOwner(businessId) || isEmployee(businessId); 
         allow update, delete: if false; // History should be immutable
       }
+
+      // All employees can create sales records
+      match /branches/{branchId}/sales/{saleId} {
+        allow read: if isOwner(businessId) || isEmployee(businessId);
+        allow create: if isOwner(businessId) || isEmployee(businessId);
+        allow update, delete: if false; // Sales should be immutable
+      }
     }
   }
 }

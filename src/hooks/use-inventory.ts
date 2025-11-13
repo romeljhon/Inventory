@@ -17,7 +17,7 @@ import {
 import { startOfDay, parseISO, isAfter, endOfDay, isBefore } from "date-fns";
 import { useFirestore } from "@/firebase";
 import { useCollection } from "@/firebase/firestore/use-collection";
-import type { Item, Category, InventoryHistory, Recipe, PurchaseOrder, PurchaseOrderItem } from "@/lib/types";
+import type { Item, Category, InventoryHistory, Recipe, PurchaseOrder, PurchaseOrderItem, Sale } from "@/lib/types";
 import { useBusiness } from "./use-business";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -31,11 +31,11 @@ const getRandomColor = () => {
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-// Type for cart items passed to batchUpdateQuantities
-type SaleCartItem = {
-  id: string;
-  saleQuantity: number;
-  name: string;
+type ProcessSalePayload = {
+  items: (Item & { saleQuantity: number })[];
+  discount: number;
+  total: number;
+  paymentMethod: string;
 };
 
 export function useInventory(branchId: string | undefined) {
@@ -52,6 +52,7 @@ export function useInventory(branchId: string | undefined) {
   const historyCollection = useMemo(() => branchRef ? collection(branchRef, 'history') : null, [branchRef]);
   const recipesCollection = useMemo(() => branchRef ? collection(branchRef, 'recipes') : null, [branchRef]);
   const poCollection = useMemo(() => branchRef ? collection(branchRef, 'purchaseOrders') : null, [branchRef]);
+  const salesCollection = useMemo(() => branchRef ? collection(branchRef, 'sales') : null, [branchRef]);
   
   const { data: itemsData, loading: itemsLoading } = useCollection<Item>(
     itemsCollection ? query(itemsCollection, orderBy('createdAt', 'desc')) : null
@@ -140,73 +141,86 @@ export function useInventory(branchId: string | undefined) {
     });
   }, [itemsCollection, addHistory, items]);
   
-  const batchUpdateQuantities = useCallback(async (
-    updates: Record<string, number> | SaleCartItem[]
-  ) => {
+  const processSale = useCallback(async (payload: ProcessSalePayload) => {
+    if (!firestore || !itemsCollection || !salesCollection || !items) return;
+    const batch = writeBatch(firestore);
+
+    const componentDeductions: Record<string, number> = {};
+
+    for (const cartItem of payload.items) {
+      const recipe = recipes.find(r => r.productId === cartItem.id);
+      const cartItemIsComponent = items.find(i => i.id === cartItem.id)?.itemType === 'Component';
+      
+      if (recipe) {
+        for (const component of recipe.components) {
+          const totalDeduction = component.quantity * cartItem.saleQuantity;
+          componentDeductions[component.itemId] = (componentDeductions[component.itemId] || 0) + totalDeduction;
+        }
+      } else if (cartItemIsComponent) {
+        componentDeductions[cartItem.id] = (componentDeductions[cartItem.id] || 0) + cartItem.saleQuantity;
+      }
+    }
+
+    // Apply component deductions
+    for (const componentId in componentDeductions) {
+      const componentItem = items.find(i => i.id === componentId);
+      if (componentItem) {
+        const newQuantity = Math.max(0, componentItem.quantity - componentDeductions[componentId]);
+        const itemDoc = doc(itemsCollection, componentId);
+        batch.update(itemDoc, { quantity: newQuantity });
+
+        addHistory({
+          itemId: componentId,
+          itemName: componentItem.name,
+          change: -componentDeductions[componentId],
+          newQuantity: newQuantity,
+          type: 'quantity', // Using 'quantity' for component deductions from a sale
+        });
+      }
+    }
+
+    // Create a new sale document
+    const saleData: Omit<Sale, 'id'> = {
+      items: payload.items.map(i => ({ itemId: i.id, name: i.name, quantity: i.saleQuantity, price: i.value })),
+      subtotal: payload.items.reduce((acc, i) => acc + (i.value * i.saleQuantity), 0),
+      discount: payload.discount,
+      total: payload.total,
+      paymentMethod: payload.paymentMethod,
+      createdAt: serverTimestamp(),
+    };
+    const saleDocRef = doc(salesCollection);
+    batch.set(saleDocRef, saleData);
+
+    await batch.commit().catch(async (serverError) => {
+        // This is a simplified error context for the entire batch.
+        const permissionError = new FirestorePermissionError({
+            path: salesCollection.path, // Use sales collection path for context
+            operation: 'create',
+            requestResourceData: payload,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
+
+  }, [firestore, itemsCollection, salesCollection, items, recipes, addHistory]);
+
+  const batchUpdateQuantities = useCallback(async (updates: Record<string, number>) => {
     if (!firestore || !itemsCollection || !items) return;
     const batch = writeBatch(firestore);
 
-    if (Array.isArray(updates)) { // This is a sale
-      const cart = updates;
-      const componentDeductions: Record<string, number> = {};
-
-      for (const cartItem of cart) {
-        const recipe = recipes.find(r => r.productId === cartItem.id);
-        const cartItemIsComponent = items.find(i => i.id === cartItem.id)?.itemType === 'Component';
-        
-        if (recipe) {
-          // This is a product with a recipe, calculate component deductions
-          for (const component of recipe.components) {
-            const totalDeduction = component.quantity * cartItem.saleQuantity;
-            componentDeductions[component.itemId] = (componentDeductions[component.itemId] || 0) + totalDeduction;
-          }
-        } else if (cartItemIsComponent) {
-          // This is a component being sold directly
-          componentDeductions[cartItem.id] = (componentDeductions[cartItem.id] || 0) + cartItem.saleQuantity;
-        }
-
-        addHistory({
-          itemId: cartItem.id,
-          itemName: cartItem.name,
-          change: -cartItem.saleQuantity,
-          newQuantity: 0, // Placeholder, actual new quantity is for components
-          type: 'sale',
-        });
-      }
-
-      // Apply component deductions
-      for (const componentId in componentDeductions) {
-        const componentItem = items.find(i => i.id === componentId);
-        if (componentItem) {
-          const newQuantity = Math.max(0, componentItem.quantity - componentDeductions[componentId]);
-          const itemDoc = doc(itemsCollection, componentId);
+    for (const itemId in updates) {
+      const originalItem = items.find(i => i.id === itemId);
+      if (originalItem) {
+        const newQuantity = Math.max(0, updates[itemId]);
+        if (originalItem.quantity !== newQuantity) {
+          const itemDoc = doc(itemsCollection, itemId);
           batch.update(itemDoc, { quantity: newQuantity });
-
           addHistory({
-            itemId: componentId,
-            itemName: componentItem.name,
-            change: -componentDeductions[componentId],
+            itemId: itemId,
+            itemName: originalItem.name,
+            change: newQuantity - originalItem.quantity,
             newQuantity: newQuantity,
             type: 'quantity',
           });
-        }
-      }
-    } else { // This is a manual stock count
-      for (const itemId in updates) {
-        const originalItem = items.find(i => i.id === itemId);
-        if (originalItem) {
-          const newQuantity = Math.max(0, updates[itemId]);
-          if (originalItem.quantity !== newQuantity) {
-            const itemDoc = doc(itemsCollection, itemId);
-            batch.update(itemDoc, { quantity: newQuantity });
-            addHistory({
-              itemId: itemId,
-              itemName: originalItem.name,
-              change: newQuantity - originalItem.quantity,
-              newQuantity: newQuantity,
-              type: 'quantity',
-            });
-          }
         }
       }
     }
@@ -219,7 +233,7 @@ export function useInventory(branchId: string | undefined) {
         });
         errorEmitter.emit('permission-error', permissionError);
     });
-  }, [firestore, itemsCollection, items, recipes, addHistory]);
+  }, [firestore, itemsCollection, items, addHistory]);
 
 
   const deleteItem = useCallback(async (id: string) => {
@@ -512,6 +526,7 @@ export function useInventory(branchId: string | undefined) {
     addItem,
     updateItem,
     batchUpdateQuantities,
+    processSale,
     deleteItem,
     addCategory,
     updateCategory,
@@ -528,5 +543,3 @@ export function useInventory(branchId: string | undefined) {
     getInventorySnapshot,
   };
 }
-
-    

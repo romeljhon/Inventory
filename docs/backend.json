@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "business": {
@@ -331,6 +332,58 @@
         }
       },
       "required": ["poNumber", "supplierId", "supplierName", "status", "items", "total", "createdAt"]
+    },
+    "sale": {
+      "title": "Sale",
+      "description": "Represents a single completed sales transaction.",
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "description": "An array of items included in the sale.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "itemId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "number"
+              },
+              "price": {
+                "type": "number",
+                "description": "The price of the item at the time of sale."
+              }
+            },
+            "required": ["itemId", "name", "quantity", "price"]
+          }
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "The total price of items before discounts."
+        },
+        "discount": {
+          "type": "number",
+          "description": "The total discount amount applied to the sale."
+        },
+        "total": {
+          "type": "number",
+          "description": "The final amount paid after discounts."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "The method of payment used for the transaction."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of when the sale occurred."
+        }
+      },
+      "required": ["items", "subtotal", "discount", "total", "paymentMethod", "createdAt"]
     }
   },
   "auth": {
@@ -390,6 +443,12 @@
         "$ref": "#/entities/purchaseOrder"
       },
       "description": "Sub-collection for purchase orders within a branch."
+    },
+    "/businesses/{businessId}/branches/{branchId}/sales/{saleId}": {
+      "schema": {
+        "$ref": "#/entities/sale"
+      },
+      "description": "Sub-collection for completed sales transactions within a branch."
     },
     "/users/{userId}": {
       "schema": {
