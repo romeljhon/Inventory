@@ -8,7 +8,6 @@ import { Icons } from '@/components/icons';
 import {
   BarChart,
   Package,
-  Camera,
   Menu,
   Building,
   PlusCircle,
@@ -18,6 +17,7 @@ import {
   Truck,
   Lightbulb,
   Users,
+  ScanLine,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -150,24 +150,24 @@ export function LandingPage() {
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <ScanLine className="h-6 w-6" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">
+                  AI Receipt Scanner
+                </h3>
+                <p className="text-muted-foreground">
+                  Instantly create purchase orders by scanning supplier receipts with your camera.
+                </p>
+              </div>
+              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <BarChart className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
                   AI Demand Forecasting
                 </h3>
                 <p className="text-muted-foreground">
-                  Use AI to analyze sales history and predict future product demand, helping you optimize stock levels.
-                </p>
-              </div>
-              <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Receipt className="h-6 w-6" />
-                </div>
-                <h3 className="mb-2 text-xl font-semibold">
-                  Purchase Orders
-                </h3>
-                <p className="text-muted-foreground">
-                  Create, track, and manage purchase orders to suppliers and automatically update inventory upon receipt.
+                  Analyze sales history and predict future product demand to optimize your stock levels.
                 </p>
               </div>
                <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
@@ -183,13 +183,13 @@ export function LandingPage() {
               </div>
                <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Truck className="h-6 w-6" />
+                  <Receipt className="h-6 w-6" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold">
-                  Supplier Management
+                  Purchase Orders
                 </h3>
                 <p className="text-muted-foreground">
-                  Keep a directory of your suppliers to streamline your purchasing workflow and associate components.
+                  Create, track, and manage purchase orders to suppliers and automatically update inventory upon receipt.
                 </p>
               </div>
               <div className="rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
@@ -296,7 +296,7 @@ export function LandingPage() {
                   <div className="flex-1">
                     <h3 className="mb-2 text-xl font-semibold">4. Manage Purchasing & Sales</h3>
                     <p className="text-muted-foreground">
-                      Create purchase orders to restock components and use the smart POS to sell products. Stock levels are updated automatically.
+                      Create purchase orders manually, get AI suggestions, or use the AI Receipt Scanner to instantly create POs from paper receipts. Sell products with the smart POS, and stock levels are updated automatically.
                     </p>
                   </div>
                 </div>
