@@ -20,15 +20,20 @@ import {
   Users,
   ScanLine,
   CheckCircle2,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { PLANS } from '@/lib/plans';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 export function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isYearly, setIsYearly] = useState(false);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -56,6 +61,18 @@ export function LandingPage() {
               className="transition-colors hover:text-white/80 text-white/60"
             >
               Pricing
+            </Link>
+             <Link
+              href="#blog"
+              className="transition-colors hover:text-white/80 text-white/60"
+            >
+              Blog
+            </Link>
+             <Link
+              href="#contact"
+              className="transition-colors hover:text-white/80 text-white/60"
+            >
+              Contact Us
             </Link>
           </nav>
           <div className="flex flex-1 items-center justify-end space-x-2">
@@ -108,6 +125,20 @@ export function LandingPage() {
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         Pricing
+                      </Link>
+                       <Link
+                        href="#blog"
+                        className="transition-colors hover:text-white/80 text-white/80"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Blog
+                      </Link>
+                       <Link
+                        href="#contact"
+                        className="transition-colors hover:text-white/80 text-white/80"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Contact Us
                       </Link>
                     </nav>
                      <div className="mt-auto flex flex-col gap-4">
@@ -340,43 +371,128 @@ export function LandingPage() {
               <p className="mt-4 text-muted-foreground">
                 Choose the plan that's right for you. Start for free and scale as you grow.
               </p>
+              <div className="mt-6 flex items-center justify-center gap-4">
+                <Label htmlFor="pricing-toggle">Monthly</Label>
+                <Switch id="pricing-toggle" checked={isYearly} onCheckedChange={setIsYearly} />
+                <Label htmlFor="pricing-toggle">Yearly (Save 20%)</Label>
+              </div>
             </div>
              <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-3">
-              {PLANS.map((plan) => (
-                <Card
-                  key={plan.tierId}
-                  className={cn(
-                    'flex flex-col',
-                    plan.isPopular && 'border-2 border-primary shadow-lg',
-                  )}
-                >
-                  {plan.isPopular && (
-                    <div className="py-1 px-4 bg-primary text-primary-foreground text-center text-sm font-semibold rounded-t-lg -mt-px">
-                      Most Popular
-                    </div>
-                  )}
-                  <CardHeader className="text-center">
-                    <CardTitle className="text-3xl">{plan.name}</CardTitle>
-                     <p className="text-4xl font-bold">{plan.price}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
-                    <CardDescription>{plan.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-grow space-y-4">
-                    <ul className="space-y-3">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-start gap-3">
-                          <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-                          <span className="text-muted-foreground">{feature.text}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                  <CardFooter>
-                     <Button asChild className="w-full" variant={plan.tierId === 'free' ? 'outline' : 'default'}>
-                       <Link href="/signup">Get Started</Link>
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+              {PLANS.map((plan) => {
+                const monthlyPrice = plan.priceNumeric;
+                const yearlyPrice = Math.floor(monthlyPrice * 12 * 0.8);
+                
+                return (
+                    <Card
+                    key={plan.tierId}
+                    className={cn(
+                        'flex flex-col',
+                        plan.isPopular && 'border-2 border-primary shadow-lg',
+                    )}
+                    >
+                    {plan.isPopular && (
+                        <div className="py-1 px-4 bg-primary text-primary-foreground text-center text-sm font-semibold rounded-t-lg -mt-px">
+                        Most Popular
+                        </div>
+                    )}
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-3xl">{plan.name}</CardTitle>
+                        <div className="relative h-16">
+                             <div className={cn("absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-300", isYearly ? 'opacity-0' : 'opacity-100')}>
+                                <p className="text-4xl font-bold">{plan.price}</p>
+                                <p className="text-sm text-muted-foreground">per month</p>
+                             </div>
+                             <div className={cn("absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-300", isYearly ? 'opacity-100' : 'opacity-0')}>
+                                {plan.priceNumeric > 0 ? (
+                                    <>
+                                        <p className="text-4xl font-bold">₱{yearlyPrice.toLocaleString()}</p>
+                                        <p className="text-sm text-muted-foreground">per year</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="text-4xl font-bold">{plan.price}</p>
+                                    </>
+                                )}
+                             </div>
+                        </div>
+                        <CardDescription>{plan.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow space-y-4">
+                        <ul className="space-y-3">
+                        {plan.features.map((feature, i) => (
+                            <li key={i} className="flex items-start gap-3">
+                            <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                            <span className="text-muted-foreground">{feature.text}</span>
+                            </li>
+                        ))}
+                        </ul>
+                    </CardContent>
+                    <CardFooter>
+                        <Button asChild className="w-full" variant={plan.tierId === 'free' ? 'outline' : 'default'}>
+                        <Link href="/signup">Get Started</Link>
+                        </Button>
+                    </CardFooter>
+                    </Card>
+                );
+            })}
+            </div>
+          </div>
+        </section>
+
+        {/* Blog Section */}
+        <section id="blog" className="py-16 md:py-24">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <h2 className="text-3xl font-bold md:text-4xl">
+                All About Inventory
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                Tips, tricks, and insights to help you master your stock.
+              </p>
+            </div>
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="overflow-hidden transition-all hover:shadow-lg">
+                 <div className="h-48 w-full bg-muted flex items-center justify-center">
+                    <Package className="h-16 w-16 text-muted-foreground/30" />
+                 </div>
+                 <CardHeader>
+                   <CardTitle>5 Signs You Need an Inventory Management System</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <p className="text-muted-foreground">Is your business struggling with stockouts, overstock, or manual counting? It might be time to upgrade...</p>
+                 </CardContent>
+                 <CardFooter>
+                   <Button variant="link" className="p-0">Read More &rarr;</Button>
+                 </CardFooter>
+              </Card>
+              <Card className="overflow-hidden transition-all hover:shadow-lg">
+                 <div className="h-48 w-full bg-muted flex items-center justify-center">
+                    <BookCopy className="h-16 w-16 text-muted-foreground/30" />
+                 </div>
+                 <CardHeader>
+                   <CardTitle>The Power of Recipe Management for Cafés</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <p className="text-muted-foreground">Learn how defining recipes for your products can automate stock tracking and prevent ingredient shortages.</p>
+                 </CardContent>
+                 <CardFooter>
+                   <Button variant="link" className="p-0">Read More &rarr;</Button>
+                 </CardFooter>
+              </Card>
+              <Card className="overflow-hidden transition-all hover:shadow-lg">
+                 <div className="h-48 w-full bg-muted flex items-center justify-center">
+                    <BarChart className="h-16 w-16 text-muted-foreground/30" />
+                 </div>
+                 <CardHeader>
+                   <CardTitle>An Introduction to Demand Forecasting</CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <p className="text-muted-foreground">What is demand forecasting, and how can even small businesses leverage this AI-powered tool to make smarter decisions?</p>
+                 </CardContent>
+                 <CardFooter>
+                   <Button variant="link" className="p-0">Read More &rarr;</Button>
+                 </CardFooter>
+              </Card>
             </div>
           </div>
         </section>
@@ -399,6 +515,28 @@ export function LandingPage() {
           </div>
         </section>
       </main>
+
+       {/* Contact Section */}
+       <section id="contact" className="py-16 md:py-24 bg-muted/40">
+          <div className="container mx-auto px-4 text-center">
+             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Contact Us
+            </h2>
+             <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
+              Have questions? We're here to help.
+            </p>
+             <div className="mt-8 flex flex-col md:flex-row justify-center items-center gap-8">
+                <div className="flex items-center gap-3">
+                    <Mail className="h-6 w-6 text-primary" />
+                    <span className="text-lg">support@inventory.app</span>
+                </div>
+                 <div className="flex items-center gap-3">
+                    <Phone className="h-6 w-6 text-primary" />
+                    <span className="text-lg">+1 (234) 567-890</span>
+                </div>
+            </div>
+          </div>
+        </section>
 
       <footer className="border-t">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 py-6 sm:flex-row">
