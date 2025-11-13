@@ -59,7 +59,7 @@ export function SaleCompletionDialog({
                         <span className="text-red-500">-{formatCurrency(discount)}</span>
                     </div>
                 )}
-                 <div className="flex justify-between font-bold text-lg border-t pt-2">
+                 <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
                     <span>Total</span>
                     <span>{formatCurrency(total)}</span>
                 </div>
