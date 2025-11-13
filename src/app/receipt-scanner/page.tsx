@@ -1,12 +1,14 @@
+
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { SidebarLayout } from '@/components/sidebar-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Camera, Upload, Loader2, Wand2, ArrowRight, X, AlertCircle } from 'lucide-react';
+import { Camera, Upload, Loader2, Wand2, ArrowRight, X, AlertCircle, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { scanReceipt } from '@/lib/actions';
 import type { ScanReceiptOutput } from '@/ai/flows/scan-receipt';
@@ -15,18 +17,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function ReceiptScannerPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [scannedImage, setScannedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ScanReceiptOutput | null>(null);
-  
-  const fromPO = searchParams.get('fromPO') === 'true';
+  const [scanError, setScanError] = useState<string | null>(null);
 
   const stopCamera = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -45,19 +45,22 @@ export default function ReceiptScannerPage() {
   
   const handleStartCamera = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({ variant: 'destructive', title: 'Camera not supported' });
+        toast({ variant: 'destructive', title: 'Camera not supported', description: 'Your browser does not support camera access.' });
         return;
     }
-
+    stopCamera();
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        setHasCameraPermission(true);
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
+            videoRef.current.playsInline = true; // Crucial for iOS
+            videoRef.current.play().catch(err => {
+              console.error("Video play failed:", err);
+              toast({ variant: 'destructive', title: 'Camera Error', description: 'Could not start the camera feed.'})
+            });
         }
         setIsCameraOn(true);
     } catch (err) {
-        setHasCameraPermission(false);
         toast({
             variant: 'destructive',
             title: 'Camera Access Denied',
@@ -97,13 +100,15 @@ export default function ReceiptScannerPage() {
   const handleScan = async (imageData: string) => {
     setIsLoading(true);
     setExtractedData(null);
+    setScanError(null);
     try {
       const result = await scanReceipt({ receiptImage: imageData });
       setExtractedData(result);
       toast({ title: 'Receipt Scanned Successfully!' });
     } catch (error) {
       console.error(error);
-      toast({ variant: 'destructive', title: 'Scan Failed', description: 'The AI could not read the receipt.' });
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
+      setScanError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -115,13 +120,12 @@ export default function ReceiptScannerPage() {
         supplierName: extractedData.supplierName,
         items: extractedData.lineItems.map(item => ({
             ...item,
-            itemId: uuidv4(), // temporary ID
-            isNew: true, // flag to indicate this is a new item
+            itemId: uuidv4(),
+            isNew: true,
         })),
         orderDate: extractedData.transactionDate
     };
     
-    // Store in session storage and redirect
     sessionStorage.setItem('poPrefillData', JSON.stringify(prefillData));
     router.push('/purchase-orders?fromScanner=true');
   };
@@ -129,6 +133,8 @@ export default function ReceiptScannerPage() {
   const reset = () => {
     setScannedImage(null);
     setExtractedData(null);
+    setScanError(null);
+    stopCamera();
   };
   
   const formatCurrency = (amount: number) => {
@@ -141,11 +147,41 @@ export default function ReceiptScannerPage() {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex flex-col items-center justify-center text-center gap-4 py-12">
+        <Card className="flex flex-col items-center justify-center text-center gap-4 py-12">
           <Wand2 className="h-10 w-10 animate-pulse text-primary" />
           <h3 className="text-xl font-semibold">Scanning Receipt...</h3>
           <p className="text-muted-foreground">The AI is analyzing your receipt. This may take a moment.</p>
-        </div>
+        </Card>
+      );
+    }
+    
+    if (scanError) {
+      return (
+        <Card>
+          <CardHeader>
+             <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Scan Failed</AlertTitle>
+                <AlertDescription>
+                    {scanError}
+                </AlertDescription>
+            </Alert>
+          </CardHeader>
+          <CardContent>
+             {scannedImage && (
+                <Image
+                    src={scannedImage}
+                    alt="Failed receipt scan"
+                    width={400}
+                    height={600}
+                    className="rounded-md mx-auto object-contain max-h-[400px]"
+                />
+            )}
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button onClick={reset}><RefreshCw className="mr-2 h-4 w-4"/>Try Again</Button>
+          </CardFooter>
+        </Card>
       );
     }
     
@@ -205,7 +241,7 @@ export default function ReceiptScannerPage() {
             <CardDescription>Position your receipt within the frame and capture.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <video ref={videoRef} className="w-full aspect-video rounded-md bg-black" autoPlay playsInline muted />
+            <video ref={videoRef} className="w-full aspect-video rounded-md bg-black" playsInline muted />
             <canvas ref={canvasRef} className="hidden" />
             <div className="flex w-full justify-between">
                 <Button variant="ghost" onClick={stopCamera}><X className="mr-2 h-4 w-4"/>Cancel</Button>
@@ -222,31 +258,39 @@ export default function ReceiptScannerPage() {
             <CardTitle>Scan a New Receipt</CardTitle>
             <CardDescription>Use your camera to take a photo of a receipt or upload an existing image file.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row items-center justify-center gap-4 p-8">
-            <Button size="lg" onClick={handleStartCamera} className="w-full sm:w-auto">
-              <Camera className="mr-2 h-5 w-5" />
-              Use Camera
-            </Button>
-            <div className="text-sm text-muted-foreground">or</div>
-            <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-                <label>
-                    <Upload className="mr-2 h-5 w-5" />
-                    Upload Image
-                    <input type="file" accept="image/*" className="sr-only" onChange={handleFileUpload} />
-                </label>
-            </Button>
+          <CardContent className="space-y-6 p-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button size="lg" onClick={handleStartCamera} className="w-full sm:w-auto">
+                <Camera className="mr-2 h-5 w-5" />
+                Use Camera
+                </Button>
+                <div className="text-sm text-muted-foreground">or</div>
+                 <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+                    <label>
+                        <Upload className="mr-2 h-5 w-5" />
+                        Upload Image
+                        <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" onChange={handleFileUpload} />
+                    </label>
+                </Button>
+            </div>
+             <Card className="bg-muted/50 border-dashed">
+                <CardHeader className="flex-row items-center gap-4">
+                     <Image
+                      src="https://storage.googleapis.com/static.aiforge.co/misc/receipt-example.png"
+                      alt="Example of a good receipt for scanning"
+                      width={100}
+                      height={150}
+                      className="rounded-md border-2 border-border"
+                    />
+                    <div>
+                        <CardTitle className="text-lg">For Best Results</CardTitle>
+                        <CardDescription className="mt-1">
+                          Use a clear, flat, well-lit image of a standard printed receipt. Avoid handwriting, glare, and strong shadows.
+                        </CardDescription>
+                    </div>
+                </CardHeader>
+            </Card>
           </CardContent>
-            {hasCameraPermission === false && (
-                <CardFooter>
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Camera Access Required</AlertTitle>
-                      <AlertDescription>
-                        To use the camera, you must grant permission in your browser settings.
-                      </AlertDescription>
-                    </Alert>
-                </CardFooter>
-            )}
         </Card>
     );
   };

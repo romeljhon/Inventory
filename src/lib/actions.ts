@@ -1,3 +1,4 @@
+
 "use server";
 
 import { suggestItemCategories as suggestItemCategoriesFlow } from "@/ai/flows/suggest-item-categories";
@@ -44,12 +45,11 @@ export async function scanReceipt(
     return result;
   } catch (error) {
     console.error("Error scanning receipt:", error);
-    // Return a structured error or a default value
-    return {
-        supplierName: "Error",
-        transactionDate: "",
-        lineItems: [],
-        total: 0
-    };
+    // Re-throw the error to be caught by the client-side try/catch block
+    // This provides more specific error messages to the user.
+    if (error instanceof Error) {
+      throw new Error(`AI Scan Failed: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred during the AI scan.");
   }
 }
