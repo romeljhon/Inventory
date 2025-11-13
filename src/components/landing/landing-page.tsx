@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import {
@@ -452,8 +453,8 @@ export function LandingPage() {
             </div>
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               <Card className="overflow-hidden transition-all hover:shadow-lg">
-                 <div className="h-48 w-full bg-muted flex items-center justify-center">
-                    <Package className="h-16 w-16 text-muted-foreground/30" />
+                 <div className="relative h-48 w-full">
+                    <Image src="https://picsum.photos/seed/1/600/400" alt="Warehouse shelves" layout="fill" objectFit="cover" data-ai-hint="warehouse shelves" />
                  </div>
                  <CardHeader>
                    <CardTitle>5 Signs You Need an Inventory Management System</CardTitle>
@@ -466,8 +467,8 @@ export function LandingPage() {
                  </CardFooter>
               </Card>
               <Card className="overflow-hidden transition-all hover:shadow-lg">
-                 <div className="h-48 w-full bg-muted flex items-center justify-center">
-                    <BookCopy className="h-16 w-16 text-muted-foreground/30" />
+                 <div className="relative h-48 w-full">
+                    <Image src="https://picsum.photos/seed/2/600/400" alt="Cafe counter" layout="fill" objectFit="cover" data-ai-hint="cafe counter" />
                  </div>
                  <CardHeader>
                    <CardTitle>The Power of Recipe Management for Cafés</CardTitle>
@@ -480,8 +481,8 @@ export function LandingPage() {
                  </CardFooter>
               </Card>
               <Card className="overflow-hidden transition-all hover:shadow-lg">
-                 <div className="h-48 w-full bg-muted flex items-center justify-center">
-                    <BarChart className="h-16 w-16 text-muted-foreground/30" />
+                 <div className="relative h-48 w-full">
+                    <Image src="https://picsum.photos/seed/3/600/400" alt="Chart on a screen" layout="fill" objectFit="cover" data-ai-hint="data chart" />
                  </div>
                  <CardHeader>
                    <CardTitle>An Introduction to Demand Forecasting</CardTitle>
