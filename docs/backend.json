@@ -14,11 +14,12 @@
           "type": "string",
           "description": "The UID of the user who owns this business."
         },
-        "employees": {
-          "type": "array",
-          "description": "An array of employee objects.",
-          "items": {
-            "$ref": "#/entities/employee"
+        "roles": {
+          "type": "object",
+          "description": "A map of user UIDs to their roles within the business.",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["Owner", "Admin", "Staff"]
           }
         },
         "createdAt": {
@@ -35,7 +36,7 @@
           "$ref": "#/entities/businessUsage"
         }
       },
-      "required": ["name", "ownerId", "createdAt", "tier", "usage"]
+      "required": ["name", "ownerId", "roles", "createdAt", "tier", "usage"]
     },
     "businessUsage": {
       "title": "Business Usage",
@@ -494,3 +495,5 @@
     }
   }
 }
+
+    

@@ -4,29 +4,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Checks if the requesting user is the owner of the business.
+    function getRole(businessId) {
+      return get(/databases/$(database)/documents/businesses/$(businessId)).data.roles[request.auth.uid];
+    }
+    
     function isOwner(businessId) {
-      return request.auth != null && get(/databases/$(database)/documents/businesses/$(businessId)).data.ownerId == request.auth.uid;
+      return getRole(businessId) == 'Owner';
+    }
+    
+    function isAdmin(businessId) {
+      return getRole(businessId) == 'Admin' || isOwner(businessId);
     }
 
-    // Checks if a user is an employee of a specific business by checking their email against an array on the business document.
     function isEmployee(businessId) {
-      return request.auth != null && request.auth.token.email in get(/databases/$(database)/documents/businesses/$(businessId)).data.employees;
-    }
-    
-    // Retrieves the employee role document for the requesting user for a given business.
-    function getEmployee(businessId) {
-      // This is a simplified lookup based on UID as document ID.
-      // A more complex system might require a query, which isn't possible in rules.
-      let employeeDoc = get(/databases/$(database)/documents/businesses/$(businessId)/employees/$(request.auth.uid));
-      return employeeDoc.data;
-    }
-    
-    // Checks if the user is an Admin for the business.
-    function isAdmin(businessId) {
-      // For this to work, you MUST create an employee document with the user's UID as the document ID.
-      let employeeRole = getEmployee(businessId).role;
-      return employeeRole == 'Admin';
+      return getRole(businessId) in ['Owner', 'Admin', 'Staff'];
     }
 
     match /users/{userId} {
@@ -35,69 +26,68 @@ service cloud.firestore {
     }
 
     match /businesses/{businessId} {
-      // Owner can write/update the business document.
       allow write: if isOwner(businessId);
-      
-      // An employee or owner can read the main business document.
-      allow read: if isOwner(businessId) || isEmployee(businessId);
+      allow read: if isEmployee(businessId);
       
       // Employee Management: Only the Owner or an Admin can manage employees.
       match /employees/{employeeId} {
-        allow read, write: if isOwner(businessId) || isAdmin(businessId);
+        allow read, write: if isAdmin(businessId);
       }
       
       // Supplier Management: Only Owner or an Admin can manage suppliers
       match /suppliers/{supplierId} {
-        allow read, write: if isOwner(businessId) || isAdmin(businessId);
+        allow read, write: if isAdmin(businessId);
       }
 
       // Branch Management: Only Owner/Admin can manage branches.
       match /branches/{branchId} {
-        allow write: if isOwner(businessId) || isAdmin(businessId);
-        allow read: if isOwner(businessId) || isEmployee(businessId);
+        allow write: if isAdmin(businessId);
+        allow read: if isEmployee(businessId);
       }
 
       // Read access to all subcollections for all employees
       match /{subcollection}/{docId} {
-         allow read: if isOwner(businessId) || isEmployee(businessId);
+         allow read: if isEmployee(businessId);
       }
       
       // Write access for most data is restricted to Owners/Admins
       match /branches/{branchId}/items/{itemId} {
-        allow read: if isOwner(businessId) || isEmployee(businessId);
-        allow create, delete: if isOwner(businessId) || isAdmin(businessId);
+        allow read: if isEmployee(businessId);
+        allow create, delete: if isAdmin(businessId);
         // All employees can update quantity via sales or receiving POs
-        allow update: if isOwner(businessId) || isAdmin(businessId) || (isEmployee(businessId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity']));
+        allow update: if isAdmin(businessId) || (isEmployee(businessId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity']));
       }
       
       match /branches/{branchId}/categories/{categoryId} {
-         allow read: if isOwner(businessId) || isEmployee(businessId);
-         allow write: if isOwner(businessId) || isAdmin(businessId); 
+         allow read: if isEmployee(businessId);
+         allow write: if isAdmin(businessId); 
       }
       
       match /branches/{branchId}/recipes/{recipeId} {
-         allow read: if isOwner(businessId) || isEmployee(businessId);
-         allow write: if isOwner(businessId) || isAdmin(businessId);
+         allow read: if isEmployee(businessId);
+         allow write: if isAdmin(businessId);
       }
       
       match /branches/{branchId}/purchaseOrders/{poId} {
-        allow read: if isOwner(businessId) || isEmployee(businessId);
-        allow write: if isOwner(businessId) || isAdmin(businessId);
+        allow read: if isEmployee(businessId);
+        allow write: if isAdmin(businessId);
       }
 
       // All employees can create history logs (e.g., through sales, receiving stock)
       match /branches/{branchId}/history/{historyId} {
-        allow read: if isOwner(businessId) || isEmployee(businessId);
-        allow create: if isOwner(businessId) || isEmployee(businessId); 
+        allow read: if isEmployee(businessId);
+        allow create: if isEmployee(businessId); 
         allow update, delete: if false; // History should be immutable
       }
 
       // All employees can create sales records
       match /branches/{branchId}/sales/{saleId} {
-        allow read: if isOwner(businessId) || isEmployee(businessId);
-        allow create: if isOwner(businessId) || isEmployee(businessId);
+        allow read: if isEmployee(businessId);
+        allow create: if isEmployee(businessId);
         allow update, delete: if false; // Sales should be immutable
       }
     }
   }
 }
+
+    

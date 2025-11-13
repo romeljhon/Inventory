@@ -1,4 +1,5 @@
 
+
 import { FieldValue } from 'firebase/firestore';
 import type { PlanId } from './plans';
 
@@ -55,6 +56,7 @@ export interface Business {
   id: string;
   name: string;
   ownerId: string;
+  roles: Record<string, 'Owner' | 'Admin' | 'Staff'>;
   createdAt: FieldValue;
   tier: PlanId;
   usage: BusinessUsage;
@@ -134,3 +136,5 @@ export interface Sale {
   paymentMethod: string;
   createdAt: FieldValue | string;
 }
+
+    

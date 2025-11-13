@@ -50,30 +50,14 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   // --- Data Fetching ---
 
-  // 1. Fetch businesses owned by the current user
-  const ownedBusinessesQuery = useMemo(() =>
-    firestore && user?.uid ? query(collection(firestore, 'businesses'), where('ownerId', '==', user.uid)) : null,
+  // 1. Fetch businesses where the user has a role
+  const businessesWithRoleQuery = useMemo(() =>
+    firestore && user?.uid ? query(collection(firestore, 'businesses'), where(`roles.${user.uid}`, 'in', ['Owner', 'Admin', 'Staff'])) : null,
     [firestore, user?.uid]
   );
-  const { data: ownedBusinesses, loading: ownedBusinessesLoading } = useCollection<Business>(ownedBusinessesQuery);
+  const { data: businesses, loading: businessesLoading } = useCollection<Business>(businessesWithRoleQuery);
 
-  // 2. Fetch businesses where the user is an employee
-  const employeeBusinessesQuery = useMemo(() => 
-    firestore && user?.email ? query(collection(firestore, 'businesses'), where('employees', 'array-contains', user.email)) : null,
-    [firestore, user?.email]
-  );
-  const { data: employeeBusinesses, loading: employeeBusinessesLoading } = useCollection<Business>(employeeBusinessesQuery);
-
-  // 3. Combine owned and employee businesses
-  const businesses = useMemo(() => {
-    const allBusinesses = new Map<string, Business>();
-    (ownedBusinesses || []).forEach(b => allBusinesses.set(b.id, b));
-    (employeeBusinesses || []).forEach(b => allBusinesses.set(b.id, b));
-    return Array.from(allBusinesses.values());
-  }, [ownedBusinesses, employeeBusinesses]);
-
-
-  // 4. Fetch branches for the currently active business
+  // 2. Fetch branches for the currently active business
   const branchesCollectionRef = useMemo(() =>
     firestore && activeBusinessId ? collection(firestore, 'businesses', activeBusinessId, 'branches') : null,
     [firestore, activeBusinessId]
@@ -81,7 +65,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const { data: branchesData, loading: branchesLoading } = useCollection<Branch>(branchesCollectionRef);
   const branches = useMemo(() => branchesData || [], [branchesData]);
   
-  // 5. Fetch employees for the currently active business
+  // 3. Fetch employees for the currently active business
   const employeesCollectionRef = useMemo(() =>
     firestore && activeBusinessId ? collection(firestore, 'businesses', activeBusinessId, 'employees') : null,
     [firestore, activeBusinessId]
@@ -91,26 +75,24 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   // --- Derived State ---
   
-  const business = useMemo(() => businesses.find(b => b.id === activeBusinessId) || null, [businesses, activeBusinessId]);
+  const business = useMemo(() => (businesses || []).find(b => b.id === activeBusinessId) || null, [businesses, activeBusinessId]);
   const activeBranch = useMemo(() => branches?.find(b => b.id === activeBranchId) || null, [branches, activeBranchId]);
+  
   const userRole = useMemo(() => {
-    if (!user || !business) return null;
-    if (business.ownerId === user.uid) return 'Owner';
-    const employeeRecord = employees.find(e => e.email === user.email);
-    return employeeRecord?.role || null;
-  }, [user, business, employees]);
+    if (!user || !business || !business.roles) return null;
+    return business.roles[user.uid] || null;
+  }, [user, business]);
 
-  const isLoading = userLoading || isBusinessLogicLoading || ownedBusinessesLoading || employeeBusinessesLoading;
+  const isLoading = userLoading || isBusinessLogicLoading || businessesLoading;
 
   // --- Business Logic Effects ---
   
   // Effect to determine if the user is new and handle initial routing
   useEffect(() => {
-    // We wait until the initial check for businesses is complete
-    if (userLoading || ownedBusinessesLoading || employeeBusinessesLoading) return;
+    if (userLoading || businessesLoading) return;
 
     if (user) {
-      if ((ownedBusinesses || []).length === 0 && (employeeBusinesses || []).length === 0) {
+      if (!businesses || businesses.length === 0) {
         setIsNewUser(true);
       } else {
         setIsNewUser(false);
@@ -119,7 +101,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsNewUser(false);
     }
     setIsBusinessLogicLoading(false);
-  }, [user, ownedBusinesses, employeeBusinesses, userLoading, ownedBusinessesLoading, employeeBusinessesLoading]);
+  }, [user, businesses, userLoading, businessesLoading]);
 
   // Redirect logic
   useEffect(() => {
@@ -137,6 +119,8 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   // Restore state from localStorage and auto-select branch for non-owners
   useEffect(() => {
+    if (!businesses) return;
+
     const storedBusinessId = localStorage.getItem(ACTIVE_BUSINESS_STORAGE_KEY);
     if (storedBusinessId && businesses.some(b => b.id === storedBusinessId)) {
       setActiveBusinessId(storedBusinessId);
@@ -146,16 +130,15 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     // Once business and user roles are determined
     if (business && user && userRole) {
-      if (userRole === 'Owner') {
-          // Owners can select any branch, so we restore their last selection if it exists
+      if (userRole === 'Owner' || userRole === 'Admin') {
           const storedBranchId = localStorage.getItem(ACTIVE_BRANCH_STORAGE_KEY);
           if (storedBranchId && branches.some(b => b.id === storedBranchId)) {
               setActiveBranchId(storedBranchId);
           } else {
               setActiveBranchId(null);
           }
-      } else { // For 'Admin' and 'Staff'
-          const employeeRecord = employees.find(e => e.email === user.email);
+      } else { // For 'Staff'
+          const employeeRecord = employees.find(e => e.id === user.uid);
           if (employeeRecord && employeeRecord.branchId) {
             // Auto-select their assigned branch
             setActiveBranchId(employeeRecord.branchId);
@@ -209,7 +192,9 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     const businessData = { 
         name: businessName,
         ownerId: user.uid,
-        employees: [],
+        roles: {
+          [user.uid]: 'Owner'
+        },
         createdAt: serverTimestamp(),
         tier: 'free' as const,
         usage: {
@@ -302,14 +287,11 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     const branchDocRef = doc(firestore, 'businesses', business.id, 'branches', branchId);
     
-    // We optimistically update the UI, but will need to handle failure
     if (activeBranch?.id === branchId) {
         switchBranch(null);
     }
     
     try {
-        // This is a simplification. In a real app, you might want to archive
-        // this data or handle it more gracefully.
         const collectionsToDelete = ['items', 'categories', 'recipes', 'history'];
         for (const subcollection of collectionsToDelete) {
             const subcollectionRef = collection(branchDocRef, subcollection);
@@ -324,8 +306,6 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         await deleteDoc(branchDocRef);
 
     } catch (e) {
-        // If the delete fails, we should ideally revert the UI change
-        // and show an error toast.
         console.error("Failed to delete branch:", e);
         const permissionError = new FirestorePermissionError({
             path: branchDocRef.path,
@@ -336,66 +316,86 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [firestore, business?.id, activeBranch?.id, switchBranch]);
 
   const addEmployee = useCallback(async (employeeData: Omit<Employee, "id" | "createdAt">): Promise<Employee | undefined> => {
+    // This function will need a major refactor to work with the new `roles` map.
+    // We'd need to find the user's UID by their email, which requires a backend function.
+    // For now, this will add to the `employees` collection and the `roles` map.
     if (!firestore || !business?.id || !employeesCollectionRef) return;
     
-    // In a real app, you would have a Cloud Function to find the user by email, get their UID,
-    // and then create the employee document with that UID.
-    // For now, we will add the email to the business's employee array and create a record.
-    const businessDocRef = doc(firestore, 'businesses', business.id);
+    // This is a placeholder for getting UID from email. In a real app, use a Cloud Function.
+    const newEmployeeUid = `uid-for-${employeeData.email.replace(/[@.]/g, '-')}`;
 
-    await updateDoc(businessDocRef, {
-        employees: arrayUnion(employeeData.email)
+    const businessDocRef = doc(firestore, 'businesses', business.id);
+    const newEmployeeRef = doc(employeesCollectionRef, newEmployeeUid);
+
+    const batch = writeBatch(firestore);
+    
+    // 1. Update the roles map on the business document
+    batch.update(businessDocRef, {
+      [`roles.${newEmployeeUid}`]: employeeData.role
     });
     
-    const newEmployeeData = {
-      ...employeeData,
-      createdAt: serverTimestamp(),
-    };
-
-    const docRef = await addDoc(employeesCollectionRef, newEmployeeData)
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: employeesCollectionRef.path,
-          operation: 'create',
-          requestResourceData: newEmployeeData,
+    // 2. Create the employee document
+    const newEmployeeData = { ...employeeData, createdAt: serverTimestamp() };
+    batch.set(newEmployeeRef, newEmployeeData);
+    
+    await batch.commit().catch(serverError => {
+       const permissionError = new FirestorePermissionError({
+          path: businessDocRef.path, // Or newEmployeeRef.path
+          operation: 'update', // This is a batch, so it's tricky
+          requestResourceData: { role: employeeData.role, ...newEmployeeData },
         });
         errorEmitter.emit('permission-error', permissionError);
-        return null;
-      });
-    
-    if (!docRef) return undefined;
-    
-    return { id: docRef.id, ...newEmployeeData } as Employee;
+    });
+
+    return { id: newEmployeeRef.id, ...newEmployeeData } as Employee;
 
   }, [firestore, business?.id, employeesCollectionRef]);
 
   const updateEmployee = useCallback(async (employeeId: string, employeeData: Partial<Omit<Employee, "id" | "createdAt">>) => {
-    if (!employeesCollectionRef) return;
+     if (!firestore || !business?.id || !employeesCollectionRef) return;
+
+    const businessDocRef = doc(firestore, 'businesses', business.id);
     const employeeDocRef = doc(employeesCollectionRef, employeeId);
-    await updateDoc(employeeDocRef, employeeData).catch(async (serverError) => {
-      const permissionError = new FirestorePermissionError({
-        path: employeeDocRef.path,
+
+    const batch = writeBatch(firestore);
+
+    // If role is being changed, update the roles map
+    if (employeeData.role) {
+      batch.update(businessDocRef, {
+        [`roles.${employeeId}`]: employeeData.role
+      });
+    }
+
+    // Update the employee document itself
+    batch.update(employeeDocRef, employeeData);
+
+    await batch.commit().catch(async (serverError) => {
+       const permissionError = new FirestorePermissionError({
+        path: employeeDocRef.path, // or businessDocRef
         operation: 'update',
         requestResourceData: employeeData,
       });
       errorEmitter.emit('permission-error', permissionError);
     });
-  }, [employeesCollectionRef]);
+  }, [firestore, business?.id, employeesCollectionRef]);
   
   const deleteEmployee = useCallback(async (employeeId: string) => {
     if (!firestore || !business?.id || !employeesCollectionRef) return;
 
+    const businessDocRef = doc(firestore, 'businesses', business.id);
     const employeeDocRef = doc(employeesCollectionRef, employeeId);
-    const employee = (await getDoc(employeeDocRef)).data() as Employee;
     
-    if (employee?.email) {
-      const businessDocRef = doc(firestore, 'businesses', business.id);
-      await updateDoc(businessDocRef, {
-        employees: arrayRemove(employee.email)
-      });
-    }
+    const batch = writeBatch(firestore);
 
-    await deleteDoc(employeeDocRef).catch(async (serverError) => {
+    // 1. Remove the role from the business document
+    batch.update(businessDocRef, {
+      [`roles.${employeeId}`]: deleteDoc // Firestore field deletion
+    });
+
+    // 2. Delete the employee document
+    batch.delete(employeeDocRef);
+
+    await batch.commit().catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: employeeDocRef.path,
         operation: 'delete',
@@ -406,13 +406,13 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const contextValue = useMemo(() => ({
     business,
-    businesses,
+    businesses: businesses || [],
     branches,
     employees,
     activeBranch,
     isLoading,
     isNewUser,
-    userRole,
+    userRole: userRole as 'Owner' | 'Admin' | 'Staff' | null,
     setupBusiness,
     addBranch,
     deleteBranch,
@@ -460,3 +460,5 @@ export const useBusiness = (): BusinessContextType => {
   }
   return context;
 };
+
+    
