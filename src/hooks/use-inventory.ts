@@ -178,7 +178,7 @@ export function useInventory(branchId: string | undefined) {
           itemName: componentItem.name,
           change: -componentDeductions[componentId],
           newQuantity: newQuantity,
-          type: 'quantity', // Using 'quantity' for component deductions from a sale
+          type: 'sale',
         });
       }
     }
@@ -507,7 +507,7 @@ export function useInventory(branchId: string | undefined) {
             quantity: log.newQuantity,
           });
         }
-      } else if (log.type === 'quantity' || log.type === 'update') {
+      } else if (log.type === 'quantity' || log.type === 'update' || log.type === 'sale' || log.type === 'po-receive') {
         const item = snapshotItems.get(log.itemId);
         if (item) {
           item.quantity = log.newQuantity;

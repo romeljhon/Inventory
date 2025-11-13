@@ -87,7 +87,7 @@ export default function CategoriesPage() {
                 Please select a branch to manage categories.
               </CardDescription>
               <Link href="/dashboard" className="mt-4">
-                  <Button>Go to Dashboard</Button>
+                <Button>Go to Dashboard</Button>
               </Link>
             </CardHeader>
           </Card>
@@ -129,14 +129,14 @@ export default function CategoriesPage() {
                         {categories.map((category) => (
                           <TableRow key={category.id}>
                             <TableCell className="font-medium flex items-center gap-2">
-                               <div
+                              <div
                                 className="h-4 w-4 rounded-full border"
                                 style={{ backgroundColor: category.color }}
                               />
                               {category.name}
                             </TableCell>
-                             <TableCell className="hidden sm:table-cell">
-                               {category.showInSales ? 'Yes' : 'No'}
+                            <TableCell className="hidden sm:table-cell">
+                              {category.showInSales ? 'Yes' : 'No'}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">
@@ -169,7 +169,7 @@ export default function CategoriesPage() {
                     <p className="text-muted-foreground">
                       Click "Add Category" to create your first one.
                     </p>
-                     <Button onClick={() => handleOpenForm()} className="mt-2">
+                    <Button onClick={() => handleOpenForm()} className="mt-2">
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Add Category
                     </Button>
@@ -182,18 +182,26 @@ export default function CategoriesPage() {
       </div>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{editingCategory ? "Edit Category" : "Add New Category"}</DialogTitle>
+        <DialogContent className="max-w-md p-0">
+          <div className="border-b px-6 py-4">
+            <DialogHeader className="p-0">
+              <DialogTitle className="text-lg font-semibold">
+                {editingCategory ? "Edit Category" : "Add New Category"}
+              </DialogTitle>
             </DialogHeader>
+          </div>
+
+          <div className="px-6 py-4">
             <CategoryForm
-                category={editingCategory}
-                onSave={handleSaveCategory}
-                onCancel={() => setIsFormOpen(false)}
+              category={editingCategory}
+              onSave={handleSaveCategory}
+              onCancel={() => setIsFormOpen(false)}
             />
+          </div>
         </DialogContent>
       </Dialog>
-      
+
+
       <DeleteCategoryAlert
         isOpen={isDeleteAlertOpen}
         onOpenChange={setIsDeleteAlertOpen}

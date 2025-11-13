@@ -24,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowDown, ArrowUp, Plus, Minus, Edit, Trash2, Download, Building } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Minus, Edit, Trash2, Download, Building, ShoppingCart } from "lucide-react";
 import type { InventoryHistory } from "@/lib/types";
 import { downloadCSV } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -84,6 +84,8 @@ export default function HistoryPage() {
         return <Trash2 className="h-4 w-4 text-red-500" />;
       case 'update':
         return <Edit className="h-4 w-4 text-blue-500" />;
+      case 'sale':
+        return <ShoppingCart className="h-4 w-4 text-orange-500" />;
       case 'quantity':
         return log.change > 0 ? (
           <ArrowUp className="h-4 w-4 text-green-500" />
@@ -105,6 +107,8 @@ export default function HistoryPage() {
             return `Deleted item from inventory.`;
         case 'update':
             return `Item details were updated. Quantity changed by ${log.change > 0 ? '+' : ''}${log.change}.`;
+        case 'sale':
+            return `Sale of ${Math.abs(log.change)} unit(s).`;
         case 'quantity':
             const absChange = Math.abs(log.change);
             if (log.change > 0) {

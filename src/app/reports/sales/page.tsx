@@ -25,24 +25,16 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building, DollarSign, Download, Hash, Package } from "lucide-react";
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, format } from "date-fns";
-import type { InventoryHistory, Item } from "@/lib/types";
+import type { InventoryHistory, Item, Sale } from "@/lib/types";
 import { downloadCSV } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Timestamp } from "firebase/firestore";
 
 type TimeRange = "day" | "week" | "month" | "year" | "all";
-type SaleData = {
-  id: string;
-  itemId: string;
-  itemName: string;
-  quantitySold: number;
-  totalRevenue: number;
-  timestamp: Date;
-};
 
 export default function SalesReportPage() {
   const { activeBranch } = useBusiness();
-  const { history, items, isLoading } = useInventory(activeBranch?.id);
+  const { sales, isLoading } = useInventory(activeBranch?.id);
   const { toast } = useToast();
   const [timeRange, setTimeRange] = useState<TimeRange>("all");
 
@@ -78,30 +70,15 @@ export default function SalesReportPage() {
     return new Date('invalid');
   };
 
-  const salesData = useMemo(() => {
-    if (!history || !items) return [];
-
-    return history
-      .filter(log => log.type === 'quantity' && log.change < 0)
-      .map(log => {
-        const item = items.find(i => i.id === log.itemId);
-        const quantitySold = Math.abs(log.change);
-        const totalRevenue = item ? item.value * quantitySold : 0;
-        
-        return {
-          id: log.id,
-          itemId: log.itemId,
-          itemName: log.itemName,
-          quantitySold: quantitySold,
-          totalRevenue: totalRevenue,
-          timestamp: getDate(log.createdAt),
-        };
-      })
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }, [history, items]);
-
   const filteredSales = useMemo(() => {
-    if (timeRange === "all") return salesData;
+    if (!sales) return [];
+
+    const processedSales = sales.map(sale => ({
+      ...sale,
+      createdAt: getDate(sale.createdAt)
+    })).sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    if (timeRange === "all") return processedSales;
     
     const now = new Date();
     let startDate: Date;
@@ -120,15 +97,15 @@ export default function SalesReportPage() {
         startDate = startOfYear(now);
         break;
       default:
-        return salesData;
+        return processedSales;
     }
     
-    return salesData.filter(sale => sale.timestamp >= startDate);
-  }, [salesData, timeRange]);
+    return processedSales.filter(sale => sale.createdAt >= startDate);
+  }, [sales, timeRange]);
 
   const stats = useMemo(() => {
-    const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.totalRevenue, 0);
-    const totalItemsSold = filteredSales.reduce((sum, sale) => sum + sale.quantitySold, 0);
+    const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
+    const totalItemsSold = filteredSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
     const totalTransactions = filteredSales.length;
 
     return { totalRevenue, totalItemsSold, totalTransactions };
@@ -136,15 +113,17 @@ export default function SalesReportPage() {
 
   const topSellingProducts = useMemo(() => {
     const productSales = filteredSales.reduce((acc, sale) => {
-      if (!acc[sale.itemId]) {
-        acc[sale.itemId] = {
-          name: sale.itemName,
-          quantitySold: 0,
-          totalRevenue: 0,
-        };
-      }
-      acc[sale.itemId].quantitySold += sale.quantitySold;
-      acc[sale.itemId].totalRevenue += sale.totalRevenue;
+      sale.items.forEach(item => {
+        if (!acc[item.itemId]) {
+          acc[item.itemId] = {
+            name: item.name,
+            quantitySold: 0,
+            totalRevenue: 0,
+          };
+        }
+        acc[item.itemId].quantitySold += item.quantity;
+        acc[item.itemId].totalRevenue += item.quantity * item.price;
+      });
       return acc;
     }, {} as Record<string, { name: string; quantitySold: number; totalRevenue: number }>);
 
@@ -163,12 +142,19 @@ export default function SalesReportPage() {
       return;
     }
 
-    const dataToExport = filteredSales.map(sale => ({
-      "Date": format(sale.timestamp, "yyyy-MM-dd HH:mm:ss"),
-      "Product Name": sale.itemName,
-      "Quantity Sold": sale.quantitySold,
-      "Total Revenue": sale.totalRevenue,
-    }));
+    const dataToExport = filteredSales.flatMap(sale => 
+        sale.items.map(item => ({
+            "Sale ID": sale.id,
+            "Date": format(sale.createdAt, "yyyy-MM-dd HH:mm:ss"),
+            "Product Name": item.name,
+            "Quantity Sold": item.quantity,
+            "Item Price": item.price,
+            "Subtotal": item.quantity * item.price,
+            "Payment Method": sale.paymentMethod,
+            "Sale Discount": sale.discount,
+            "Sale Total": sale.total,
+        }))
+    );
 
     const branchName = activeBranch?.name.replace(/ /g, "_") || "branch";
     const date = format(new Date(), "yyyy-MM-dd");
@@ -288,8 +274,8 @@ export default function SalesReportPage() {
                         <Table>
                              <TableHeader>
                                 <TableRow>
-                                    <TableHead>Product</TableHead>
-                                    <TableHead className="text-right">Details</TableHead>
+                                    <TableHead>Details</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -299,12 +285,12 @@ export default function SalesReportPage() {
                                     filteredSales.slice(0, 20).map(sale => (
                                         <TableRow key={sale.id}>
                                             <TableCell>
-                                                <div className="font-medium">{sale.itemName}</div>
-                                                <div className="text-sm text-muted-foreground">{format(sale.timestamp, "PP p")}</div>
+                                                <div className="font-medium">{sale.items.map(i => `${i.quantity} x ${i.name}`).join(', ')}</div>
+                                                <div className="text-sm text-muted-foreground">{format(sale.createdAt, "PP p")}</div>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                 <div className="font-medium">{formatCurrency(sale.totalRevenue)}</div>
-                                                 <div className="text-sm text-muted-foreground">{sale.quantitySold} item(s)</div>
+                                                 <div className="font-medium">{formatCurrency(sale.total)}</div>
+                                                 <div className="text-sm text-muted-foreground">{sale.paymentMethod}</div>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -322,7 +308,3 @@ export default function SalesReportPage() {
     </SidebarLayout>
   );
 }
-
-    
-
-    
