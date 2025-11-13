@@ -65,7 +65,7 @@ export function AddBranchDialog({ isOpen, onOpenChange, onSave }: AddBranchDialo
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
             <FormField
               control={form.control}
               name="branchName"
