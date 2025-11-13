@@ -18,9 +18,64 @@ import {
   Lightbulb,
   Users,
   ScanLine,
+  CheckCircle2,
 } from 'lucide-react';
-import Image from 'next/image';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
+
+
+const plans = [
+  {
+    name: 'Starter',
+    price: 'Free',
+    priceMonthly: '₱0',
+    description: 'For solo owners & startups testing the waters.',
+    features: [
+      '1 User',
+      '1 Branch',
+      '100 Inventory Items',
+      '100 Sales/month',
+      'Limited AI Features (5 scans/forecasts)',
+    ],
+    tierId: 'free',
+    cta: 'Get Started for Free',
+  },
+  {
+    name: 'Growth',
+    price: '₱1,499',
+    priceMonthly: '₱1,499',
+    description: 'For growing businesses managing a small team.',
+    isPopular: true,
+    features: [
+      'Up to 5 Users',
+      'Up to 3 Branches',
+      '2,000 Inventory Items',
+      '2,000 Sales/month',
+      'Increased AI (75 scans/forecasts)',
+      'Automated PO Suggestions',
+    ],
+    tierId: 'growth',
+    cta: 'Choose Growth Plan',
+  },
+  {
+    name: 'Scale',
+    price: '₱3,999',
+    priceMonthly: '₱3,999',
+    description: 'For multi-branch operations and high-volume sales.',
+    features: [
+      'Unlimited Users',
+      'Unlimited Branches',
+      'Unlimited Items',
+      'Unlimited Sales & POs',
+      'Highest AI Limits (200 scans/forecasts)',
+      'Priority Support & API Access',
+    ],
+    tierId: 'scale',
+    cta: 'Choose Scale Plan',
+  },
+];
+
 
 export function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -45,6 +100,12 @@ export function LandingPage() {
               className="transition-colors hover:text-white/80 text-white/60"
             >
               How It Works
+            </Link>
+            <Link
+              href="#pricing"
+              className="transition-colors hover:text-white/80 text-white/60"
+            >
+              Pricing
             </Link>
           </nav>
           <div className="flex flex-1 items-center justify-end space-x-2">
@@ -90,6 +151,13 @@ export function LandingPage() {
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         How It Works
+                      </Link>
+                       <Link
+                        href="#pricing"
+                        className="transition-colors hover:text-white/80 text-white/80"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Pricing
                       </Link>
                     </nav>
                      <div className="mt-auto flex flex-col gap-4">
@@ -317,8 +385,59 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* Pricing Section */}
+        <section id="pricing" className="py-16 md:py-24 bg-muted/40">
+          <div className="container mx-auto px-4">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <h2 className="text-3xl font-bold md:text-4xl">
+                Simple, Transparent Pricing
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                Choose the plan that's right for you. Start for free and scale as you grow.
+              </p>
+            </div>
+             <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-3">
+              {plans.map((plan) => (
+                <Card
+                  key={plan.name}
+                  className={cn(
+                    'flex flex-col',
+                    plan.isPopular && 'border-2 border-primary shadow-lg',
+                  )}
+                >
+                  {plan.isPopular && (
+                    <div className="py-1 px-4 bg-primary text-primary-foreground text-center text-sm font-semibold rounded-t-lg -mt-px">
+                      Most Popular
+                    </div>
+                  )}
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-3xl">{plan.name}</CardTitle>
+                     <p className="text-4xl font-bold">{plan.priceMonthly}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                    <CardDescription>{plan.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-4">
+                    <ul className="space-y-3">
+                      {plan.features.map((feature, i) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                          <span className="text-muted-foreground">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                  <CardFooter>
+                     <Button asChild className="w-full" variant={plan.tierId === 'free' ? 'outline' : 'default'}>
+                       <Link href="/signup">{plan.cta}</Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* CTA Section */}
-        <section className="py-16 md:py-24 bg-muted/40">
+        <section className="py-16 md:py-24">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
               Ready to Streamline Your Inventory?
@@ -355,3 +474,5 @@ export function LandingPage() {
     </div>
   );
 }
+
+    
