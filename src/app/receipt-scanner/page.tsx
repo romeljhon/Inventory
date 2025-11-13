@@ -322,7 +322,7 @@ export default function ReceiptScannerPage() {
             <CardDescription>Position your receipt within the frame and capture.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <video ref={videoRef} className="w-full aspect-video rounded-md bg-black" playsInline muted />
+            <video ref={videoRef} className="w-full aspect-[3/4] md:aspect-video rounded-md bg-black" playsInline muted />
             <canvas ref={canvasRef} className="hidden" />
             <div className="flex w-full justify-between">
                 <Button variant="ghost" onClick={stopCamera}><X className="mr-2 h-4 w-4"/>Cancel</Button>
