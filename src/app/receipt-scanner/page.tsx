@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { SidebarLayout } from '@/components/sidebar-layout';
 import { Button } from '@/components/ui/button';
@@ -12,8 +12,10 @@ import { Camera, Upload, Loader2, Wand2, ArrowRight, X, AlertCircle, RefreshCw }
 import { useToast } from '@/hooks/use-toast';
 import { scanReceipt } from '@/lib/actions';
 import type { ScanReceiptOutput } from '@/ai/flows/scan-receipt';
-import { v4 as uuidv4 } from 'uuid';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useBusiness } from '@/hooks/use-business';
+import { useInventory } from '@/hooks/use-inventory';
+import type { Supplier } from '@/lib/types';
 
 export default function ReceiptScannerPage() {
   const router = useRouter();
@@ -22,7 +24,11 @@ export default function ReceiptScannerPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { activeBranch } = useBusiness();
+  const { items, suppliers } = useInventory(activeBranch?.id);
+
   const [isCameraOn, setIsCameraOn] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [scannedImage, setScannedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<ScanReceiptOutput | null>(null);
@@ -36,8 +42,20 @@ export default function ReceiptScannerPage() {
     }
     setIsCameraOn(false);
   }, []);
+  
+  useEffect(() => {
+    // This effect handles attaching the stream to the video element
+    if (isCameraOn && hasCameraPermission && videoRef.current && videoRef.current.srcObject) {
+      const video = videoRef.current;
+      video.play().catch(err => {
+        console.error("Video play failed:", err);
+        toast({ variant: 'destructive', title: 'Camera Error', description: 'Could not start the camera feed.' });
+      });
+    }
+  }, [isCameraOn, hasCameraPermission, toast]);
 
   useEffect(() => {
+    // This is a cleanup effect to ensure the camera is stopped when the component unmounts.
     return () => {
       stopCamera();
     };
@@ -48,19 +66,20 @@ export default function ReceiptScannerPage() {
         toast({ variant: 'destructive', title: 'Camera not supported', description: 'Your browser does not support camera access.' });
         return;
     }
-    stopCamera();
+    setScannedImage(null);
+    setExtractedData(null);
+    setScanError(null);
+    stopCamera(); 
+
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            videoRef.current.playsInline = true; // Crucial for iOS
-            videoRef.current.play().catch(err => {
-              console.error("Video play failed:", err);
-              toast({ variant: 'destructive', title: 'Camera Error', description: 'Could not start the camera feed.'})
-            });
         }
+        setHasCameraPermission(true);
         setIsCameraOn(true);
     } catch (err) {
+        setHasCameraPermission(false);
         toast({
             variant: 'destructive',
             title: 'Camera Access Denied',
@@ -76,7 +95,11 @@ export default function ReceiptScannerPage() {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const context = canvas.getContext('2d');
-      context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      if (!context) {
+        toast({ variant: "destructive", title: "Canvas Error", description: "Could not get rendering context." });
+        return;
+      }
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg');
       setScannedImage(dataUrl);
       stopCamera();
@@ -116,13 +139,31 @@ export default function ReceiptScannerPage() {
   
   const handleCreatePO = () => {
     if (!extractedData) return;
+
+    // Find the best matching supplier
+    const lowercasedSupplierName = extractedData.supplierName.toLowerCase();
+    const matchedSupplier = (suppliers || []).find(s => s.name.toLowerCase().includes(lowercasedSupplierName));
+
+    const components = items.filter(i => i.itemType === 'Component');
+
     const prefillData = {
+        supplierId: matchedSupplier?.id || null, // Will be handled on the PO page
         supplierName: extractedData.supplierName,
-        items: extractedData.lineItems.map(item => ({
-            ...item,
-            itemId: uuidv4(),
-            isNew: true,
-        })),
+        items: extractedData.lineItems
+          .filter(item => item.price >= 0) // Ignore negative price items like promotions
+          .map(item => {
+            // Find best matching component in inventory
+            const lowercasedItemName = item.name.toLowerCase();
+            const matchedComponent = components.find(c => c.name.toLowerCase().includes(lowercasedItemName));
+            
+            return {
+                itemId: matchedComponent?.id || null, // Will be handled on PO page as a 'new' item
+                itemName: item.name,
+                quantity: item.quantity,
+                price: item.price,
+                isNew: !matchedComponent, // Flag to indicate if this is a new item
+            };
+        }),
         orderDate: extractedData.transactionDate
     };
     
@@ -134,13 +175,14 @@ export default function ReceiptScannerPage() {
     setScannedImage(null);
     setExtractedData(null);
     setScanError(null);
+    setHasCameraPermission(null);
     stopCamera();
   };
   
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-PH", {
       style: "currency",
-      currency: "USD",
+      currency: "PHP",
     }).format(amount);
   };
 

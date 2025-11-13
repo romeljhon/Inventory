@@ -1,7 +1,9 @@
+
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useBusiness } from "@/hooks/use-business";
 import { useInventory } from "@/hooks/use-inventory";
 import { SidebarLayout } from "@/components/sidebar-layout";
@@ -53,9 +55,21 @@ type POSuggestion = {
   items: Item[];
 }
 
+// Type for the data coming from the scanner
+type ScannerPrefillData = {
+    supplierId: string | null;
+    supplierName: string;
+    items: (PurchaseOrderItem & { isNew?: boolean })[];
+    orderDate?: string;
+};
+
+
 export default function PurchaseOrdersPage() {
   const { business, activeBranch } = useBusiness();
   const firestore = useFirestore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const { 
     items, 
     addPurchaseOrder, 
@@ -91,6 +105,26 @@ export default function PurchaseOrdersPage() {
   const [receivingPO, setReceivingPO] = useState<PurchaseOrderType | null>(null);
 
   const isLoading = isInventoryLoading || poLoading || suppliersLoading;
+  
+  useEffect(() => {
+    if (searchParams.get('fromScanner') === 'true') {
+        const data = sessionStorage.getItem('poPrefillData');
+        if (data) {
+            const parsedData: ScannerPrefillData = JSON.parse(data);
+            
+            const poPrefill: Partial<Omit<PurchaseOrder, 'id' | 'createdAt'>> = {
+                supplierId: parsedData.supplierId || "",
+                supplierName: parsedData.supplierName,
+                items: parsedData.items,
+                orderDate: parsedData.orderDate ? new Date(parsedData.orderDate) : new Date(),
+            };
+            handleOpenForm(null, poPrefill);
+            sessionStorage.removeItem('poPrefillData');
+            // Clean up the URL
+            router.replace('/purchase-orders', { scroll: false });
+        }
+    }
+  }, [searchParams, router]);
 
   const poSuggestions = useMemo(() => {
     if (!components || !suppliers) return [];
