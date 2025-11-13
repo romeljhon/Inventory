@@ -463,7 +463,9 @@ export function LandingPage() {
                    <p className="text-muted-foreground">Is your business struggling with stockouts, overstock, or manual counting? It might be time to upgrade...</p>
                  </CardContent>
                  <CardFooter>
-                   <Button variant="link" className="p-0">Read More &rarr;</Button>
+                   <Button asChild variant="link" className="p-0">
+                     <Link href="#blog">Read More &rarr;</Link>
+                   </Button>
                  </CardFooter>
               </Card>
               <Card className="overflow-hidden transition-all hover:shadow-lg">
@@ -477,7 +479,9 @@ export function LandingPage() {
                    <p className="text-muted-foreground">Learn how defining recipes for your products can automate stock tracking and prevent ingredient shortages.</p>
                  </CardContent>
                  <CardFooter>
-                   <Button variant="link" className="p-0">Read More &rarr;</Button>
+                   <Button asChild variant="link" className="p-0">
+                     <Link href="#blog">Read More &rarr;</Link>
+                   </Button>
                  </CardFooter>
               </Card>
               <Card className="overflow-hidden transition-all hover:shadow-lg">
@@ -491,7 +495,9 @@ export function LandingPage() {
                    <p className="text-muted-foreground">What is demand forecasting, and how can even small businesses leverage this AI-powered tool to make smarter decisions?</p>
                  </CardContent>
                  <CardFooter>
-                   <Button variant="link" className="p-0">Read More &rarr;</Button>
+                   <Button asChild variant="link" className="p-0">
+                     <Link href="#blog">Read More &rarr;</Link>
+                   </Button>
                  </CardFooter>
               </Card>
             </div>
