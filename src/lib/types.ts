@@ -114,7 +114,7 @@ export interface PurchaseOrder {
   status: 'Draft' | 'Ordered' | 'Partially Received' | 'Received' | 'Cancelled';
   items: PurchaseOrderItem[];
   total: number;
-  orderDate: FieldValue | string;
+  orderDate: FieldValue | string | Date;
   expectedDate?: FieldValue | string;
   receivedDate?: FieldValue | string;
   createdAt: FieldValue | string;
@@ -136,5 +136,3 @@ export interface Sale {
   paymentMethod: string;
   createdAt: FieldValue | string;
 }
-
-    

@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy, Edit, AreaChart, Users, Truck, ShoppingBag, BarChart, ScanLine } from "lucide-react";
+import { LayoutDashboard, Package, History, Shapes, ShoppingCart, Camera, LogOut, ArrowLeft, ChevronsUpDown, PlusCircle, Check, BookCopy, Edit, AreaChart, Users, Truck, ShoppingBag, BarChart, ScanLine, Shield } from "lucide-react";
 import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
@@ -45,7 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 
 
 export function SidebarLayout({ children }: { children: React.ReactNode }) {
-  const { business, businesses, activeBranch, switchBranch, switchBusiness, isUserLoading, setupBusiness, updateBusiness } = useBusiness();
+  const { business, businesses, activeBranch, switchBranch, switchBusiness, isUserLoading, setupBusiness, updateBusiness, isSuperAdmin } = useBusiness();
   const auth = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -134,6 +134,16 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+            {isSuperAdmin && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/admin"}>
+                    <Link href="/admin">
+                    <Shield />
+                    Super Admin
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
                     <Link href="/dashboard">

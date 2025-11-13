@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo } from 'react';
@@ -10,9 +9,12 @@ import type { Business, Branch, Item, Category, InventoryHistory, Employee } fro
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { PlanId } from '@/lib/plans';
 
 const ACTIVE_BUSINESS_STORAGE_KEY = 'inventory-active-business';
 const ACTIVE_BRANCH_STORAGE_KEY = 'inventory-active-branch';
+const SUPER_ADMIN_EMAIL = 'romeljhonsalvaleon27@gmail.com';
+
 
 interface BusinessContextType {
   business: Business | null; // The active business
@@ -22,12 +24,14 @@ interface BusinessContextType {
   activeBranch: Branch | null;
   isLoading: boolean;
   isNewUser: boolean;
+  isSuperAdmin: boolean;
   userRole: 'Owner' | 'Admin' | 'Staff' | null;
   setupBusiness: (businessName: string, initialBranchName: string) => Promise<Business | undefined>;
   addBranch: (branchName: string) => Promise<Branch | undefined>;
   deleteBranch: (branchId: string) => Promise<void>;
   updateBusiness: (businessId: string, newName: string) => Promise<void>;
   updateBranch: (branchId: string, newName: string) => Promise<void>;
+  updateTier: (businessId: string, newTier: PlanId) => Promise<void>;
   addEmployee: (employeeData: Omit<Employee, "id" | "createdAt">) => Promise<Employee | undefined>;
   updateEmployee: (employeeId: string, employeeData: Partial<Omit<Employee, "id" | "createdAt">>) => Promise<void>;
   deleteEmployee: (employeeId: string) => Promise<void>;
@@ -48,13 +52,17 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [isNewUser, setIsNewUser] = useState(false);
   const [isBusinessLogicLoading, setIsBusinessLogicLoading] = useState(true);
 
+  const isSuperAdmin = useMemo(() => user?.email === SUPER_ADMIN_EMAIL, [user]);
+
   // --- Data Fetching ---
 
   // 1. Fetch businesses where the user has a role
-  const businessesWithRoleQuery = useMemo(() =>
-    firestore && user?.uid ? query(collection(firestore, 'businesses'), where(`roles.${user.uid}`, 'in', ['Owner', 'Admin', 'Staff'])) : null,
-    [firestore, user?.uid]
-  );
+  const businessesWithRoleQuery = useMemo(() => {
+    if (!firestore || !user?.uid) return null;
+    // Super admin should not be limited by roles
+    if (isSuperAdmin) return collection(firestore, 'businesses');
+    return query(collection(firestore, 'businesses'), where(`roles.${user.uid}`, 'in', ['Owner', 'Admin', 'Staff']))
+  }, [firestore, user?.uid, isSuperAdmin]);
   const { data: businesses, loading: businessesLoading } = useCollection<Business>(businessesWithRoleQuery);
 
   // 2. Fetch branches for the currently active business
@@ -92,7 +100,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (userLoading || businessesLoading) return;
 
     if (user) {
-      if (!businesses || businesses.length === 0) {
+      if (!isSuperAdmin && (!businesses || businesses.length === 0)) {
         setIsNewUser(true);
       } else {
         setIsNewUser(false);
@@ -101,7 +109,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsNewUser(false);
     }
     setIsBusinessLogicLoading(false);
-  }, [user, businesses, userLoading, businessesLoading]);
+  }, [user, businesses, userLoading, businessesLoading, isSuperAdmin]);
 
   // Redirect logic
   useEffect(() => {
@@ -246,6 +254,30 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       throw serverError;
     });
   }, [firestore]);
+
+   const updateTier = useCallback(async (businessId: string, newTier: PlanId): Promise<void> => {
+    if (!firestore) return;
+    const businessDocRef = doc(firestore, 'businesses', businessId);
+    const updatePayload = { 
+      tier: newTier,
+      'usage.items': 0,
+      'usage.sales': 0,
+      'usage.purchaseOrders': 0,
+      'usage.aiScans': 0,
+      'usage.lastReset': serverTimestamp()
+    };
+    
+    await updateDoc(businessDocRef, updatePayload).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+        path: businessDocRef.path,
+        operation: 'update',
+        requestResourceData: updatePayload,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+      throw serverError;
+    });
+  }, [firestore]);
+
 
   const updateBranch = useCallback(async (branchId: string, newName: string): Promise<void> => {
     if (!firestore || !business?.id) return;
@@ -412,12 +444,14 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     activeBranch,
     isLoading,
     isNewUser,
+    isSuperAdmin,
     userRole: userRole as 'Owner' | 'Admin' | 'Staff' | null,
     setupBusiness,
     addBranch,
     deleteBranch,
     updateBusiness,
     updateBranch,
+    updateTier,
     addEmployee,
     updateEmployee,
     deleteEmployee,
@@ -431,13 +465,15 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     employees,
     activeBranch, 
     isLoading, 
-    isNewUser, 
+    isNewUser,
+    isSuperAdmin,
     userRole,
     setupBusiness, 
     addBranch, 
     deleteBranch, 
     updateBusiness, 
     updateBranch,
+    updateTier,
     addEmployee,
     updateEmployee,
     deleteEmployee,
@@ -460,6 +496,3 @@ export const useBusiness = (): BusinessContextType => {
   }
   return context;
 };
-
-
-    

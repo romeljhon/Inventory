@@ -4,6 +4,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    function isSuperAdmin() {
+      return request.auth.token.email == 'romeljhonsalvaleon27@gmail.com';
+    }
+
     function getRole(businessId) {
       return get(/databases/$(database)/documents/businesses/$(businessId)).data.roles[request.auth.uid];
     }
@@ -26,68 +30,66 @@ service cloud.firestore {
     }
 
     match /businesses/{businessId} {
-      allow write: if isOwner(businessId);
-      allow read: if isEmployee(businessId);
+      allow read: if isEmployee(businessId) || isSuperAdmin();
+      allow write: if isOwner(businessId) || isSuperAdmin();
       
       // Employee Management: Only the Owner or an Admin can manage employees.
       match /employees/{employeeId} {
-        allow read, write: if isAdmin(businessId);
+        allow read, write: if isAdmin(businessId) || isSuperAdmin();
       }
       
       // Supplier Management: Only Owner or an Admin can manage suppliers
       match /suppliers/{supplierId} {
-        allow read, write: if isAdmin(businessId);
+        allow read, write: if isAdmin(businessId) || isSuperAdmin();
       }
 
       // Branch Management: Only Owner/Admin can manage branches.
       match /branches/{branchId} {
-        allow write: if isAdmin(businessId);
-        allow read: if isEmployee(businessId);
+        allow write: if isAdmin(businessId) || isSuperAdmin();
+        allow read: if isEmployee(businessId) || isSuperAdmin();
       }
 
       // Read access to all subcollections for all employees
       match /{subcollection}/{docId} {
-         allow read: if isEmployee(businessId);
+         allow read: if isEmployee(businessId) || isSuperAdmin();
       }
       
       // Write access for most data is restricted to Owners/Admins
       match /branches/{branchId}/items/{itemId} {
-        allow read: if isEmployee(businessId);
-        allow create, delete: if isAdmin(businessId);
+        allow read: if isEmployee(businessId) || isSuperAdmin();
+        allow create, delete: if isAdmin(businessId) || isSuperAdmin();
         // All employees can update quantity via sales or receiving POs
-        allow update: if isAdmin(businessId) || (isEmployee(businessId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity']));
+        allow update: if (isAdmin(businessId) || isSuperAdmin()) || (isEmployee(businessId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity']));
       }
       
       match /branches/{branchId}/categories/{categoryId} {
-         allow read: if isEmployee(businessId);
-         allow write: if isAdmin(businessId); 
+         allow read: if isEmployee(businessId) || isSuperAdmin();
+         allow write: if isAdmin(businessId) || isSuperAdmin(); 
       }
       
       match /branches/{branchId}/recipes/{recipeId} {
-         allow read: if isEmployee(businessId);
-         allow write: if isAdmin(businessId);
+         allow read: if isEmployee(businessId) || isSuperAdmin();
+         allow write: if isAdmin(businessId) || isSuperAdmin();
       }
       
       match /branches/{branchId}/purchaseOrders/{poId} {
-        allow read: if isEmployee(businessId);
-        allow write: if isAdmin(businessId);
+        allow read: if isEmployee(businessId) || isSuperAdmin();
+        allow write: if isAdmin(businessId) || isSuperAdmin();
       }
 
       // All employees can create history logs (e.g., through sales, receiving stock)
       match /branches/{branchId}/history/{historyId} {
-        allow read: if isEmployee(businessId);
-        allow create: if isEmployee(businessId); 
+        allow read: if isEmployee(businessId) || isSuperAdmin();
+        allow create: if isEmployee(businessId) || isSuperAdmin(); 
         allow update, delete: if false; // History should be immutable
       }
 
       // All employees can create sales records
       match /branches/{branchId}/sales/{saleId} {
-        allow read: if isEmployee(businessId);
-        allow create: if isEmployee(businessId);
+        allow read: if isEmployee(businessId) || isSuperAdmin();
+        allow create: if isEmployee(businessId) || isSuperAdmin();
         allow update, delete: if false; // Sales should be immutable
       }
     }
   }
 }
-
-    
