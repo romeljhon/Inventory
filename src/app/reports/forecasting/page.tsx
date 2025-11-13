@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -11,10 +12,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Building, BarChart, Package, Lightbulb, Loader2 } from 'lucide-react';
 import { forecastDemand } from '@/lib/actions';
 import type { ForecastDemandOutput } from '@/ai/flows/forecast-demand';
+import { planLimits } from '@/lib/plans';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function ForecastingPage() {
-  const { activeBranch } = useBusiness();
+  const { business, activeBranch, incrementUsage } = useBusiness();
   const { items, history, isLoading } = useInventory(activeBranch?.id);
+  const { toast } = useToast();
+  const router = useRouter();
+
 
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [isForecasting, setIsForecasting] = useState(false);
@@ -24,7 +31,19 @@ export default function ForecastingPage() {
   const selectedProduct = useMemo(() => products.find(p => p.id === selectedProductId), [products, selectedProductId]);
 
   const handleForecast = async () => {
-    if (!selectedProductId || !selectedProduct) return;
+    if (!selectedProductId || !selectedProduct || !business) return;
+
+    const limits = planLimits[business.tier || 'free'];
+    if (business.usage.aiScans >= limits.aiScans) {
+      toast({
+        variant: "destructive",
+        title: "AI Feature Limit Reached",
+        description: `You have reached the monthly limit of ${limits.aiScans} AI features for the ${limits.name} plan.`,
+      });
+      router.push('/subscription');
+      return;
+    }
+
 
     setIsForecasting(true);
     setForecastResult(null);
@@ -48,6 +67,7 @@ export default function ForecastingPage() {
         salesHistory,
       });
       setForecastResult(result);
+      await incrementUsage('aiScans');
     } catch (error) {
       console.error('Forecasting failed', error);
       setForecastResult({

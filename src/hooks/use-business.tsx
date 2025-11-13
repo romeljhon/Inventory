@@ -9,7 +9,8 @@ import type { Business, Branch, Item, Category, InventoryHistory, Employee } fro
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { PlanId } from '@/lib/plans';
+import { PlanId, planLimits } from '@/lib/plans';
+import { isBefore, subMonths } from 'date-fns';
 
 const ACTIVE_BUSINESS_STORAGE_KEY = 'inventory-active-business';
 const ACTIVE_BRANCH_STORAGE_KEY = 'inventory-active-branch';
@@ -124,6 +125,32 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       router.replace('/setup');
     }
   }, [user, isNewUser, isLoading, router]);
+  
+  // Usage reset logic
+  useEffect(() => {
+      if (!firestore || !business || !business.usage || !business.usage.lastReset) return;
+
+      const lastResetDate = typeof business.usage.lastReset === 'string'
+          ? new Date(business.usage.lastReset)
+          : (business.usage.lastReset as any).toDate();
+
+      const oneMonthAgo = subMonths(new Date(), 1);
+
+      if (isBefore(lastResetDate, oneMonthAgo)) {
+          console.log("Usage metrics are over a month old. Resetting...");
+          const businessDocRef = doc(firestore, 'businesses', business.id);
+          const resetPayload = {
+              'usage.items': 0,
+              'usage.sales': 0,
+              'usage.purchaseOrders': 0,
+              'usage.aiScans': 0,
+              'usage.lastReset': serverTimestamp()
+          };
+          updateDoc(businessDocRef, resetPayload).catch(e => console.error("Failed to reset usage metrics:", e));
+      }
+
+  }, [firestore, business]);
+
 
   // Restore state from localStorage and auto-select branch for non-owners
   useEffect(() => {
@@ -260,10 +287,6 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     const businessDocRef = doc(firestore, 'businesses', businessId);
     const updatePayload = { 
       tier: newTier,
-      'usage.items': 0,
-      'usage.sales': 0,
-      'usage.purchaseOrders': 0,
-      'usage.aiScans': 0,
       'usage.lastReset': serverTimestamp()
     };
     

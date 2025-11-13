@@ -419,12 +419,26 @@ export function useInventory(branchId: string | undefined) {
   }, [recipesCollection]);
 
   const addPurchaseOrder = useCallback(async (poData: Omit<PurchaseOrder, 'id' | 'createdAt'>) => {
-    if (!poCollection) return;
+    if (!poCollection || !business) return;
+
+    const limits = planLimits[business.tier || 'free'];
+    if (business.usage.purchaseOrders >= limits.purchaseOrders) {
+      toast({
+        variant: "destructive",
+        title: "Purchase Order Limit Reached",
+        description: `You have reached the monthly limit of ${limits.purchaseOrders} POs for the ${limits.name} plan.`,
+      });
+      router.push('/subscription');
+      return;
+    }
+
     const newPOData = {
       ...poData,
       createdAt: serverTimestamp(),
     };
-    addDoc(poCollection, newPOData).catch(async (serverError) => {
+    addDoc(poCollection, newPOData).then(() => {
+        incrementUsage('purchaseOrders');
+    }).catch(async (serverError) => {
       const permissionError = new FirestorePermissionError({
         path: poCollection.path,
         operation: 'create',
@@ -432,7 +446,7 @@ export function useInventory(branchId: string | undefined) {
       });
       errorEmitter.emit('permission-error', permissionError);
     });
-  }, [poCollection]);
+  }, [poCollection, business, incrementUsage, toast, router]);
 
   const updatePurchaseOrder = useCallback(async (id: string, updatedData: Partial<Omit<PurchaseOrder, 'id' | 'createdAt'>>) => {
     if (!poCollection) return;

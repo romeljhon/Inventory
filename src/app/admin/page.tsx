@@ -110,7 +110,7 @@ export default function AdminPage() {
     await updateTier(businessId, newTier);
     toast({
       title: 'Tier Updated',
-      description: `The business tier has been changed to ${newTier}.`,
+      description: `The business tier has been changed to ${newTier}. Usage counters have been reset.`,
     });
      setBusinesses(prev => prev.map(b => b.id === businessId ? {...b, tier: newTier} : b));
   };
