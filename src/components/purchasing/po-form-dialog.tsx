@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from "react";
@@ -308,7 +307,7 @@ export function PurchaseOrderFormDialog({
                 </Button>
               </div>
               <div className="flex justify-end pt-4">
-                  <div className="text-xl font-bold">Total: ${total.toFixed(2)}</div>
+                  <div className="text-xl font-bold">Total: ₱{total.toFixed(2)}</div>
               </div>
             </form>
           </Form>

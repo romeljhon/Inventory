@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -50,7 +49,7 @@ export function InventoryTable({
   };
   
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-ph", {
+    return new Intl.NumberFormat("en-PH", {
       style: "currency",
       currency: "PHP",
     }).format(amount);
@@ -238,5 +237,3 @@ export function InventoryTable({
     </TooltipProvider>
   );
 }
-
-    
