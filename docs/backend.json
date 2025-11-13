@@ -16,10 +16,9 @@
         },
         "employees": {
           "type": "array",
-          "description": "An array of email addresses for users who are employees.",
+          "description": "An array of employee objects.",
           "items": {
-            "type": "string",
-            "format": "email"
+            "$ref": "#/entities/employee"
           }
         },
         "createdAt": {
