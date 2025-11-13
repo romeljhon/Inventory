@@ -40,16 +40,33 @@ export async function forecastDemand(
 export async function scanReceipt(
   input: ScanReceiptInput
 ): Promise<ScanReceiptOutput> {
-  try {
-    const result = await scanReceiptFlow(input);
-    return result;
-  } catch (error) {
-    console.error("Error scanning receipt:", error);
-    // Re-throw the error to be caught by the client-side try/catch block
-    // This provides more specific error messages to the user.
-    if (error instanceof Error) {
-      throw new Error(`AI Scan Failed: ${error.message}`);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 2000;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const result = await scanReceiptFlow(input);
+      return result;
+    } catch (error) {
+      console.error(`Error scanning receipt (Attempt ${attempt}/${MAX_RETRIES}):`, error);
+      const errorMessage = error instanceof Error ? error.message : '';
+      
+      // Only retry on specific, transient errors.
+      const isRetryable = errorMessage.includes("503") || errorMessage.includes("overloaded");
+
+      if (isRetryable && attempt < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        continue; // Go to the next iteration of the loop
+      }
+
+      // If it's not a retryable error or we've run out of retries, throw the error.
+      if (error instanceof Error) {
+        throw new Error(`AI Scan Failed: ${error.message}`);
+      }
+      throw new Error("An unknown error occurred during the AI scan.");
     }
-    throw new Error("An unknown error occurred during the AI scan.");
   }
+  
+  // This line should theoretically be unreachable, but it's good practice for type safety.
+  throw new Error("AI scan failed after multiple retries.");
 }
