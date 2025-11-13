@@ -17,6 +17,7 @@ import {
   Receipt,
   Truck,
   Lightbulb,
+  Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -257,9 +258,9 @@ export function LandingPage() {
                     <Building className="h-6 w-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold">1. Set Up Your Business</h3>
+                    <h3 className="mb-2 text-xl font-semibold">1. Set Up Your Business & Suppliers</h3>
                     <p className="text-muted-foreground">
-                      Create your business profile and add your first branch or location. You can manage multiple branches under one business.
+                      Create your business profile, add your first branch, and list your suppliers to get started.
                     </p>
                   </div>
                 </div>
@@ -269,9 +270,9 @@ export function LandingPage() {
                     <PlusCircle className="h-6 w-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold">2. Add Your Inventory</h3>
+                    <h3 className="mb-2 text-xl font-semibold">2. Add Inventory Components</h3>
                     <p className="text-muted-foreground">
-                      Start adding your items. Distinguish between 'Components' (raw materials) and 'Products' (finished goods you sell).
+                      Stock your inventory with raw materials ('Components') you purchase, setting initial quantities, value, and reorder points.
                     </p>
                   </div>
                 </div>
@@ -281,9 +282,9 @@ export function LandingPage() {
                     <BookCopy className="h-6 w-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold">3. Define Recipes</h3>
+                    <h3 className="mb-2 text-xl font-semibold">3. Define Products & Recipes</h3>
                     <p className="text-muted-foreground">
-                      For your 'Products', create recipes that specify which 'Components' and what quantities are needed to produce them.
+                      Create your finished goods ('Products') and define recipes that specify which components are needed to produce them.
                     </p>
                   </div>
                 </div>
@@ -293,9 +294,21 @@ export function LandingPage() {
                     <ShoppingCart className="h-6 w-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold">4. Make Sales & Track Stock</h3>
+                    <h3 className="mb-2 text-xl font-semibold">4. Manage Purchasing & Sales</h3>
                     <p className="text-muted-foreground">
-                      Use the sales terminal to sell your products. The system automatically deducts the required components from your inventory based on the recipe.
+                      Create purchase orders to restock components and use the smart POS to sell products. Stock levels are updated automatically.
+                    </p>
+                  </div>
+                </div>
+                {/* Step 5 */}
+                <div className="relative flex flex-col items-center text-center md:flex-row md:text-left">
+                  <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:mr-8">
+                    <BarChart className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-xl font-semibold">5. Analyze & Forecast</h3>
+                    <p className="text-muted-foreground">
+                      Use built-in reports to analyze sales performance and leverage AI-powered forecasting to predict future product demand.
                     </p>
                   </div>
                 </div>
