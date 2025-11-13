@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Mail,
   Phone,
+  Info,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -56,6 +57,12 @@ export function LandingPage() {
               className="transition-colors hover:text-white/80 text-white/60"
             >
               How It Works
+            </Link>
+            <Link
+              href="#about-us"
+              className="transition-colors hover:text-white/80 text-white/60"
+            >
+              About Us
             </Link>
             <Link
               href="#pricing"
@@ -119,6 +126,13 @@ export function LandingPage() {
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         How It Works
+                      </Link>
+                      <Link
+                        href="#about-us"
+                        className="transition-colors hover:text-white/80 text-white/80"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        About Us
                       </Link>
                        <Link
                         href="#pricing"
@@ -361,9 +375,29 @@ export function LandingPage() {
             </div>
           </div>
         </section>
+        
+        {/* About Us Section */}
+        <section id="about-us" className="py-16 md:py-24 bg-muted/40">
+          <div className="container mx-auto px-4">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl font-bold md:text-4xl">About Us</h2>
+                <p className="mt-4 text-lg text-muted-foreground">
+                  We're a passionate team of developers and business experts dedicated to helping small and medium-sized businesses thrive.
+                </p>
+                <p className="mt-4 text-muted-foreground">
+                  Our mission is to democratize powerful inventory management tools, making them accessible, affordable, and easy to use for everyone. We believe that by simplifying complex operations, we can empower entrepreneurs to focus on what they do best: growing their business.
+                </p>
+              </div>
+              <div className="relative h-80 w-full rounded-lg overflow-hidden shadow-lg">
+                <Image src="https://picsum.photos/seed/4/800/600" alt="Our team" layout="fill" objectFit="cover" data-ai-hint="team working" />
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Pricing Section */}
-        <section id="pricing" className="py-16 md:py-24 bg-muted/40">
+        <section id="pricing" className="py-16 md:py-24">
           <div className="container mx-auto px-4">
             <div className="mx-auto mb-12 max-w-2xl text-center">
               <h2 className="text-3xl font-bold md:text-4xl">
@@ -441,7 +475,7 @@ export function LandingPage() {
         </section>
 
         {/* Blog Section */}
-        <section id="blog" className="py-16 md:py-24">
+        <section id="blog" className="py-16 md:py-24 bg-muted/40">
           <div className="container mx-auto px-4">
             <div className="mx-auto mb-12 max-w-2xl text-center">
               <h2 className="text-3xl font-bold md:text-4xl">
