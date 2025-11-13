@@ -3,3 +3,4 @@ config();
 
 import '@/ai/flows/suggest-item-categories.ts';
 import '@/ai/flows/forecast-demand.ts';
+import '@/ai/flows/scan-receipt.ts';

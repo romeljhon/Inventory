@@ -4,6 +4,8 @@ import { suggestItemCategories as suggestItemCategoriesFlow } from "@/ai/flows/s
 import type { SuggestItemCategoriesInput, SuggestItemCategoriesOutput } from "@/ai/flows/suggest-item-categories";
 import { forecastDemand as forecastDemandFlow } from "@/ai/flows/forecast-demand";
 import type { ForecastDemandInput, ForecastDemandOutput } from "@/ai/flows/forecast-demand";
+import { scanReceipt as scanReceiptFlow } from "@/ai/flows/scan-receipt";
+import type { ScanReceiptInput, ScanReceiptOutput } from "@/ai/flows/scan-receipt";
 
 export async function suggestItemCategories(
   input: SuggestItemCategoriesInput
@@ -31,5 +33,23 @@ export async function forecastDemand(
         forecastedSales: 0,
         reasoning: "An unexpected error occurred while generating the forecast."
      };
+  }
+}
+
+export async function scanReceipt(
+  input: ScanReceiptInput
+): Promise<ScanReceiptOutput> {
+  try {
+    const result = await scanReceiptFlow(input);
+    return result;
+  } catch (error) {
+    console.error("Error scanning receipt:", error);
+    // Return a structured error or a default value
+    return {
+        supplierName: "Error",
+        transactionDate: "",
+        lineItems: [],
+        total: 0
+    };
   }
 }
