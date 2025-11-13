@@ -18,7 +18,7 @@ import { useInventory } from '@/hooks/use-inventory';
 import type { Supplier } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, CollectionReference } from 'firebase/firestore';
 import { useCollection } from '@/firebase';
 
 
@@ -37,13 +37,13 @@ export default function ReceiptScannerPage() {
     firestore && business?.id ? collection(firestore, 'businesses', business.id, 'suppliers') : null,
     [firestore, business?.id]
   );
-  const { data: suppliers, loading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef as any);
+  const { data: suppliers, loading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef as CollectionReference<Supplier> | null);
 
 
   const [isCameraOn, setIsCameraOn] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [scannedImage, setScannedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   const [extractedData, setExtractedData] = useState<ScanReceiptOutput | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
 
@@ -68,7 +68,6 @@ export default function ReceiptScannerPage() {
           videoRef.current.play(); // Explicitly play the video
         }
       } catch (err) {
-        setHasCameraPermission(false);
         toast({
           variant: 'destructive',
           title: 'Camera Access Denied',
@@ -97,7 +96,6 @@ export default function ReceiptScannerPage() {
     }
     reset();
     setIsCameraOn(true);
-    setHasCameraPermission(true);
   };
   
 
@@ -137,6 +135,9 @@ export default function ReceiptScannerPage() {
     setIsLoading(true);
     setExtractedData(null);
     setScanError(null);
+    setIsRateLimited(true);
+    setTimeout(() => setIsRateLimited(false), 5000); // Re-enable buttons after 5 seconds
+
     try {
       const result = await scanReceipt({ receiptImage: imageData });
       setExtractedData(result);
@@ -198,7 +199,6 @@ export default function ReceiptScannerPage() {
     setScannedImage(null);
     setExtractedData(null);
     setScanError(null);
-    setHasCameraPermission(null);
     stopCamera();
   };
   
@@ -244,7 +244,7 @@ export default function ReceiptScannerPage() {
             )}
           </CardContent>
           <CardFooter className="justify-end">
-            <Button onClick={reset}><RefreshCw className="mr-2 h-4 w-4"/>Try Again</Button>
+            <Button onClick={reset} disabled={isRateLimited}><RefreshCw className="mr-2 h-4 w-4"/>Try Again</Button>
           </CardFooter>
         </Card>
       );
@@ -291,7 +291,7 @@ export default function ReceiptScannerPage() {
             </div>
           </CardContent>
           <CardFooter className="justify-end gap-2">
-            <Button variant="outline" onClick={reset}>Scan Another</Button>
+            <Button variant="outline" onClick={reset} disabled={isRateLimited}>Scan Another</Button>
             <Button onClick={handleCreatePO}>Create Purchase Order <ArrowRight className="ml-2 h-4 w-4"/></Button>
           </CardFooter>
         </Card>
@@ -310,7 +310,7 @@ export default function ReceiptScannerPage() {
             <canvas ref={canvasRef} className="hidden" />
             <div className="flex w-full justify-between">
                 <Button variant="ghost" onClick={stopCamera}><X className="mr-2 h-4 w-4"/>Cancel</Button>
-                <Button onClick={handleCapture}><Camera className="mr-2 h-4 w-4"/>Capture</Button>
+                <Button onClick={handleCapture} disabled={isRateLimited}><Camera className="mr-2 h-4 w-4"/>Capture</Button>
             </div>
           </CardContent>
         </Card>
@@ -325,12 +325,12 @@ export default function ReceiptScannerPage() {
           </CardHeader>
           <CardContent className="space-y-6 p-6">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button size="lg" onClick={handleStartCamera} className="w-full sm:w-auto">
+                <Button size="lg" onClick={handleStartCamera} className="w-full sm:w-auto" disabled={isRateLimited}>
                 <Camera className="mr-2 h-5 w-5" />
                 Use Camera
                 </Button>
                 <div className="text-sm text-muted-foreground">or</div>
-                 <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+                 <Button asChild size="lg" variant="outline" className="w-full sm:w-auto" disabled={isRateLimited}>
                     <label>
                         <Upload className="mr-2 h-5 w-5" />
                         Upload Image
@@ -357,5 +357,3 @@ export default function ReceiptScannerPage() {
     </SidebarLayout>
   );
 }
-
-    
