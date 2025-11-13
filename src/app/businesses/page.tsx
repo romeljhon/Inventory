@@ -3,21 +3,27 @@
 
 import { SidebarLayout } from '@/components/sidebar-layout';
 import { useBusiness } from '@/hooks/use-business';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import { Icons } from '@/components/icons';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AddBusinessDialog } from '@/components/businesses/add-business-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DeleteBusinessAlert } from '@/components/businesses/delete-business-alert';
+import type { Business } from '@/lib/types';
+import { useUser } from '@/firebase';
 
 export default function BusinessesPage() {
-  const { businesses, switchBusiness, isLoading, setupBusiness, canCreateNewBusiness } = useBusiness();
+  const { user } = useUser();
+  const { businesses, switchBusiness, isLoading, setupBusiness, canCreateNewBusiness, deleteBusiness } = useBusiness();
   const router = useRouter();
   const { toast } = useToast();
   const [isAddBusinessOpen, setIsAddBusinessOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [deletingBusiness, setDeletingBusiness] = useState<Business | null>(null);
 
   const handleSelectBusiness = (businessId: string) => {
     switchBusiness(businessId);
@@ -34,6 +40,19 @@ export default function BusinessesPage() {
       });
       router.push('/dashboard');
     }
+  };
+
+  const openDeleteDialog = (business: Business) => {
+    setDeletingBusiness(business);
+    setIsDeleteAlertOpen(true);
+  };
+  
+  const handleConfirmDelete = () => {
+    if (deletingBusiness) {
+      deleteBusiness(deletingBusiness.id);
+      setDeletingBusiness(null);
+    }
+    setIsDeleteAlertOpen(false);
   };
 
 
@@ -74,16 +93,34 @@ export default function BusinessesPage() {
           {businesses.map((business) => (
             <Card
               key={business.id}
-              className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-1"
-              onClick={() => handleSelectBusiness(business.id)}
+              className="flex flex-col justify-between transition-all hover:shadow-md"
             >
-              <CardHeader className="flex flex-col items-center justify-center text-center p-8">
+              <div
+                className="flex-grow cursor-pointer p-6 flex flex-col items-center justify-center text-center"
+                onClick={() => handleSelectBusiness(business.id)}
+              >
                 <div className="p-4 bg-primary/10 rounded-full mb-4">
                   <Icons.logo className="h-10 w-10 text-primary" />
                 </div>
                 <CardTitle className="text-2xl">{business.name}</CardTitle>
                 <CardDescription>Select this business</CardDescription>
-              </CardHeader>
+              </div>
+              {business.ownerId === user?.uid && (
+                <CardFooter className="p-2 border-t flex items-center justify-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openDeleteDialog(business);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           ))}
         </div>
@@ -92,6 +129,12 @@ export default function BusinessesPage() {
         isOpen={isAddBusinessOpen}
         onOpenChange={setIsAddBusinessOpen}
         onSave={handleSaveNewBusiness}
+      />
+      <DeleteBusinessAlert
+        isOpen={isDeleteAlertOpen}
+        onOpenChange={setIsDeleteAlertOpen}
+        onConfirm={handleConfirmDelete}
+        businessName={deletingBusiness?.name || ''}
       />
     </SidebarLayout>
   );

@@ -31,6 +31,7 @@ interface BusinessContextType {
   deleteBranch: (branchId: string) => Promise<void>;
   updateBusiness: (businessId: string, newName: string) => Promise<void>;
   updateBranch: (branchId: string, newName: string) => Promise<void>;
+  deleteBusiness: (businessId: string) => Promise<void>;
   addEmployee: (employeeData: Omit<Employee, "id" | "createdAt">) => Promise<Employee | undefined>;
   updateEmployee: (employeeId: string, employeeData: Partial<Omit<Employee, "id" | "createdAt">>) => Promise<void>;
   deleteEmployee: (employeeId: string) => Promise<void>;
@@ -61,14 +62,14 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   // 1. Fetch all businesses if super admin, otherwise just the ones the user has a role in.
   const businessesQuery = useMemo(() => {
     if (!firestore) return null;
-    if (isSuperAdmin) {
+    if (user?.email === 'romeljhonsalvaleon27@gmail.com') {
       return collection(firestore, 'businesses');
     }
     if (user?.uid) {
       return query(collection(firestore, 'businesses'), where(`roles.${user.uid}`, 'in', ['Owner', 'Admin', 'Staff']));
     }
     return null;
-  }, [firestore, user?.uid, isSuperAdmin]);
+  }, [firestore, user?.uid, user?.email]);
   const { data: businesses, loading: businessesLoading } = useCollection<Business>(businessesQuery);
 
 
@@ -95,25 +96,26 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   const userRole = useMemo(() => {
     if (!user || !business || !business.roles) return null;
-    if (isSuperAdmin) return 'Owner'; // Super admin has owner privileges on any selected business
+    if (user?.email === 'romeljhonsalvaleon27@gmail.com') return 'Owner';
     return business.roles[user.uid] || null;
-  }, [user, business, isSuperAdmin]);
+  }, [user, business]);
   
   const canCreateNewBusiness = useMemo(() => {
     if (!user || !businesses) return false;
-    if (isSuperAdmin) return true;
-
+    if (user.email === 'romeljhonsalvaleon27@gmail.com') return true;
+  
     const ownedBusinesses = businesses.filter(b => b.ownerId === user.uid);
     if (ownedBusinesses.length === 0) return true;
-
+  
     const tierOrder: PlanId[] = ['free', 'growth', 'scale'];
     const highestTier = ownedBusinesses.reduce((maxTier, b) => {
         return tierOrder.indexOf(b.tier) > tierOrder.indexOf(maxTier) ? b.tier : maxTier;
     }, 'free');
-
+  
     const limit = planLimits[highestTier].businesses;
+    if (limit === Infinity) return true;
     return ownedBusinesses.length < limit;
-  }, [user, businesses, isSuperAdmin]);
+  }, [user, businesses]);
 
   const isLoading = userLoading || isBusinessLogicLoading || businessesLoading;
 
@@ -125,7 +127,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     if (user) {
       // If not a super admin and has no businesses, they are new.
-      if (!isSuperAdmin && (!businesses || businesses.length === 0)) {
+      if (user.email !== 'romeljhonsalvaleon27@gmail.com' && (!businesses || businesses.length === 0)) {
         setIsNewUser(true);
       } else {
         setIsNewUser(false);
@@ -134,7 +136,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
       setIsNewUser(false);
     }
     setIsBusinessLogicLoading(false);
-  }, [user, businesses, userLoading, businessesLoading, isSuperAdmin]);
+  }, [user, businesses, userLoading, businessesLoading]);
 
 
   // Redirect logic
@@ -419,6 +421,62 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
         errorEmitter.emit('permission-error', permissionError);
     }
   }, [firestore, business?.id, activeBranch?.id, switchBranch, incrementUsage]);
+  
+  const deleteBusiness = useCallback(async (businessId: string) => {
+    if (!firestore) return;
+    
+    const businessDocRef = doc(firestore, 'businesses', businessId);
+    
+    try {
+        // First, recursively delete all subcollections
+        const collectionsToDelete = ['suppliers', 'employees', 'branches'];
+        for (const subcollectionName of collectionsToDelete) {
+            const subcollectionRef = collection(businessDocRef, subcollectionName);
+            const snapshot = await getDocs(subcollectionRef);
+            
+            const deleteBatch = writeBatch(firestore);
+            for (const docSnapshot of snapshot.docs) {
+                // If it's a branch, we need to delete its subcollections too
+                if (subcollectionName === 'branches') {
+                    const branchSubcollections = ['items', 'categories', 'recipes', 'history', 'purchaseOrders', 'sales'];
+                    for (const branchSub of branchSubcollections) {
+                        const branchSubRef = collection(docSnapshot.ref, branchSub);
+                        const branchSubSnapshot = await getDocs(branchSubRef);
+                        branchSubSnapshot.forEach(d => deleteBatch.delete(d.ref));
+                    }
+                }
+                deleteBatch.delete(docSnapshot.ref);
+            }
+            await deleteBatch.commit();
+        }
+
+        // After all subcollections are deleted, delete the business document itself
+        await deleteDoc(businessDocRef);
+
+        // If the deleted business was the active one, clear it
+        if (activeBusinessId === businessId) {
+            switchBusiness(null);
+        }
+
+        toast({
+            title: "Business Deleted",
+            description: "The business and all its data have been successfully deleted.",
+        });
+
+    } catch (e) {
+        console.error("Failed to delete business:", e);
+        const permissionError = new FirestorePermissionError({
+            path: businessDocRef.path,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+            variant: "destructive",
+            title: "Deletion Failed",
+            description: "Could not delete the business. You may not have the required permissions.",
+        });
+    }
+  }, [firestore, activeBusinessId, switchBusiness, toast]);
 
   const addEmployee = useCallback(async (employeeData: Omit<Employee, "id" | "createdAt">): Promise<Employee | undefined> => {
     // This function will need a major refactor to work with the new `roles` map.
@@ -524,6 +582,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     deleteBranch,
     updateBusiness,
     updateBranch,
+    deleteBusiness,
     addEmployee,
     updateEmployee,
     deleteEmployee,
@@ -547,6 +606,7 @@ export const BusinessProvider: React.FC<{ children: ReactNode }> = ({ children }
     deleteBranch, 
     updateBusiness, 
     updateBranch,
+    deleteBusiness,
     addEmployee,
     updateEmployee,
     deleteEmployee,

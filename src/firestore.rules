@@ -1,0 +1,100 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isGlobalAdmin() {
+      return request.auth.token.email == 'romeljhonsalvaleon27@gmail.com';
+    }
+
+    function getRole(businessId) {
+      return get(/databases/$(database)/documents/businesses/$(businessId)).data.roles[request.auth.uid];
+    }
+    
+    function isOwner(businessId) {
+      return getRole(businessId) == 'Owner';
+    }
+    
+    function isAdmin(businessId) {
+      return getRole(businessId) == 'Admin' || isOwner(businessId);
+    }
+
+    function isEmployee(businessId) {
+      return getRole(businessId) in ['Owner', 'Admin', 'Staff'];
+    }
+
+    match /users/{userId} {
+      // Users can create and manage their own profile.
+      allow read, write: if request.auth != null && (request.auth.uid == userId || isGlobalAdmin());
+    }
+
+    match /businesses/{businessId} {
+      allow read: if isEmployee(businessId) || isGlobalAdmin();
+      allow write: if isOwner(businessId) || isGlobalAdmin();
+      allow delete: if isOwner(businessId) || isGlobalAdmin();
+      
+      // Employee Management: Only the Owner or an Admin can manage employees.
+      match /employees/{employeeId} {
+        allow read, write: if isAdmin(businessId) || isGlobalAdmin();
+        allow delete: if isAdmin(businessId) || isGlobalAdmin();
+      }
+      
+      // Supplier Management: Only Owner or an Admin can manage suppliers
+      match /suppliers/{supplierId} {
+        allow read, write: if isAdmin(businessId) || isGlobalAdmin();
+        allow delete: if isAdmin(businessId) || isGlobalAdmin();
+      }
+
+      // Branch Management: Only Owner/Admin can manage branches.
+      match /branches/{branchId} {
+        allow write: if isAdmin(businessId) || isGlobalAdmin();
+        allow read: if isEmployee(businessId) || isGlobalAdmin();
+        allow delete: if isAdmin(businessId) || isGlobalAdmin();
+      }
+
+      // Read access to all subcollections for all employees
+      match /{subcollection}/{docId=**} {
+         allow read: if isEmployee(businessId) || isGlobalAdmin();
+         allow delete: if isOwner(businessId) || isGlobalAdmin();
+      }
+      
+      // Write access for most data is restricted to Owners/Admins
+      match /branches/{branchId}/items/{itemId} {
+        allow read: if isEmployee(businessId) || isGlobalAdmin();
+        allow create, delete: if isAdmin(businessId) || isGlobalAdmin();
+        // All employees can update quantity via sales or receiving POs
+        allow update: if (isAdmin(businessId) || isGlobalAdmin()) || (isEmployee(businessId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantity']));
+      }
+      
+      match /branches/{branchId}/categories/{categoryId} {
+         allow read: if isEmployee(businessId) || isGlobalAdmin();
+         allow write: if isAdmin(businessId) || isGlobalAdmin(); 
+      }
+      
+      match /branches/{branchId}/recipes/{recipeId} {
+         allow read: if isEmployee(businessId) || isGlobalAdmin();
+         allow write: if isAdmin(businessId) || isGlobalAdmin();
+      }
+      
+      match /branches/{branchId}/purchaseOrders/{poId} {
+        allow read: if isEmployee(businessId) || isGlobalAdmin();
+        allow write: if isAdmin(businessId) || isGlobalAdmin();
+      }
+
+      // All employees can create history logs (e.g., through sales, receiving stock)
+      match /branches/{branchId}/history/{historyId} {
+        allow read: if isEmployee(businessId) || isGlobalAdmin();
+        allow create: if isEmployee(businessId) || isGlobalAdmin(); 
+        allow update, delete: if false; // History should be immutable
+      }
+
+      // All employees can create sales records
+      match /branches/{branchId}/sales/{saleId} {
+        allow read: if isEmployee(businessId) || isGlobalAdmin();
+        allow create: if isEmployee(businessId) || isGlobalAdmin();
+        allow update, delete: if false; // Sales should be immutable
+      }
+    }
+  }
+}
