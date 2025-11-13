@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState } from 'react';
@@ -311,74 +312,69 @@ export function LandingPage() {
         {/* How It Works Section */}
         <section id="how-it-works" className="py-16 md:py-24">
           <div className="container mx-auto px-4">
-            <div className="mx-auto mb-12 max-w-2xl text-center">
+            <div className="mx-auto mb-16 max-w-2xl text-center">
               <h2 className="text-3xl font-bold md:text-4xl">How It Works</h2>
               <p className="mt-4 text-muted-foreground">
                 Get up and running in just a few simple steps.
               </p>
             </div>
-            <div className="relative">
-              <div className="absolute left-1/2 top-12 hidden h-full w-[2px] -translate-x-1/2 bg-border md:block"></div>
-              <div className="grid gap-12 md:grid-cols-1">
+            <div className="relative max-w-3xl mx-auto">
+              <div className="absolute left-8 top-8 h-full w-px bg-border -z-10"></div>
+              <div className="space-y-12">
+                
                 {/* Step 1 */}
-                <div className="relative flex flex-col items-center text-center md:flex-row md:text-left">
-                  <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:mr-8">
-                    <Building className="h-6 w-6" />
+                <div className="relative pl-20">
+                  <div className="absolute top-0 left-0 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Building className="h-8 w-8" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold">1. Set Up Your Business & Suppliers</h3>
-                    <p className="text-muted-foreground">
-                      Create your business profile, add your first branch, and list your suppliers to get started.
-                    </p>
-                  </div>
+                  <h3 className="mb-2 text-2xl font-semibold">1. Set Up Your Business</h3>
+                  <p className="text-muted-foreground">
+                    Create your business profile, add your first branch, and list your suppliers to get started.
+                  </p>
                 </div>
+
                 {/* Step 2 */}
-                <div className="relative flex flex-col items-center text-center md:flex-row-reverse md:text-right">
-                  <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:ml-8">
-                    <PlusCircle className="h-6 w-6" />
+                <div className="relative pl-20">
+                   <div className="absolute top-0 left-0 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <PlusCircle className="h-8 w-8" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold">2. Add Inventory Components</h3>
-                    <p className="text-muted-foreground">
-                      Stock your inventory with raw materials ('Components') you purchase, setting initial quantities, value, and reorder points.
-                    </p>
-                  </div>
+                  <h3 className="mb-2 text-2xl font-semibold">2. Add Inventory Components</h3>
+                  <p className="text-muted-foreground">
+                    Stock your inventory with raw materials ('Components') you purchase, setting initial quantities, value, and reorder points.
+                  </p>
                 </div>
+
                 {/* Step 3 */}
-                <div className="relative flex flex-col items-center text-center md:flex-row md:text-left">
-                  <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:mr-8">
-                    <BookCopy className="h-6 w-6" />
+                <div className="relative pl-20">
+                  <div className="absolute top-0 left-0 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <BookCopy className="h-8 w-8" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold">3. Define Products & Recipes</h3>
-                    <p className="text-muted-foreground">
-                      Create your finished goods ('Products') and define recipes that specify which components are needed to produce them.
-                    </p>
-                  </div>
+                  <h3 className="mb-2 text-2xl font-semibold">3. Define Products & Recipes</h3>
+                  <p className="text-muted-foreground">
+                    Create your finished goods ('Products') and define recipes that specify which components are needed to produce them.
+                  </p>
                 </div>
+
                 {/* Step 4 */}
-                <div className="relative flex flex-col items-center text-center md:flex-row-reverse md:text-right">
-                   <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:ml-8">
-                    <ShoppingCart className="h-6 w-6" />
+                <div className="relative pl-20">
+                  <div className="absolute top-0 left-0 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <ShoppingCart className="h-8 w-8" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold">4. Manage Purchasing & Sales</h3>
-                    <p className="text-muted-foreground">
-                      Create purchase orders manually, get AI suggestions, or use the AI Receipt Scanner to instantly create POs from paper receipts. Sell products with the smart POS, and stock levels are updated automatically.
-                    </p>
-                  </div>
+                  <h3 className="mb-2 text-2xl font-semibold">4. Manage Purchasing & Sales</h3>
+                  <p className="text-muted-foreground">
+                    Create POs manually, get AI suggestions, or use the AI Receipt Scanner. Sell products with the smart POS, and stock levels update automatically.
+                  </p>
                 </div>
+
                 {/* Step 5 */}
-                <div className="relative flex flex-col items-center text-center md:flex-row md:text-left">
-                  <div className="relative z-10 mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground md:mb-0 md:mr-8">
-                    <BarChart className="h-6 w-6" />
+                <div className="relative pl-20">
+                   <div className="absolute top-0 left-0 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <BarChart className="h-8 w-8" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="mb-2 text-xl font-semibold">5. Analyze & Forecast</h3>
-                    <p className="text-muted-foreground">
-                      Use built-in reports to analyze sales performance and leverage AI-powered forecasting to predict future product demand.
-                    </p>
-                  </div>
+                  <h3 className="mb-2 text-2xl font-semibold">5. Analyze & Forecast</h3>
+                  <p className="text-muted-foreground">
+                    Use built-in reports to analyze sales and leverage AI-powered forecasting to predict future product demand.
+                  </p>
                 </div>
               </div>
             </div>
