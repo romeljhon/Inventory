@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { SidebarLayout } from '@/components/sidebar-layout';
@@ -17,6 +17,10 @@ import { useBusiness } from '@/hooks/use-business';
 import { useInventory } from '@/hooks/use-inventory';
 import type { Supplier } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { useCollection } from '@/firebase';
+
 
 export default function ReceiptScannerPage() {
   const router = useRouter();
@@ -25,8 +29,16 @@ export default function ReceiptScannerPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { activeBranch } = useBusiness();
-  const { items, suppliers } = useInventory(activeBranch?.id);
+  const { business, activeBranch } = useBusiness();
+  const { items } = useInventory(activeBranch?.id);
+  const firestore = useFirestore();
+
+  const suppliersCollectionRef = useMemo(() =>
+    firestore && business?.id ? collection(firestore, 'businesses', business.id, 'suppliers') : null,
+    [firestore, business?.id]
+  );
+  const { data: suppliers, loading: suppliersLoading } = useCollection<Supplier>(suppliersCollectionRef as any);
+
 
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -132,7 +144,13 @@ export default function ReceiptScannerPage() {
     } catch (error) {
       console.error("Scan failed:", error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      setScanError(errorMessage);
+      
+      if (errorMessage.includes("overloaded")) {
+        setScanError("The AI scanner is currently busy. Please wait a moment and try again.");
+      } else {
+        setScanError("The AI could not read the receipt. Please try again with a clearer image.");
+      }
+
       toast({
         variant: "destructive",
         title: "Scan Failed",
@@ -144,11 +162,11 @@ export default function ReceiptScannerPage() {
   };
   
   const handleCreatePO = () => {
-    if (!extractedData) return;
+    if (!extractedData || suppliersLoading) return;
 
     // Find the best matching supplier
     const lowercasedSupplierName = extractedData.supplierName.toLowerCase();
-    const matchedSupplier = (suppliers || []).find(s => s.name.toLowerCase().includes(lowercasedSupplierName));
+    const matchedSupplier = (suppliers || []).find((s: { name: string; }) => s.name.toLowerCase().includes(lowercasedSupplierName));
 
     const components = items.filter(i => i.itemType === 'Component');
 
@@ -210,7 +228,7 @@ export default function ReceiptScannerPage() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Scan Failed</AlertTitle>
                 <AlertDescription>
-                    The AI could not read the receipt. Please try again with a clearer, well-lit image.
+                    {scanError}
                 </AlertDescription>
             </Alert>
           </CardHeader>
@@ -320,23 +338,6 @@ export default function ReceiptScannerPage() {
                     </label>
                 </Button>
             </div>
-             <Card className="bg-muted/50 border-dashed">
-                <CardHeader className="flex-row items-center gap-4">
-                     <Image
-                      src="https://storage.googleapis.com/static.aiforge.co/misc/receipt-example.png"
-                      alt="Example of a good receipt for scanning"
-                      width={100}
-                      height={150}
-                      className="rounded-md border-2 border-border"
-                    />
-                    <div>
-                        <CardTitle className="text-lg">For Best Results</CardTitle>
-                        <CardDescription className="mt-1">
-                          Use a clear, flat, well-lit image of a standard printed receipt. Avoid handwriting, glare, and strong shadows.
-                        </CardDescription>
-                    </div>
-                </CardHeader>
-            </Card>
           </CardContent>
         </Card>
     );
