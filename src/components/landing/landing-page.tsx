@@ -390,7 +390,7 @@ export function LandingPage() {
                 </p>
               </div>
               <div className="relative h-80 w-full rounded-lg overflow-hidden shadow-lg">
-                <Image src="https://picsum.photos/seed/4/800/600" alt="Our team" layout="fill" objectFit="cover" data-ai-hint="team working" />
+                <Image src="https://picsum.photos/seed/5/800/600" alt="Our team" layout="fill" objectFit="cover" data-ai-hint="people working together" />
               </div>
             </div>
           </div>
