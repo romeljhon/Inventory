@@ -38,7 +38,7 @@ import { useBusiness } from "@/hooks/use-business";
 import { useAuth } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { Icons } from "@/components/icons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { AddBusinessDialog } from "./businesses/add-business-dialog";
 import { EditBusinessDialog } from "./businesses/edit-business-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -69,6 +69,8 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   };
   
   const user = auth?.currentUser;
+
+  const isGlobalAdmin = useMemo(() => user?.email === 'romeljhonsalvaleon27@gmail.com', [user]);
 
   const handleBackToBranches = () => {
     switchBranch(null);
@@ -151,7 +153,7 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {isOwner && (
+            {isGlobalAdmin && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/admin"}>
                     <Link href="/admin">
